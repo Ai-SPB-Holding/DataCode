@@ -558,15 +558,36 @@ impl Interpreter {
                 _ => Err(DataCodeError::type_error("Number", "other", self.current_line)),
             },
 
-            BinaryOp::Divide => match (left, right) {
-                (Number(a), Number(b)) => {
-                    if *b == 0.0 {
-                        Err(DataCodeError::runtime_error("Division by zero", self.current_line))
-                    } else {
-                        Ok(Number(a / b))
+            BinaryOp::Divide => {
+                // Интеллектуальная обработка оператора /
+                // Если левый операнд - Path, то это PathJoin
+                // Если оба операнда - числа, то это математическое деление
+                match (left, right) {
+                    (Path(p), String(s)) => {
+                        let mut path = p.clone();
+                        path.push(s);
+                        Ok(Path(path))
+                    }
+                    (Path(p1), Path(p2)) => {
+                        let mut path = p1.clone();
+                        path.push(p2);
+                        Ok(Path(path))
+                    }
+                    (Number(a), Number(b)) => {
+                        if *b == 0.0 {
+                            Err(DataCodeError::runtime_error("Division by zero", self.current_line))
+                        } else {
+                            Ok(Number(a / b))
+                        }
+                    }
+                    _ => {
+                        // Если типы не подходят ни для PathJoin, ни для деления
+                        Err(DataCodeError::runtime_error(
+                            "Invalid operands for / operator. Use Path/String for path joining or Number/Number for division",
+                            self.current_line
+                        ))
                     }
                 }
-                _ => Err(DataCodeError::type_error("Number", "other", self.current_line)),
             },
 
             BinaryOp::Equal => Ok(Bool(self.values_equal(left, right))),

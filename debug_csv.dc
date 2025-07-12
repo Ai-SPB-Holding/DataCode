@@ -1,0 +1,8 @@
+global base_path = getcwd()
+global test_dir = base_path / 'test_data'
+global csv_path = test_dir / 'sample.csv'
+print('Reading CSV file:', csv_path)
+global csv_data = read_file(csv_path)
+print('CSV data loaded successfully!')
+global rows_count = len(csv_data)
+print('Number of rows:', rows_count)

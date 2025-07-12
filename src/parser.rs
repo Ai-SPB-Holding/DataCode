@@ -420,11 +420,9 @@ impl Parser {
                 Token::Plus => BinaryOp::Add,
                 Token::Minus => BinaryOp::Subtract,
                 Token::Divide => {
-                    // Определяем контекстно: если левый операнд может быть путем, то это PathJoin
-                    match &left {
-                        Expr::Variable(_) | Expr::FunctionCall { .. } => BinaryOp::PathJoin,
-                        _ => BinaryOp::Add, // Временно используем Add для неопределенных случаев
-                    }
+                    // Оператор / будет интеллектуально обработан в интерпретаторе
+                    // PathJoin для путей, математическое деление для чисел
+                    BinaryOp::Divide
                 }
                 _ => unreachable!(),
             };
@@ -446,7 +444,7 @@ impl Parser {
         while matches!(self.current_token, Token::Multiply | Token::Divide) {
             let op = match self.current_token {
                 Token::Multiply => BinaryOp::Multiply,
-                Token::Divide => BinaryOp::Divide,
+                Token::Divide => BinaryOp::Divide, // Интеллектуальная обработка в интерпретаторе
                 _ => unreachable!(),
             };
             self.advance();
@@ -503,12 +501,12 @@ impl Parser {
             Token::Identifier(name) => {
                 let name = name.clone();
                 self.advance();
-                
+
                 // Проверяем, является ли это вызовом функции
-                if matches!(self.current_token, Token::LeftParen) {
+                let mut expr = if matches!(self.current_token, Token::LeftParen) {
                     self.advance(); // consume '('
                     let mut args = Vec::new();
-                    
+
                     if !matches!(self.current_token, Token::RightParen) {
                         loop {
                             args.push(self.parse_expression()?);
@@ -519,12 +517,25 @@ impl Parser {
                             }
                         }
                     }
-                    
+
                     self.expect(Token::RightParen)?;
-                    Ok(Expr::FunctionCall { name, args })
+                    Expr::FunctionCall { name, args }
                 } else {
-                    Ok(Expr::Variable(name))
+                    Expr::Variable(name)
+                };
+
+                // Проверяем индексирование
+                while matches!(self.current_token, Token::LeftBracket) {
+                    self.advance(); // consume '['
+                    let index = self.parse_expression()?;
+                    self.expect(Token::RightBracket)?;
+                    expr = Expr::Index {
+                        object: Box::new(expr),
+                        index: Box::new(index),
+                    };
                 }
+
+                Ok(expr)
             }
             Token::LeftParen => {
                 self.advance();

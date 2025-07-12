@@ -73,6 +73,14 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                             let mut rdr = csv::Reader::from_path(p)
                                 .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV: {}", e), line))?;
                             let mut rows = vec![];
+
+                            // Добавляем заголовки
+                            if let Ok(headers) = rdr.headers() {
+                                let header_row = headers.iter().map(|s| Value::String(s.to_string())).collect();
+                                rows.push(Value::Array(header_row));
+                            }
+
+                            // Добавляем данные
                             for result in rdr.records() {
                                 let record = result.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
                                 let row = record.iter().map(|s| Value::String(s.to_string())).collect();
@@ -401,6 +409,50 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                         }
                     }
                     Ok(Array(unique_items))
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+        "len" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("len", 1, args.len(), line));
+            }
+            match &args[0] {
+                Array(arr) => Ok(Number(arr.len() as f64)),
+                String(s) => Ok(Number(s.len() as f64)),
+                _ => Err(DataCodeError::type_error("Array or String", "other", line)),
+            }
+        }
+        "div" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("div", 2, args.len(), line));
+            }
+            match (&args[0], &args[1]) {
+                (Number(a), Number(b)) => {
+                    if *b == 0.0 {
+                        Err(DataCodeError::runtime_error("Division by zero", line))
+                    } else {
+                        Ok(Number(a / b))
+                    }
+                }
+                _ => Err(DataCodeError::type_error("Number", "other", line)),
+            }
+        }
+        "array" => {
+            if args.len() != 0 {
+                return Err(DataCodeError::wrong_argument_count("array", 0, args.len(), line));
+            }
+            Ok(Array(vec![]))
+        }
+        "append" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("append", 2, args.len(), line));
+            }
+            match (&args[0], &args[1]) {
+                (Array(arr), value) => {
+                    let mut new_arr = arr.clone();
+                    new_arr.push(value.clone());
+                    Ok(Array(new_arr))
                 }
                 _ => Err(DataCodeError::type_error("Array", "other", line)),
             }

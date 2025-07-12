@@ -1,0 +1,52 @@
+# Демонстрация чтения файлов в DataCode
+print('=== Демонстрация чтения файлов DataCode ===')
+
+# Получаем текущую директорию
+global current_dir = getcwd()
+print('Текущая директория:', current_dir)
+
+# Создаем путь к тестовым данным
+global test_data_dir = current_dir / 'test_data'
+print('Директория с тестовыми данными:', test_data_dir)
+
+# Получаем список всех файлов
+global all_files = list_files(test_data_dir)
+print('Найденные файлы:', all_files)
+
+print('')
+print('=== Чтение TXT файла ===')
+global txt_path = test_data_dir / 'sample.txt'
+global txt_content = read_file(txt_path)
+print('Содержимое TXT файла:')
+print(txt_content)
+
+print('')
+print('=== Чтение CSV файла ===')
+global csv_path = test_data_dir / 'sample.csv'
+global csv_data = read_file(csv_path)
+print('CSV данные (количество строк):', len(csv_data))
+print('Заголовки CSV:', csv_data[0])
+print('Первая строка данных:', csv_data[1])
+
+print('')
+print('=== Чтение XLSX файла ===')
+global xlsx_path = test_data_dir / 'sample.xlsx'
+global xlsx_data = read_file(xlsx_path)
+print('XLSX данные (количество строк):', len(xlsx_data))
+print('Заголовки XLSX:', xlsx_data[0])
+if len(xlsx_data) > 1 do
+    print('Первая строка данных:', xlsx_data[1])
+endif
+
+print('')
+print('=== Обработка всех файлов ===')
+global processed_files = array()
+for filename in all_files do
+    local file_path = test_data_dir / filename
+    local content = read_file(file_path)
+    global processed_files = append(processed_files, filename)
+    print('Обработан файл:', filename)
+forend
+
+print('Всего обработано файлов:', len(processed_files))
+print('=== Демонстрация завершена ===')
