@@ -1,7 +1,6 @@
 use data_code::parser::{Parser, Lexer, Token, Expr, BinaryOp, UnaryOp};
 use data_code::value::Value;
-use data_code::evaluator::{Evaluator, parse_and_evaluate};
-use data_code::error::DataCodeError;
+use data_code::evaluator::parse_and_evaluate;
 use std::collections::HashMap;
 
 #[cfg(test)]

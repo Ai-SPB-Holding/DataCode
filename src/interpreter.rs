@@ -28,6 +28,7 @@ pub struct Interpreter {
     pub return_value: Option<Value>,
     pub current_line: usize,
     pub call_stack: Vec<HashMap<String, Value>>, // Стек локальных переменных для функций
+    pub loop_stack: Vec<HashMap<String, Value>>, // Стек локальных переменных для циклов
 }
 
 impl Interpreter {
@@ -39,11 +40,19 @@ impl Interpreter {
             return_value: None,
             current_line: 1,
             call_stack: Vec::new(),
+            loop_stack: Vec::new(),
         }
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
-        // Сначала ищем в локальных переменных (стек вызовов)
+        // Сначала ищем в локальных переменных циклов (проверяем все уровни, начиная с последнего)
+        for loop_vars in self.loop_stack.iter().rev() {
+            if let Some(value) = loop_vars.get(name) {
+                return Some(value);
+            }
+        }
+
+        // Затем ищем в локальных переменных функций (стек вызовов)
         if let Some(local_vars) = self.call_stack.last() {
             if let Some(value) = local_vars.get(name) {
                 return Some(value);
@@ -59,14 +68,29 @@ impl Interpreter {
     }
 
     pub fn set_variable(&mut self, name: String, value: Value, is_global: bool) {
-        if is_global || self.call_stack.is_empty() {
-            // Глобальная переменная или мы не в функции
+        if is_global {
+            // Явно глобальная переменная
             self.variables.insert(name, value);
-        } else {
-            // Локальная переменная в функции
+        } else if !self.loop_stack.is_empty() {
+            // Мы в цикле - устанавливаем в локальном контексте цикла
+            if let Some(loop_vars) = self.loop_stack.last_mut() {
+                loop_vars.insert(name, value);
+            }
+        } else if !self.call_stack.is_empty() {
+            // Мы в функции - устанавливаем в локальном контексте функции
             if let Some(local_vars) = self.call_stack.last_mut() {
                 local_vars.insert(name, value);
             }
+        } else {
+            // Глобальная переменная (не в функции и не в цикле)
+            self.variables.insert(name, value);
+        }
+    }
+
+    // Специальный метод для установки переменной цикла
+    pub fn set_loop_variable(&mut self, name: String, value: Value) {
+        if let Some(loop_vars) = self.loop_stack.last_mut() {
+            loop_vars.insert(name, value);
         }
     }
 
@@ -167,22 +191,20 @@ impl Interpreter {
         // Сбрасываем return_value
         self.return_value = None;
 
-        // Выполняем тело функции
+        // Выполняем тело функции как многострочный код
         let mut result = Value::Null;
-        for line in &function.body {
-            match self.exec(line) {
-                Ok(_) => {
-                    // Проверяем, был ли return
-                    if let Some(return_val) = &self.return_value {
-                        result = return_val.clone();
-                        break;
-                    }
+        let function_body = function.body.join("\n");
+        match self.exec(&function_body) {
+            Ok(_) => {
+                // Проверяем, был ли return
+                if let Some(return_val) = &self.return_value {
+                    result = return_val.clone();
                 }
-                Err(e) => {
-                    // Убираем локальный контекст при ошибке
-                    self.call_stack.pop();
-                    return Err(e);
-                }
+            }
+            Err(e) => {
+                // Убираем локальный контекст при ошибке
+                self.call_stack.pop();
+                return Err(e);
             }
         }
 
@@ -237,24 +259,52 @@ impl Interpreter {
                 // Выполняем всю функцию как одну команду
                 let function_code = function_lines.join("\n");
                 self.exec_single_line(&function_code)?;
+
+                // Проверяем, был ли выполнен return
+                if self.return_value.is_some() {
+                    break;
+                }
             } else if line.starts_with("for ") && line.ends_with(" do") {
-                // Собираем весь цикл
+                // Собираем весь цикл с учетом вложенности
                 let mut loop_lines = vec![lines[i]];
+                let mut for_depth = 1; // Счетчик вложенности for
                 i += 1;
 
-                while i < lines.len() {
+                while i < lines.len() && for_depth > 0 {
                     let current_line = lines[i].trim();
+
+                    // Увеличиваем глубину при встрече нового for
+                    if current_line.starts_with("for ") && current_line.ends_with(" do") {
+                        for_depth += 1;
+                    }
+                    // Уменьшаем глубину при встрече forend
+                    else if current_line == "forend" {
+                        for_depth -= 1;
+                    }
+
                     loop_lines.push(lines[i]);
 
-                    if current_line == "forend" {
+                    // Если глубина стала 0, мы закончили основной блок for
+                    if for_depth == 0 {
                         break;
                     }
+
                     i += 1;
+                }
+
+                // Проверяем, что цикл правильно закрыт
+                if for_depth > 0 {
+                    return Err(DataCodeError::syntax_error("Missing forend in for loop", self.current_line, 0));
                 }
 
                 // Выполняем весь цикл как одну команду
                 let loop_code = loop_lines.join("\n");
                 self.exec_single_line(&loop_code)?;
+
+                // Проверяем, был ли выполнен return
+                if self.return_value.is_some() {
+                    break;
+                }
             } else if line.starts_with("if ") && (line.ends_with(" do") || line.ends_with(" then")) {
                 // Собираем всю условную конструкцию с учетом вложенности
                 let mut if_lines = vec![lines[i]];
@@ -286,9 +336,19 @@ impl Interpreter {
                 // Выполняем всю условную конструкцию как одну команду
                 let if_code = if_lines.join("\n");
                 self.exec_single_line(&if_code)?;
+
+                // Проверяем, был ли выполнен return
+                if self.return_value.is_some() {
+                    break;
+                }
             } else {
                 // Обычная строка
                 self.exec_single_line(lines[i])?;
+            }
+
+            // Проверяем, был ли выполнен return
+            if self.return_value.is_some() {
+                break;
             }
 
             i += 1;
@@ -360,14 +420,25 @@ impl Interpreter {
 
             if let Value::Array(items) = collection_val {
                 for item in items {
-                    self.set_variable(var_name.to_string(), item, false); // локальная переменная цикла
-                    for line in body_code.lines() {
-                        self.exec(line.trim())?;
+                    // Создаем новый локальный контекст для цикла
+                    self.loop_stack.push(HashMap::new());
+
+                    // Устанавливаем переменную цикла в локальном контексте
+                    self.set_loop_variable(var_name.to_string(), item);
+
+                    // Выполняем тело цикла - используем exec() для обработки многострочных конструкций
+                    if !body_code.trim().is_empty() {
+                        self.exec(&body_code)?;
                         // Проверяем return в цикле
                         if self.return_value.is_some() {
+                            // Убираем локальный контекст цикла перед выходом
+                            self.loop_stack.pop();
                             return Ok(());
                         }
                     }
+
+                    // Убираем локальный контекст цикла после завершения итерации
+                    self.loop_stack.pop();
                 }
                 Ok(())
             } else {
@@ -641,9 +712,11 @@ impl Interpreter {
 
         // Ищем else на том же уровне вложенности
         let mut else_index = None;
-        let mut if_depth = 0;
+        let mut if_depth = 1; // Начинаем с 1, так как мы уже внутри первого if
 
         for (i, line) in lines.iter().enumerate() {
+            if i == 0 { continue; } // Пропускаем первую строку (заголовок if)
+
             let trimmed = line.trim();
 
             // Увеличиваем глубину при встрече if
@@ -686,21 +759,15 @@ impl Interpreter {
         // Выполняем соответствующий блок
         if condition_result {
             // Выполняем блок if
-            for line in &if_body {
-                self.exec(line.trim())?;
-                // Проверяем return в условии
-                if self.return_value.is_some() {
-                    return Ok(());
-                }
+            if !if_body.is_empty() {
+                let if_code = if_body.join("\n");
+                self.exec(&if_code)?;
             }
         } else if let Some(else_lines) = else_body {
             // Выполняем блок else
-            for line in &else_lines {
-                self.exec(line.trim())?;
-                // Проверяем return в условии
-                if self.return_value.is_some() {
-                    return Ok(());
-                }
+            if !else_lines.is_empty() {
+                let else_code = else_lines.join("\n");
+                self.exec(&else_code)?;
             }
         }
 

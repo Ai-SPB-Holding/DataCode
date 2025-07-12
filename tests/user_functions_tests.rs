@@ -91,19 +91,27 @@ endfunction"#;
     #[test]
     fn test_recursive_function() {
         let mut interp = Interpreter::new();
-        
+
         let function_code = r#"global function factorial(n) do
-    if n <= 1 then
+    if n <= 1 do
         return 1
     else
         return n * factorial(n - 1)
     endif
 endfunction"#;
-        
-        // Пока что пропускаем этот тест, так как if/else еще не реализованы
-        // interp.exec(function_code).unwrap();
-        // interp.exec("global fact5 = factorial(5)").unwrap();
-        // assert_eq!(interp.get_variable("fact5"), Some(&Value::Number(120.0)));
+
+        interp.exec(function_code).unwrap();
+        interp.exec("global fact5 = factorial(5)").unwrap();
+        assert_eq!(interp.get_variable("fact5"), Some(&Value::Number(120.0)));
+
+        // Тест других значений
+        interp.exec("global fact0 = factorial(0)").unwrap();
+        interp.exec("global fact1 = factorial(1)").unwrap();
+        interp.exec("global fact3 = factorial(3)").unwrap();
+
+        assert_eq!(interp.get_variable("fact0"), Some(&Value::Number(1.0)));
+        assert_eq!(interp.get_variable("fact1"), Some(&Value::Number(1.0)));
+        assert_eq!(interp.get_variable("fact3"), Some(&Value::Number(6.0)));
     }
 
     #[test]
@@ -237,7 +245,7 @@ endfunction"#;
     #[test]
     fn test_function_with_early_return() {
         let mut interp = Interpreter::new();
-        
+
         let function_code = r#"global function early_return(x) do
     if x > 10 then
         return 'big'

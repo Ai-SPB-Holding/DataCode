@@ -415,11 +415,17 @@ impl Parser {
     fn parse_addition(&mut self) -> Result<Expr> {
         let mut left = self.parse_multiplication()?;
         
-        while matches!(self.current_token, Token::Plus | Token::Minus | Token::PathJoin) {
+        while matches!(self.current_token, Token::Plus | Token::Minus | Token::Divide) {
             let op = match self.current_token {
                 Token::Plus => BinaryOp::Add,
                 Token::Minus => BinaryOp::Subtract,
-                Token::PathJoin => BinaryOp::PathJoin,
+                Token::Divide => {
+                    // Определяем контекстно: если левый операнд может быть путем, то это PathJoin
+                    match &left {
+                        Expr::Variable(_) | Expr::FunctionCall { .. } => BinaryOp::PathJoin,
+                        _ => BinaryOp::Add, // Временно используем Add для неопределенных случаев
+                    }
+                }
                 _ => unreachable!(),
             };
             self.advance();
@@ -437,20 +443,10 @@ impl Parser {
     fn parse_multiplication(&mut self) -> Result<Expr> {
         let mut left = self.parse_unary()?;
 
-        while matches!(self.current_token, Token::Multiply | Token::Divide | Token::PathJoin) {
+        while matches!(self.current_token, Token::Multiply | Token::Divide) {
             let op = match self.current_token {
                 Token::Multiply => BinaryOp::Multiply,
-                Token::Divide => {
-                    // Определяем контекстно: если левый операнд - Path, то это PathJoin
-                    match &left {
-                        Expr::Variable(_) | Expr::FunctionCall { .. } => {
-                            // Может быть путь, используем PathJoin
-                            BinaryOp::PathJoin
-                        }
-                        _ => BinaryOp::Divide,
-                    }
-                }
-                Token::PathJoin => BinaryOp::PathJoin,
+                Token::Divide => BinaryOp::Divide,
                 _ => unreachable!(),
             };
             self.advance();
