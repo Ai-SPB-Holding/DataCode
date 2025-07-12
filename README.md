@@ -15,30 +15,66 @@
 - **Improved error messages** with line numbers
 - **Comment support** with `#`
 
-## 📦 Quick Start
+## 📦 Installation
 
-### Interactive REPL
+### Option 1: Global Installation (Recommended)
+Install DataCode as a global command:
+
 ```bash
-# Start interactive REPL (default)
-cargo run
+# Clone and install
+git clone https://github.com/igornet0/DataCode.git
+cd DataCode
 
-# Or explicitly specify REPL mode
-cargo run -- --repl
+# Install globally
+make install
+# or
+./install.sh
 
-# Run demonstration
-cargo run -- --demo
-
-# Show help
-cargo run -- --help
+# Now you can use datacode from anywhere!
+datacode --help
 ```
 
-### Execute Files
+### Option 2: Development Mode
+Run directly with Cargo:
+
+```bash
+git clone https://github.com/igornet0/DataCode.git
+cd DataCode
+cargo run
+```
+
+## 🎯 Usage
+
+### After Global Installation
+```bash
+datacode                   # Start interactive REPL
+datacode filename.dc       # Execute DataCode file
+datacode --repl            # Start interactive REPL
+datacode --demo            # Run demonstration
+datacode --help            # Show help
+```
+
+### Development Mode
+```bash
+cargo run                  # Start interactive REPL
+cargo run filename.dc      # Execute DataCode file
+cargo run -- --help       # Show help
+
+# Or use Makefile
+make run                   # Start REPL
+make examples              # Run all examples
+make test                  # Run tests
+```
+
+### Quick Examples
 ```bash
 # Create a DataCode file
 echo 'print("Hello, DataCode!")' > hello.dc
 
 # Execute the file
-cargo run hello.dc
+datacode hello.dc          # (after global installation)
+# or
+cargo run hello.dc         # (development mode)
 ```
 
 ### Программное использование
