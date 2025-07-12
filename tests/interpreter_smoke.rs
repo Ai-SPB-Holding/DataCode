@@ -1,10 +1,12 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
+use data_code::error::DataCodeError;
 
 #[test]
 fn test_basic_variable_assignment() {
     let mut interp = Interpreter::new();
-    interp.exec("global greeting = 'hi'").unwrap();
+    let result = interp.exec("global greeting = 'hi'").unwrap();
+    assert!(result.is_some()); // Присваивание должно возвращать значение
     let val = interp.get_variable("greeting").unwrap();
     assert_eq!(val, &Value::String("hi".to_string()));
 }
@@ -13,7 +15,8 @@ fn test_basic_variable_assignment() {
 fn test_path_building() {
     let mut interp = Interpreter::new();
     interp.set_variable("root", Value::Path("/base".into()));
-    interp.exec("global full = root / 'folder'").unwrap();
+    let result = interp.exec("global full = root / 'folder'").unwrap();
+    assert!(result.is_some()); // Присваивание должно возвращать значение
     let val = interp.get_variable("full").unwrap();
     match val {
         Value::Path(p) => assert_eq!(p, &std::path::PathBuf::from("/base/folder")),
@@ -28,10 +31,12 @@ fn test_error_path_building() {
     
     let result = interp.exec("global full = root / folder");
     
-    assert_eq!(
-        result.unwrap_err(),
-        "Unsupported expression: folder"
-    );
+    match result.unwrap_err() {
+        DataCodeError::VariableError { name, .. } => {
+            assert_eq!(name, "folder");
+        }
+        _ => panic!("Expected VariableError"),
+    }
 }
 
 #[test]
