@@ -7,7 +7,7 @@
 ## 🚀 Быстрый старт
 
 ```rust
-use datacode_interpreter::interpreter::Interpreter;
+use DataCode::interpreter::Interpreter;
 
 fn main() {
     let mut interp = Interpreter::new();

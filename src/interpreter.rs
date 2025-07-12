@@ -81,6 +81,16 @@ impl Interpreter {
             }
 
             call_function(func_name, args)
+        } else if expr.contains('+') {
+            let parts: Vec<_> = expr.splitn(2, '+').map(str::trim).collect();
+            if parts.len() != 2 {
+                return Err("Invalid + expression".to_string());
+            }
+
+            let left = self.eval_expr(parts[0])?;
+            let right = self.eval_expr(parts[1])?;
+
+            left.add(&right)
         } else if expr.contains('/') {
             let parts: Vec<_> = expr.split('/').map(str::trim).collect();
             if parts.is_empty() {
@@ -95,10 +105,12 @@ impl Interpreter {
             }
 
             Ok(result)
+        } else if expr.starts_with('\'') && expr.ends_with('\'') {
+            return Ok(Value::String(expr.trim_matches('\'').to_string()));
         } else if let Some(var) = self.get_variable(expr) {
             Ok(var.clone())
         } else {
-            Err("Unsupported expression".to_string())
+            Err(format!("Unsupported expression: {}", expr))
         }
     }
 
@@ -143,7 +155,7 @@ impl Interpreter {
                 for item in items {
                     self.set_variable(var_name, item);
                     for line in body_code.lines() {
-                        self.exec(line)?;
+                        self.exec(line.trim())?;
                     }
                 }
                 Ok(())

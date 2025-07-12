@@ -17,4 +17,4 @@ COPY . .
 # Сборка
 RUN cargo build --release
 
-CMD ["./target/release/datacode_interpreter"]
+CMD ["./target/release/DataCode"]
