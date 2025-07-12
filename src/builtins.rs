@@ -1,12 +1,12 @@
-use crate::value::Value;
+use crate::value::{Value, Table};
 use crate::error::{DataCodeError, Result};
 use std::fs;
 use std::path::PathBuf;
-use std::env;
 use chrono::Utc;
 
 pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
     use Value::*;
+
     match name {
         "now" => {
             if !args.is_empty() {
@@ -70,23 +70,38 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                             Ok(Value::String(contents))
                         }
                         "csv" => {
-                            let mut rdr = csv::Reader::from_path(p)
+                            let mut rdr = csv::ReaderBuilder::new()
+                                .has_headers(true)
+                                .from_path(p)
                                 .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV: {}", e), line))?;
-                            let mut rows = vec![];
 
-                            // Добавляем заголовки
-                            if let Ok(headers) = rdr.headers() {
-                                let header_row = headers.iter().map(|s| Value::String(s.to_string())).collect();
-                                rows.push(Value::Array(header_row));
-                            }
+                            // Получаем заголовки
+                            let headers = rdr.headers()
+                                .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV headers: {}", e), line))?;
+                            let column_names: Vec<std::string::String> = headers.iter().map(|s| s.to_string()).collect();
 
-                            // Добавляем данные
+                            // Создаем таблицу
+                            let mut table = crate::value::Table::new(column_names);
+
+                            // Читаем данные и добавляем в таблицу
                             for result in rdr.records() {
                                 let record = result.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
-                                let row = record.iter().map(|s| Value::String(s.to_string())).collect();
-                                rows.push(Value::Array(row));
+
+                                let row_data: Vec<Value> = record.iter()
+                                    .map(|s| parse_csv_value(s))
+                                    .collect();
+
+                                if let Err(e) = table.add_row(row_data) {
+                                    return Err(DataCodeError::runtime_error(&e, line));
+                                }
                             }
-                            Ok(Value::Array(rows))
+
+                            // Выводим предупреждения о типизации
+                            for warning in table.get_warnings() {
+                                eprintln!("⚠️  {}", warning);
+                            }
+
+                            Ok(Value::Table(table))
                         }
                         "xlsx" => {
                             use calamine::{Reader, open_workbook, Xlsx};
@@ -96,12 +111,42 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                                 .ok_or_else(|| DataCodeError::runtime_error("No sheets found", line))?
                                 .map_err(|e| DataCodeError::runtime_error(&format!("Sheet error: {}", e), line))?;
 
-                            let rows = range.rows().map(|row| {
-                                Value::Array(row.iter().map(|cell| {
-                                    Value::String(cell.to_string())
-                                }).collect())
-                            }).collect();
-                            Ok(Value::Array(rows))
+                            let mut rows_iter = range.rows();
+
+                            // Получаем заголовки из первой строки
+                            let column_names: Vec<std::string::String> = if let Some(header_row) = rows_iter.next() {
+                                header_row.iter().enumerate().map(|(i, cell)| {
+                                    let cell_str = cell.to_string();
+                                    if cell_str.trim().is_empty() {
+                                        format!("col_{}", i)
+                                    } else {
+                                        cell_str
+                                    }
+                                }).collect()
+                            } else {
+                                return Err(DataCodeError::runtime_error("Excel file is empty", line));
+                            };
+
+                            // Создаем таблицу
+                            let mut table = crate::value::Table::new(column_names);
+
+                            // Читаем остальные строки
+                            for row in rows_iter {
+                                let row_data: Vec<Value> = row.iter()
+                                    .map(|cell| parse_excel_value(cell))
+                                    .collect();
+
+                                if let Err(e) = table.add_row(row_data) {
+                                    return Err(DataCodeError::runtime_error(&e, line));
+                                }
+                            }
+
+                            // Выводим предупреждения о типизации
+                            for warning in table.get_warnings() {
+                                eprintln!("⚠️  {}", warning);
+                            }
+
+                            Ok(Value::Table(table))
                         }
                         _ => Err(DataCodeError::runtime_error("Unsupported file extension", line)),
                     }
@@ -117,6 +162,9 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                     Value::Number(n) => n.to_string(),
                     Value::Bool(b) => b.to_string(),
                     Value::Null => "null".to_string(),
+                    Value::Table(table) => {
+                        format!("Table({}x{} rows/cols)", table.rows.len(), table.columns.len())
+                    }
                     Value::Array(_) | Value::Object(_) => format!("{:?}", v),
                 })
                 .collect();
@@ -458,6 +506,453 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             }
         }
 
+        // Функции для работы с таблицами
+        "table" => {
+            if args.is_empty() {
+                return Err(DataCodeError::wrong_argument_count("table", 1, args.len(), line));
+            }
+
+            match &args[0] {
+                // Создание таблицы из массива массивов
+                Array(rows) => {
+                    if rows.is_empty() {
+                        return Err(DataCodeError::runtime_error("Нельзя создать таблицу из пустого массива", line));
+                    }
+
+                    // Определяем заголовки колонок
+                    let column_names = if args.len() > 1 {
+                        // Заголовки переданы как второй аргумент
+                        match &args[1] {
+                            Array(headers) => {
+                                headers.iter().map(|v| match v {
+                                    String(s) => s.clone(),
+                                    _ => format!("{:?}", v),
+                                }).collect()
+                            }
+                            _ => return Err(DataCodeError::type_error("Array", "other", line)),
+                        }
+                    } else {
+                        // Автоматически генерируем заголовки
+                        match rows.first() {
+                            Some(Array(first_row)) => {
+                                (0..first_row.len()).map(|i| format!("col_{}", i)).collect()
+                            }
+                            Some(Object(obj)) => {
+                                obj.keys().cloned().collect()
+                            }
+                            _ => return Err(DataCodeError::runtime_error("Первый элемент должен быть массивом или объектом", line)),
+                        }
+                    };
+
+                    let mut table = crate::value::Table::new(column_names);
+
+                    // Добавляем строки
+                    for row_value in rows {
+                        let row_data = match row_value {
+                            Array(row) => row.clone(),
+                            Object(obj) => {
+                                // Преобразуем объект в массив значений в порядке колонок
+                                table.column_names.iter()
+                                    .map(|col_name| obj.get(col_name).cloned().unwrap_or(Value::Null))
+                                    .collect()
+                            }
+                            _ => return Err(DataCodeError::runtime_error("Каждая строка должна быть массивом или объектом", line)),
+                        };
+
+                        if let Err(e) = table.add_row(row_data) {
+                            return Err(DataCodeError::runtime_error(&e, line));
+                        }
+                    }
+
+                    // Выводим предупреждения о неоднородности данных
+                    for warning in table.get_warnings() {
+                        eprintln!("⚠️  {}", warning);
+                    }
+
+                    Ok(Value::Table(table))
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+
+        "show_table" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("show_table", 1, args.len(), line));
+            }
+            match &args[0] {
+                Value::Table(table) => {
+                    print_table_formatted(table, None);
+                    Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Table", "other", line)),
+            }
+        }
+
+        "table_info" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("table_info", 1, args.len(), line));
+            }
+            match &args[0] {
+                Value::Table(table) => {
+                    println!("📊 Информация о таблице:");
+                    println!("   Строк: {}", table.rows.len());
+                    println!("   Колонок: {}", table.columns.len());
+                    println!();
+                    println!("📋 Колонки:");
+                    for column in &table.columns {
+                        println!("   • {} ({:?}) - {} значений",
+                            column.name,
+                            column.inferred_type,
+                            column.total_values
+                        );
+
+                        // Показываем распределение типов если есть смешанные данные
+                        if column.type_counts.len() > 1 {
+                            println!("     Распределение типов:");
+                            for (data_type, count) in &column.type_counts {
+                                let percentage = (*count as f64 / column.total_values as f64) * 100.0;
+                                println!("       {:?}: {} ({:.1}%)", data_type, count, percentage);
+                            }
+                        }
+                    }
+
+                    // Показываем предупреждения
+                    let warnings = table.get_warnings();
+                    if !warnings.is_empty() {
+                        println!();
+                        println!("⚠️  Предупреждения:");
+                        for warning in warnings {
+                            println!("   • {}", warning);
+                        }
+                    }
+
+                    Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Table", "other", line)),
+            }
+        }
+
+        "table_head" => {
+            let n = if args.len() > 1 {
+                match &args[1] {
+                    Number(num) => *num as usize,
+                    _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                }
+            } else {
+                5 // По умолчанию показываем первые 5 строк
+            };
+
+            if args.is_empty() {
+                return Err(DataCodeError::wrong_argument_count("table_head", 1, args.len(), line));
+            }
+
+            match &args[0] {
+                Value::Table(table) => {
+                    print_table_formatted(table, Some(n));
+                    Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Table", "other", line)),
+            }
+        }
+
+        "table_tail" => {
+            let n = if args.len() > 1 {
+                match &args[1] {
+                    Number(num) => *num as usize,
+                    _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                }
+            } else {
+                5 // По умолчанию показываем последние 5 строк
+            };
+
+            if args.is_empty() {
+                return Err(DataCodeError::wrong_argument_count("table_tail", 1, args.len(), line));
+            }
+
+            match &args[0] {
+                Value::Table(table) => {
+                    let start_index = if table.rows.len() > n {
+                        table.rows.len() - n
+                    } else {
+                        0
+                    };
+
+                    // Создаем временную таблицу с последними строками
+                    let mut temp_table = table.clone();
+                    temp_table.rows = table.rows[start_index..].to_vec();
+
+                    print_table_formatted(&temp_table, None);
+                    Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Table", "other", line)),
+            }
+        }
+
+        "table_select" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("table_select", 2, args.len(), line));
+            }
+            match (&args[0], &args[1]) {
+                (Value::Table(table), Array(column_names)) => {
+                    let selected_columns: Vec<std::string::String> = column_names.iter()
+                        .map(|v| match v {
+                            String(s) => s.clone(),
+                            _ => format!("{:?}", v),
+                        })
+                        .collect();
+
+                    // Проверяем, что все колонки существуют
+                    for col_name in &selected_columns {
+                        if !table.column_names.contains(col_name) {
+                            return Err(DataCodeError::runtime_error(
+                                &format!("Колонка '{}' не найдена в таблице", col_name),
+                                line
+                            ));
+                        }
+                    }
+
+                    // Находим индексы выбранных колонок
+                    let column_indices: Vec<usize> = selected_columns.iter()
+                        .map(|name| table.column_names.iter().position(|n| n == name).unwrap())
+                        .collect();
+
+                    // Создаем новую таблицу с выбранными колонками
+                    let mut new_table = crate::value::Table::new(selected_columns);
+
+                    for row in &table.rows {
+                        let new_row: Vec<Value> = column_indices.iter()
+                            .map(|&i| row.get(i).cloned().unwrap_or(Value::Null))
+                            .collect();
+
+                        if let Err(e) = new_table.add_row(new_row) {
+                            return Err(DataCodeError::runtime_error(&e, line));
+                        }
+                    }
+
+                    Ok(Value::Table(new_table))
+                }
+                _ => Err(DataCodeError::type_error("Table and Array", "other", line)),
+            }
+        }
+
+        "table_sort" => {
+            if args.len() < 2 {
+                return Err(DataCodeError::wrong_argument_count("table_sort", 2, args.len(), line));
+            }
+            match (&args[0], &args[1]) {
+                (Value::Table(table), String(column_name)) => {
+                    // Находим индекс колонки для сортировки
+                    let col_index = table.column_names.iter()
+                        .position(|name| name == column_name)
+                        .ok_or_else(|| DataCodeError::runtime_error(
+                            &format!("Колонка '{}' не найдена в таблице", column_name),
+                            line
+                        ))?;
+
+                    // Определяем порядок сортировки (по умолчанию по возрастанию)
+                    let ascending = if args.len() > 2 {
+                        match &args[2] {
+                            Bool(b) => *b,
+                            String(s) => s.to_lowercase() == "asc" || s.to_lowercase() == "ascending",
+                            _ => true,
+                        }
+                    } else {
+                        true
+                    };
+
+                    let mut sorted_table = table.clone();
+
+                    // Сортируем строки
+                    sorted_table.rows.sort_by(|a, b| {
+                        let val_a = a.get(col_index).unwrap_or(&Value::Null);
+                        let val_b = b.get(col_index).unwrap_or(&Value::Null);
+
+                        let cmp = compare_values(val_a, val_b);
+                        if ascending { cmp } else { cmp.reverse() }
+                    });
+
+                    Ok(Value::Table(sorted_table))
+                }
+                _ => Err(DataCodeError::type_error("Table and String", "other", line)),
+            }
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
+    }
+}
+
+// Вспомогательная функция для красивого вывода таблиц
+fn print_table_formatted(table: &Table, limit: Option<usize>) {
+    if table.rows.is_empty() {
+        println!("📋 Таблица пуста");
+        return;
+    }
+
+    let rows_to_show = if let Some(n) = limit {
+        std::cmp::min(n, table.rows.len())
+    } else {
+        table.rows.len()
+    };
+
+    // Вычисляем максимальную ширину для каждой колонки
+    let mut col_widths: Vec<usize> = table.column_names.iter()
+        .map(|name| name.len())
+        .collect();
+
+    for (_i, row) in table.rows.iter().take(rows_to_show).enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            if j < col_widths.len() {
+                let value_str = format_value_for_table(value);
+                col_widths[j] = std::cmp::max(col_widths[j], value_str.len());
+            }
+        }
+    }
+
+    // Печатаем заголовок
+    print!("┌");
+    for (i, width) in col_widths.iter().enumerate() {
+        print!("{}", "─".repeat(width + 2));
+        if i < col_widths.len() - 1 {
+            print!("┬");
+        }
+    }
+    println!("┐");
+
+    // Печатаем названия колонок
+    print!("│");
+    for (i, (name, width)) in table.column_names.iter().zip(&col_widths).enumerate() {
+        print!(" {:width$} ", name, width = width);
+        if i < col_widths.len() - 1 {
+            print!("│");
+        }
+    }
+    println!("│");
+
+    // Печатаем разделитель
+    print!("├");
+    for (i, width) in col_widths.iter().enumerate() {
+        print!("{}", "─".repeat(width + 2));
+        if i < col_widths.len() - 1 {
+            print!("┼");
+        }
+    }
+    println!("┤");
+
+    // Печатаем строки данных
+    for row in table.rows.iter().take(rows_to_show) {
+        print!("│");
+        for (i, (value, width)) in row.iter().zip(&col_widths).enumerate() {
+            let value_str = format_value_for_table(value);
+            print!(" {:width$} ", value_str, width = width);
+            if i < col_widths.len() - 1 {
+                print!("│");
+            }
+        }
+        println!("│");
+    }
+
+    // Печатаем нижнюю границу
+    print!("└");
+    for (i, width) in col_widths.iter().enumerate() {
+        print!("{}", "─".repeat(width + 2));
+        if i < col_widths.len() - 1 {
+            print!("┴");
+        }
+    }
+    println!("┘");
+
+    // Показываем информацию о количестве строк
+    if let Some(n) = limit {
+        if table.rows.len() > n {
+            println!("... показано {} из {} строк", n, table.rows.len());
+        }
+    }
+}
+
+fn format_value_for_table(value: &Value) -> String {
+    match value {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => {
+            if n.fract() == 0.0 {
+                format!("{}", *n as i64)
+            } else {
+                format!("{:.2}", n)
+            }
+        }
+        Value::Bool(b) => b.to_string(),
+        Value::Null => "null".to_string(),
+        Value::Path(p) => p.display().to_string(),
+        Value::Array(_) => "[Array]".to_string(),
+        Value::Object(_) => "{Object}".to_string(),
+        Value::Table(_) => "[Table]".to_string(),
+    }
+}
+
+// Функция для сравнения значений при сортировке
+fn compare_values(a: &Value, b: &Value) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    use Value::*;
+
+    match (a, b) {
+        (Number(a), Number(b)) => a.partial_cmp(b).unwrap_or(Ordering::Equal),
+        (String(a), String(b)) => a.cmp(b),
+        (Bool(a), Bool(b)) => a.cmp(b),
+        (Null, Null) => Ordering::Equal,
+        (Null, _) => Ordering::Less,
+        (_, Null) => Ordering::Greater,
+        // Для разных типов сравниваем их строковые представления
+        _ => format_value_for_table(a).cmp(&format_value_for_table(b)),
+    }
+}
+
+// Функция для парсинга значений из CSV
+fn parse_csv_value(s: &str) -> Value {
+    let trimmed = s.trim();
+
+    // Пустые значения
+    if trimmed.is_empty() || trimmed.to_lowercase() == "null" || trimmed.to_lowercase() == "na" {
+        return Value::Null;
+    }
+
+    // Сначала пытаемся парсить как число (целое)
+    if let Ok(int_val) = trimmed.parse::<i64>() {
+        return Value::Number(int_val as f64);
+    }
+
+    // Затем как число с плавающей точкой
+    if let Ok(float_val) = trimmed.parse::<f64>() {
+        return Value::Number(float_val);
+    }
+
+    // Булевы значения (только явные текстовые значения)
+    match trimmed.to_lowercase().as_str() {
+        "true" | "yes" => return Value::Bool(true),
+        "false" | "no" => return Value::Bool(false),
+        _ => {}
+    }
+
+    // По умолчанию - строка
+    Value::String(trimmed.to_string())
+}
+
+// Функция для парсинга значений из Excel
+fn parse_excel_value(cell: &calamine::Data) -> Value {
+    match cell {
+        calamine::Data::Empty => Value::Null,
+        calamine::Data::String(s) => {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                Value::Null
+            } else {
+                Value::String(trimmed.to_string())
+            }
+        }
+        calamine::Data::Float(f) => Value::Number(*f),
+        calamine::Data::Int(i) => Value::Number(*i as f64),
+        calamine::Data::Bool(b) => Value::Bool(*b),
+        calamine::Data::DateTime(dt) => Value::String(dt.to_string()),
+        calamine::Data::DateTimeIso(dt) => Value::String(dt.clone()),
+        calamine::Data::DurationIso(dur) => Value::String(dur.clone()),
+        calamine::Data::Error(e) => Value::String(format!("ERROR: {:?}", e)),
     }
 }

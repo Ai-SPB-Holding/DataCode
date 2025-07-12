@@ -1,0 +1,6 @@
+id,name,age,salary,department,active
+1,Alice Johnson,28,75000.50,Engineering,true
+2,Bob Smith,35,82000,Marketing,true
+3,Charlie Brown,42,95000.75,Engineering,false
+4,Diana Prince,29,68000,HR,true
+5,Eve Wilson,31,71500.25,Marketing,true

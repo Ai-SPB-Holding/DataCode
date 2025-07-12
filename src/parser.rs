@@ -1,6 +1,5 @@
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -291,7 +290,7 @@ impl Lexer {
                     self.advance();
                     return Token::Dot;
                 }
-                Some(ch) => {
+                Some(_ch) => {
                     self.advance();
                     // Пропускаем неизвестные символы
                     continue;

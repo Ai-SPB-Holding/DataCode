@@ -228,6 +228,7 @@ impl<'a> Evaluator<'a> {
             ValueString(s) => !s.is_empty(),
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
+            Value::Table(table) => !table.rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
         }

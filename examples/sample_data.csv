@@ -1,0 +1,11 @@
+id,name,age,salary,department,active
+1,Alice Johnson,28,75000.50,Engineering,true
+2,Bob Smith,null,82000,Marketing,true
+3,Charlie Brown,42,null,Engineering,false
+4,Diana Prince,29,68000,HR,true
+5,Eve Wilson,31,71500.25,Marketing,true
+6,Frank Miller,45,105000,null,true
+7,Grace Lee,26,58000,HR,false
+8,Henry Davis,null,89000.50,Marketing,true
+9,Ivy Chen,33,78000,Engineering,true
+10,Jack Taylor,40,92000.75,Engineering,false
