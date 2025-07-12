@@ -1,24 +1,44 @@
-# 🧠 DataCode Language
+# 🧠 DataCode - Interactive Programming Language
 
-**DataCode** — это интерпретируемый язык, написанный на Rust, предназначенный для работы с файловой системой и данными. Он прост, декларативен и легко расширяем.
+**DataCode** is a simple, interactive programming language designed for fast data processing and easy learning. It features an intuitive syntax, built-in functions, and support for user-defined functions with local scope.
 
----
+## 🚀 Features
 
-## 🚀 Быстрый старт
+- **Interactive REPL** with multiline support and command history
+- **File execution** - write programs in `.dc` files
+- **User-defined functions** with local scope and parameters
+- **Arithmetic and logical operations**
+- **String manipulation** and concatenation
+- **For loops** for iteration
+- **Built-in functions** for common operations
+- **Path manipulation** for file system operations
+- **Improved error messages** with line numbers
+- **Comment support** with `#`
 
-### Интерактивный REPL
+## 📦 Quick Start
+
+### Interactive REPL
 ```bash
-# Запуск интерактивного интерпретатора (по умолчанию)
+# Start interactive REPL (default)
 cargo run
 
-# Или явно указать REPL режим
+# Or explicitly specify REPL mode
 cargo run -- --repl
 
-# Демонстрация возможностей
+# Run demonstration
 cargo run -- --demo
 
-# Справка
+# Show help
 cargo run -- --help
+```
+
+### Execute Files
+```bash
+# Create a DataCode file
+echo 'print("Hello, DataCode!")' > hello.dc
+
+# Execute the file
+cargo run hello.dc
 ```
 
 ### Программное использование

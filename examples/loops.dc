@@ -1,0 +1,29 @@
+# Пример простых вычислений в DataCode
+print('🔄 Демонстрация вычислений')
+print('==========================')
+
+# Простые арифметические операции
+global a = 10
+global b = 20
+global sum = a + b
+global product = a * b
+global difference = b - a
+global quotient = b / a
+
+print('Числа:', a, 'и', b)
+print('Сумма:', sum)
+print('Произведение:', product)
+print('Разность:', difference)
+print('Частное:', quotient)
+
+# Работа со строками
+global name = 'DataCode'
+global version = '1.0'
+global message = 'Язык ' + name + ' версии ' + version
+
+print()
+print('Строковые операции:')
+print(message)
+
+print()
+print('✅ Все вычисления выполнены успешно!')

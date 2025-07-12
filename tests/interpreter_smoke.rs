@@ -5,8 +5,8 @@ use data_code::error::DataCodeError;
 #[test]
 fn test_basic_variable_assignment() {
     let mut interp = Interpreter::new();
-    let result = interp.exec("global greeting = 'hi'").unwrap();
-    assert!(result.is_some()); // Присваивание должно возвращать значение
+    let result = interp.exec("global greeting = 'hi'");
+    assert!(result.is_ok());
     let val = interp.get_variable("greeting").unwrap();
     assert_eq!(val, &Value::String("hi".to_string()));
 }
@@ -14,9 +14,9 @@ fn test_basic_variable_assignment() {
 #[test]
 fn test_path_building() {
     let mut interp = Interpreter::new();
-    interp.set_variable("root", Value::Path("/base".into()));
-    let result = interp.exec("global full = root / 'folder'").unwrap();
-    assert!(result.is_some()); // Присваивание должно возвращать значение
+    interp.set_variable("root".to_string(), Value::Path("/base".into()), true);
+    let result = interp.exec("global full = root / 'folder'");
+    assert!(result.is_ok());
     let val = interp.get_variable("full").unwrap();
     match val {
         Value::Path(p) => assert_eq!(p, &std::path::PathBuf::from("/base/folder")),
@@ -27,7 +27,7 @@ fn test_path_building() {
 #[test]
 fn test_error_path_building() {
     let mut interp = Interpreter::new();
-    interp.set_variable("root", Value::Path("/base".into()));
+    interp.set_variable("root".to_string(), Value::Path("/base".into()), true);
     
     let result = interp.exec("global full = root / folder");
     
@@ -50,10 +50,10 @@ fn test_string_addition() {
 #[test]
 fn test_for_loop_accumulation() {
     let mut interp = Interpreter::new();
-    interp.set_variable("items", Value::Array(vec![
+    interp.set_variable("items".to_string(), Value::Array(vec![
         Value::String("1".into()),
         Value::String("2".into()),
-    ]));
+    ]), true);
 
     let code = "\
         for item in items do

@@ -8,29 +8,101 @@ mod evaluator;
 mod repl;
 
 use std::env;
+use std::fs;
+use std::path::Path;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 1 {
-        match args[1].as_str() {
-            "--repl" | "-i" => {
-                repl::start_repl();
-            }
-            "--demo" => {
-                run_demo();
-            }
-            "--help" | "-h" => {
-                show_help();
-            }
-            _ => {
-                println!("Unknown argument: {}", args[1]);
-                show_help();
+        let arg = &args[1];
+
+        // Проверяем, является ли аргумент файлом .dc
+        if arg.ends_with(".dc") {
+            run_file(arg);
+        } else {
+            match arg.as_str() {
+                "--repl" | "-i" => {
+                    repl::start_repl();
+                }
+                "--demo" => {
+                    run_demo();
+                }
+                "--help" | "-h" => {
+                    show_help();
+                }
+                _ => {
+                    println!("❌ Unknown argument: {}", arg);
+                    println!("💡 Tip: Use .dc extension for DataCode files");
+                    show_help();
+                }
             }
         }
     } else {
         // По умолчанию запускаем REPL
         repl::start_repl();
+    }
+}
+
+fn run_file(file_path: &str) {
+    use interpreter::Interpreter;
+
+    println!("🧠 DataCode File Executor");
+    println!("========================");
+    println!("📁 Executing file: {}", file_path);
+    println!();
+
+    // Проверяем существование файла
+    if !Path::new(file_path).exists() {
+        println!("❌ Error: File '{}' not found", file_path);
+        println!("💡 Make sure the file exists and the path is correct");
+        std::process::exit(1);
+    }
+
+    // Читаем содержимое файла
+    let content = match fs::read_to_string(file_path) {
+        Ok(content) => content,
+        Err(e) => {
+            println!("❌ Error reading file '{}': {}", file_path, e);
+            std::process::exit(1);
+        }
+    };
+
+    // Проверяем, что файл не пустой
+    if content.trim().is_empty() {
+        println!("⚠️  Warning: File '{}' is empty", file_path);
+        println!("✅ Execution completed (nothing to execute)");
+        return;
+    }
+
+    // Создаем интерпретатор
+    let mut interpreter = Interpreter::new();
+
+    // Выполняем код
+    println!("🚀 Starting execution...");
+    println!();
+
+    match interpreter.exec(&content) {
+        Ok(()) => {
+            println!();
+            println!("✅ Execution completed successfully!");
+
+            // Показываем финальные переменные если они есть
+            let vars = interpreter.get_all_variables();
+            if !vars.is_empty() {
+                println!();
+                println!("📊 Final Variables:");
+                for (name, value) in vars {
+                    println!("  {} = {:?}", name, value);
+                }
+            }
+        }
+        Err(e) => {
+            println!();
+            println!("❌ Execution failed with error:");
+            println!("   {}", e);
+            std::process::exit(1);
+        }
     }
 }
 
@@ -57,18 +129,13 @@ fn run_demo() {
     for (description, code) in examples {
         println!("\n📝 {}: {}", description, code);
         match interp.exec(code) {
-            Ok(result) => {
-                match result {
-                    Some(value) => {
-                        if let Some(var_name) = extract_variable_name(code) {
-                            println!("   ✓ {} = {:?}", var_name, value);
-                        } else {
-                            println!("   ✓ Result: {:?}", value);
-                        }
+            Ok(()) => {
+                if let Some(var_name) = extract_variable_name(code) {
+                    if let Some(value) = interp.get_variable(&var_name) {
+                        println!("   ✓ {} = {:?}", var_name, value);
                     }
-                    None => {
-                        println!("   ✓ Executed successfully");
-                    }
+                } else {
+                    println!("   ✓ Executed successfully");
                 }
             }
             Err(e) => println!("   ❌ Error: {}", e),
@@ -106,24 +173,34 @@ fn show_help() {
     println!("🧠 DataCode - Interactive Programming Language");
     println!();
     println!("Usage:");
-    println!("  cargo run                 # Start interactive REPL (default)");
-    println!("  cargo run -- --repl       # Start interactive REPL");
-    println!("  cargo run -- --demo       # Run demonstration");
-    println!("  cargo run -- --help       # Show this help");
+    println!("  datacode                   # Start interactive REPL (default)");
+    println!("  datacode main.dc           # Execute DataCode file");
+    println!("  datacode --repl            # Start interactive REPL");
+    println!("  datacode --demo            # Run demonstration");
+    println!("  datacode --help            # Show this help");
+    println!();
+    println!("File Execution:");
+    println!("  • Create files with .dc extension");
+    println!("  • Write DataCode programs in files");
+    println!("  • Execute with: datacode filename.dc");
     println!();
     println!("Features:");
     println!("  • Interactive REPL with multiline support");
+    println!("  • User-defined functions with local scope");
     println!("  • Arithmetic and logical operations");
     println!("  • File system operations");
-    println!("  • For loops");
-    println!("  • Improved error messages");
+    println!("  • For loops and control structures");
+    println!("  • Improved error messages with line numbers");
     println!("  • Path manipulation");
     println!();
-    println!("Example session:");
-    println!("  >>> global x = 10");
-    println!("  ✓ x = Number(10.0)");
-    println!("  >>> global result = x * 2 + 5");
-    println!("  ✓ result = Number(25.0)");
-    println!("  >>> print('Result is:', result)");
-    println!("  Result is: Number(25.0)");
+    println!("Example DataCode file (example.dc):");
+    println!("  # Simple DataCode program");
+    println!("  global function greet(name) do");
+    println!("      return 'Hello, ' + name + '!'");
+    println!("  endfunction");
+    println!("  ");
+    println!("  global message = greet('DataCode')");
+    println!("  print(message)");
+    println!();
+    println!("Run with: datacode example.dc");
 }

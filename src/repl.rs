@@ -1,5 +1,7 @@
 use crate::interpreter::Interpreter;
 use crate::error::DataCodeError;
+use rustyline::error::ReadlineError;
+use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
 
 pub struct Repl {
@@ -7,6 +9,7 @@ pub struct Repl {
     multiline_buffer: Vec<String>,
     in_multiline: bool,
     multiline_type: Option<MultilineType>,
+    editor: DefaultEditor,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -17,19 +20,26 @@ enum MultilineType {
 }
 
 impl Repl {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> RustylineResult<Self> {
+        let mut editor = DefaultEditor::new()?;
+
+        // Загружаем историю команд, если файл существует
+        let _ = editor.load_history(".datacode_history");
+
+        Ok(Self {
             interpreter: Interpreter::new(),
             multiline_buffer: Vec::new(),
             in_multiline: false,
             multiline_type: None,
-        }
+            editor,
+        })
     }
 
     pub fn run(&mut self) {
         println!("🧠 DataCode Interactive Interpreter");
         println!("Type 'help' for commands, 'exit' to quit");
         println!("Version 1.0 - Enhanced with improved parser and error handling");
+        println!("💡 Use ↑/↓ arrows to navigate command history");
         println!();
 
         loop {
@@ -44,17 +54,16 @@ impl Repl {
                 ">>> "
             };
 
-            print!("{}", prompt);
-            io::stdout().flush().unwrap();
+            match self.editor.readline(prompt) {
+                Ok(line) => {
+                    let line = line.trim().to_string();
 
-            let mut input = String::new();
-            match io::stdin().read_line(&mut input) {
-                Ok(_) => {
-                    let line = input.trim().to_string();
-                    
                     if line.is_empty() {
                         continue;
                     }
+
+                    // Добавляем команду в историю
+                    self.editor.add_history_entry(&line).ok();
 
                     if !self.in_multiline && self.handle_special_commands(&line) {
                         continue;
@@ -62,11 +71,24 @@ impl Repl {
 
                     self.process_line(line);
                 }
-                Err(error) => {
-                    eprintln!("Error reading input: {}", error);
+                Err(ReadlineError::Interrupted) => {
+                    println!("^C");
+                    continue;
+                }
+                Err(ReadlineError::Eof) => {
+                    println!("Goodbye! 👋");
+                    break;
+                }
+                Err(err) => {
+                    eprintln!("Error reading input: {}", err);
                     break;
                 }
             }
+        }
+
+        // Сохраняем историю команд при выходе
+        if let Err(err) = self.editor.save_history(".datacode_history") {
+            eprintln!("Warning: Could not save command history: {}", err);
         }
     }
 
@@ -110,7 +132,7 @@ impl Repl {
             } else if line.trim_start().starts_with("if ") && line.trim_end().ends_with(" then") {
                 self.start_multiline(line, MultilineType::IfStatement);
                 return;
-            } else if line.trim_start().starts_with("function ") && line.trim_end().ends_with(" do") {
+            } else if (line.trim_start().starts_with("global function ") || line.trim_start().starts_with("local function ")) && line.trim_end().ends_with(" do") {
                 self.start_multiline(line, MultilineType::Function);
                 return;
             }
@@ -162,23 +184,14 @@ impl Repl {
 
     fn execute_code(&mut self, code: &str) {
         match self.interpreter.exec(code) {
-            Ok(result) => {
+            Ok(()) => {
                 // Команда выполнена успешно
-                match result {
-                    Some(value) => {
-                        // Если это было присваивание, показываем переменную
-                        if code.trim().starts_with("global ") || code.trim().starts_with("local ") {
-                            if let Some(var_name) = self.extract_variable_name(code) {
-                                println!("✓ {} = {:?}", var_name, value);
-                            }
-                        } else {
-                            // Это выражение - показываем результат
-                            println!("{:?}", value);
+                // Если это было присваивание, показываем переменную
+                if code.trim().starts_with("global ") || code.trim().starts_with("local ") {
+                    if let Some(var_name) = self.extract_variable_name(code) {
+                        if let Some(value) = self.interpreter.get_variable(&var_name) {
+                            println!("✓ {} = {:?}", var_name, value);
                         }
-                    }
-                    None => {
-                        // Команда не возвращает значение (например, цикл)
-                        // Ничего не выводим
                     }
                 }
             }
@@ -243,6 +256,15 @@ impl Repl {
         println!("      print(item)");
         println!("  forend");
         println!();
+        println!("🔧 User Functions:");
+        println!("  global function add(a, b) do");
+        println!("      return a + b");
+        println!("  endfunction");
+        println!("  ");
+        println!("  local function greet(name) do");
+        println!("      return 'Hello, ' + name + '!'");
+        println!("  endfunction");
+        println!();
         println!("🏗️ Built-in Functions:");
         println!("  now()                      # Current time");
         println!("  getcwd()                   # Current directory");
@@ -261,6 +283,12 @@ impl Repl {
         println!("  global sum = x + y");
         println!("  global condition = (x > 5) and (y < 30)");
         println!("  print('Result:', sum, 'Condition:', condition)");
+        println!();
+        println!("  # Define and call a function");
+        println!("  global function multiply(a, b) do");
+        println!("      return a * b");
+        println!("  endfunction");
+        println!("  global result = multiply(5, 3)");
     }
 
     fn show_variables(&self) {
@@ -278,6 +306,13 @@ impl Repl {
 
 // Функция для запуска REPL
 pub fn start_repl() {
-    let mut repl = Repl::new();
-    repl.run();
+    match Repl::new() {
+        Ok(mut repl) => {
+            repl.run();
+        }
+        Err(err) => {
+            eprintln!("Failed to initialize REPL: {}", err);
+            std::process::exit(1);
+        }
+    }
 }

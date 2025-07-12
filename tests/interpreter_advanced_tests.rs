@@ -85,17 +85,17 @@ mod interpreter_advanced_tests {
     #[test]
     fn test_string_operations() {
         let mut interp = Interpreter::new();
-        
+
         interp.exec("global name = 'DataCode'").unwrap();
         interp.exec("global version = '1.0'").unwrap();
-        
+
         interp.exec("global full_name = name + ' v' + version").unwrap();
         assert_eq!(interp.get_variable("full_name"), Some(&Value::String("DataCode v1.0".to_string())));
-        
+
         // Тест сравнения строк
         interp.exec("global str_eq = name == 'DataCode'").unwrap();
         interp.exec("global str_ne = name != 'Python'").unwrap();
-        
+
         assert_eq!(interp.get_variable("str_eq"), Some(&Value::Bool(true)));
         assert_eq!(interp.get_variable("str_ne"), Some(&Value::Bool(true)));
     }
@@ -103,16 +103,16 @@ mod interpreter_advanced_tests {
     #[test]
     fn test_function_calls_in_expressions() {
         let mut interp = Interpreter::new();
-        
+
         // Тест вызова функций в выражениях
         interp.exec("global current_time = now()").unwrap();
-        
+
         // Проверяем, что функция вернула строку
         match interp.get_variable("current_time") {
             Some(Value::String(_)) => {}, // OK
             _ => panic!("now() should return a string"),
         }
-        
+
         // Тест функций с аргументами
         interp.exec("global cwd = getcwd()").unwrap();
         match interp.get_variable("cwd") {
