@@ -56,9 +56,9 @@ mod lexer_tests {
     #[test]
     fn test_tokenize_path_join() {
         let mut lexer = Lexer::new("path / 'subdir'");
-        
+
         assert_eq!(lexer.next_token(), Token::Identifier("path".to_string()));
-        assert_eq!(lexer.next_token(), Token::PathJoin);
+        assert_eq!(lexer.next_token(), Token::Divide); // Теперь лексер генерирует Divide
         assert_eq!(lexer.next_token(), Token::String("subdir".to_string()));
         assert_eq!(lexer.next_token(), Token::EOF);
     }
@@ -125,10 +125,10 @@ mod parser_tests {
     fn test_parse_path_join() {
         let mut parser = Parser::new("base / 'subdir'");
         let expr = parser.parse_expression().unwrap();
-        
+
         match expr {
             Expr::Binary { left, operator, right } => {
-                assert_eq!(operator, BinaryOp::PathJoin);
+                assert_eq!(operator, BinaryOp::Divide); // Теперь парсер генерирует Divide
                 match (*left, *right) {
                     (Expr::Variable(l), Expr::Literal(Value::String(r))) => {
                         assert_eq!(l, "base");
@@ -390,5 +390,29 @@ mod evaluator_tests {
         
         let result = parse_and_evaluate("empty_str and 'hello'", &vars, 1).unwrap();
         assert_eq!(result, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_intelligent_divide_operator() {
+        use std::path::PathBuf;
+        let mut vars = HashMap::new();
+
+        // Тест математического деления
+        let result = parse_and_evaluate("10 / 2", &vars, 1).unwrap();
+        assert_eq!(result, Value::Number(5.0));
+
+        // Тест деления на ноль
+        let result = parse_and_evaluate("10 / 0", &vars, 1);
+        assert!(result.is_err());
+
+        // Тест объединения путей с переменной Path
+        vars.insert("base_path".to_string(), Value::Path(PathBuf::from("/home/user")));
+        let result = parse_and_evaluate("base_path / 'documents'", &vars, 1).unwrap();
+        match result {
+            Value::Path(p) => {
+                assert_eq!(p.to_string_lossy(), "/home/user/documents");
+            }
+            _ => panic!("Expected Path value"),
+        }
     }
 }

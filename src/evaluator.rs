@@ -1,4 +1,5 @@
 use crate::value::Value;
+use crate::value::Value::{Number, String as ValueString, Bool, Array, Path, Null, Object};
 use crate::error::{DataCodeError, Result};
 use crate::parser::{Expr, BinaryOp, UnaryOp};
 use crate::builtins::call_function;
@@ -71,22 +72,43 @@ impl<'a> Evaluator<'a> {
             
             BinaryOp::Multiply => match (left, right) {
                 (Number(a), Number(b)) => Ok(Number(a * b)),
-                (String(s), Number(n)) => {
+                (ValueString(s), Number(n)) => {
                     let count = *n as usize;
-                    Ok(String(s.repeat(count)))
+                    Ok(ValueString(s.repeat(count)))
                 }
                 _ => Err(DataCodeError::type_error("Number", "other", self.line)),
             },
             
-            BinaryOp::Divide => match (left, right) {
-                (Number(a), Number(b)) => {
-                    if *b == 0.0 {
-                        Err(DataCodeError::runtime_error("Division by zero", self.line))
-                    } else {
-                        Ok(Number(a / b))
+            BinaryOp::Divide => {
+                // Интеллектуальная обработка оператора /
+                // Если левый операнд - Path, то это PathJoin
+                // Если оба операнда - числа, то это математическое деление
+                match (left, right) {
+                    (Path(p), ValueString(s)) => {
+                        let mut path = p.clone();
+                        path.push(s);
+                        Ok(Path(path))
+                    }
+                    (Path(p1), Path(p2)) => {
+                        let mut path = p1.clone();
+                        path.push(p2);
+                        Ok(Path(path))
+                    }
+                    (Number(a), Number(b)) => {
+                        if *b == 0.0 {
+                            Err(DataCodeError::runtime_error("Division by zero", self.line))
+                        } else {
+                            Ok(Number(a / b))
+                        }
+                    }
+                    _ => {
+                        // Если типы не подходят ни для PathJoin, ни для деления
+                        Err(DataCodeError::runtime_error(
+                            "Invalid operands for / operator. Use Path/String for path joining or Number/Number for division",
+                            self.line
+                        ))
                     }
                 }
-                _ => Err(DataCodeError::type_error("Number", "other", self.line)),
             },
             
             BinaryOp::Equal => Ok(Bool(self.values_equal(left, right))),
@@ -139,9 +161,9 @@ impl<'a> Evaluator<'a> {
     
     fn evaluate_unary_op(&self, op: &UnaryOp, operand: &Value) -> Result<Value> {
         match op {
-            UnaryOp::Not => Ok(Value::Bool(!self.to_bool(operand))),
+            UnaryOp::Not => Ok(Bool(!self.to_bool(operand))),
             UnaryOp::Minus => match operand {
-                Value::Number(n) => Ok(Value::Number(-n)),
+                Number(n) => Ok(Number(-n)),
                 _ => Err(DataCodeError::type_error("Number", "other", self.line)),
             },
         }
@@ -149,13 +171,13 @@ impl<'a> Evaluator<'a> {
     
     fn evaluate_index(&self, object: &Value, index: &Value) -> Result<Value> {
         match (object, index) {
-            (Value::Array(arr), Value::Number(n)) => {
+            (Array(arr), Number(n)) => {
                 let idx = *n as usize;
                 arr.get(idx)
                     .cloned()
                     .ok_or_else(|| DataCodeError::runtime_error("Index out of bounds", self.line))
             }
-            (Value::Object(obj), Value::String(key)) => {
+            (Object(obj), ValueString(key)) => {
                 obj.get(key)
                     .cloned()
                     .ok_or_else(|| DataCodeError::runtime_error(&format!("Key '{}' not found", key), self.line))
@@ -166,20 +188,20 @@ impl<'a> Evaluator<'a> {
     
     fn evaluate_member(&self, object: &Value, member: &str) -> Result<Value> {
         match object {
-            Value::Object(obj) => {
+            Object(obj) => {
                 obj.get(member)
                     .cloned()
                     .ok_or_else(|| DataCodeError::runtime_error(&format!("Member '{}' not found", member), self.line))
             }
-            Value::Array(arr) => {
+            Array(arr) => {
                 match member {
-                    "length" => Ok(Value::Number(arr.len() as f64)),
+                    "length" => Ok(Number(arr.len() as f64)),
                     _ => Err(DataCodeError::runtime_error(&format!("Array has no member '{}'", member), self.line)),
                 }
             }
-            Value::String(s) => {
+            ValueString(s) => {
                 match member {
-                    "length" => Ok(Value::Number(s.len() as f64)),
+                    "length" => Ok(Number(s.len() as f64)),
                     _ => Err(DataCodeError::runtime_error(&format!("String has no member '{}'", member), self.line)),
                 }
             }
@@ -191,7 +213,7 @@ impl<'a> Evaluator<'a> {
         use Value::*;
         match (left, right) {
             (Number(a), Number(b)) => (a - b).abs() < f64::EPSILON,
-            (String(a), String(b)) => a == b,
+            (ValueString(a), ValueString(b)) => a == b,
             (Bool(a), Bool(b)) => a == b,
             (Null, Null) => true,
             (Array(a), Array(b)) => a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| self.values_equal(x, y)),
@@ -201,13 +223,13 @@ impl<'a> Evaluator<'a> {
     
     fn to_bool(&self, value: &Value) -> bool {
         match value {
-            Value::Bool(b) => *b,
-            Value::Number(n) => *n != 0.0,
-            Value::String(s) => !s.is_empty(),
-            Value::Array(arr) => !arr.is_empty(),
-            Value::Object(obj) => !obj.is_empty(),
-            Value::Null => false,
-            Value::Path(p) => p.exists(),
+            Bool(b) => *b,
+            Number(n) => *n != 0.0,
+            ValueString(s) => !s.is_empty(),
+            Array(arr) => !arr.is_empty(),
+            Object(obj) => !obj.is_empty(),
+            Null => false,
+            Path(p) => p.exists(),
         }
     }
 }
