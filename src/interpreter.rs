@@ -255,6 +255,37 @@ impl Interpreter {
                 // Выполняем весь цикл как одну команду
                 let loop_code = loop_lines.join("\n");
                 self.exec_single_line(&loop_code)?;
+            } else if line.starts_with("if ") && (line.ends_with(" do") || line.ends_with(" then")) {
+                // Собираем всю условную конструкцию с учетом вложенности
+                let mut if_lines = vec![lines[i]];
+                let mut if_depth = 1; // Счетчик вложенности if
+                i += 1;
+
+                while i < lines.len() && if_depth > 0 {
+                    let current_line = lines[i].trim();
+
+                    // Увеличиваем глубину при встрече нового if
+                    if current_line.starts_with("if ") && (current_line.ends_with(" do") || current_line.ends_with(" then")) {
+                        if_depth += 1;
+                    }
+                    // Уменьшаем глубину при встрече endif
+                    else if current_line == "endif" {
+                        if_depth -= 1;
+                    }
+
+                    if_lines.push(lines[i]);
+
+                    // Если глубина стала 0, мы закончили основной блок if
+                    if if_depth == 0 {
+                        break;
+                    }
+
+                    i += 1;
+                }
+
+                // Выполняем всю условную конструкцию как одну команду
+                let if_code = if_lines.join("\n");
+                self.exec_single_line(&if_code)?;
             } else {
                 // Обычная строка
                 self.exec_single_line(lines[i])?;
@@ -342,6 +373,9 @@ impl Interpreter {
             } else {
                 Err(DataCodeError::type_error("Array", "other", self.current_line))
             }
+        }
+        else if code.trim_start().starts_with("if ") {
+            return self.parse_if_statement(code);
         } else {
             // Это выражение - вычисляем
             match self.eval_expr(code.trim()) {
@@ -586,5 +620,117 @@ impl Interpreter {
             Value::Null => false,
             Value::Path(p) => p.exists(),
         }
+    }
+
+    fn parse_if_statement(&mut self, code: &str) -> Result<()> {
+        let lines: Vec<&str> = code.lines().collect();
+
+        // Проверяем, что условная конструкция заканчивается на endif
+        let last_line = lines.last()
+            .ok_or_else(|| DataCodeError::syntax_error("Empty if statement", self.current_line, 0))?;
+
+        if !last_line.trim().eq("endif") {
+            return Err(DataCodeError::syntax_error("Missing endif", self.current_line, 0));
+        }
+
+        // Парсим заголовок условия
+        let header = lines.first()
+            .ok_or_else(|| DataCodeError::syntax_error("Empty if statement", self.current_line, 0))?;
+
+        let condition_expr = self.parse_if_header(header)?;
+
+        // Ищем else на том же уровне вложенности
+        let mut else_index = None;
+        let mut if_depth = 0;
+
+        for (i, line) in lines.iter().enumerate() {
+            let trimmed = line.trim();
+
+            // Увеличиваем глубину при встрече if
+            if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
+                if_depth += 1;
+            }
+            // Уменьшаем глубину при встрече endif
+            else if trimmed == "endif" {
+                if_depth -= 1;
+            }
+            // Ищем else только на уровне 1 (наш основной if)
+            else if trimmed == "else" && if_depth == 1 {
+                else_index = Some(i);
+                break;
+            }
+        }
+
+        // Извлекаем блоки кода
+        let (if_body, else_body) = if let Some(else_idx) = else_index {
+            // Есть блок else
+            let if_lines = &lines[1..else_idx];
+            let else_lines = &lines[else_idx + 1..lines.len() - 1];
+            (
+                if_lines.iter().map(|line| line.to_string()).collect::<Vec<String>>(),
+                Some(else_lines.iter().map(|line| line.to_string()).collect::<Vec<String>>())
+            )
+        } else {
+            // Только блок if
+            let if_lines = &lines[1..lines.len() - 1];
+            (
+                if_lines.iter().map(|line| line.to_string()).collect::<Vec<String>>(),
+                None
+            )
+        };
+
+        // Вычисляем условие
+        let condition_value = self.eval_expr(&condition_expr)?;
+        let condition_result = self.to_bool(&condition_value);
+
+        // Выполняем соответствующий блок
+        if condition_result {
+            // Выполняем блок if
+            for line in &if_body {
+                self.exec(line.trim())?;
+                // Проверяем return в условии
+                if self.return_value.is_some() {
+                    return Ok(());
+                }
+            }
+        } else if let Some(else_lines) = else_body {
+            // Выполняем блок else
+            for line in &else_lines {
+                self.exec(line.trim())?;
+                // Проверяем return в условии
+                if self.return_value.is_some() {
+                    return Ok(());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn parse_if_header(&self, header: &str) -> Result<String> {
+        let header = header.trim();
+
+        // Проверяем, что начинается с "if "
+        if !header.starts_with("if ") {
+            return Err(DataCodeError::syntax_error("Invalid if statement", self.current_line, 0));
+        }
+
+        // Убираем "if " в начале
+        let rest = header.strip_prefix("if ").unwrap();
+
+        // Проверяем, что заканчивается на "do" или "then"
+        let condition_expr = if rest.ends_with(" do") {
+            rest.strip_suffix(" do").unwrap()
+        } else if rest.ends_with(" then") {
+            rest.strip_suffix(" then").unwrap()
+        } else {
+            return Err(DataCodeError::syntax_error("If statement must end with 'do' or 'then'", self.current_line, 0));
+        };
+
+        if condition_expr.trim().is_empty() {
+            return Err(DataCodeError::syntax_error("Missing condition in if statement", self.current_line, 0));
+        }
+
+        Ok(condition_expr.to_string())
     }
 }
