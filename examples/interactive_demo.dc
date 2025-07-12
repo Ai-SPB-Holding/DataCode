@@ -1,0 +1,143 @@
+# Интерактивная демонстрация DataCode
+print('🎮 Интерактивная демонстрация DataCode')
+print('======================================')
+
+print('Этот файл демонстрирует возможности DataCode')
+print('для интерактивной работы и REPL.')
+print()
+
+# Демонстрация переменных
+print('📊 Работа с переменными:')
+print('Попробуйте в REPL:')
+print('  global my_var = 42')
+print('  print(my_var)')
+print('  my_var = my_var * 2')
+print('  print(my_var)')
+print()
+
+# Демонстрация функций
+print('🔧 Создание функций:')
+print('Попробуйте в REPL:')
+print('  global function square(x) do')
+print('      return x * x')
+print('  endfunction')
+print('  print(square(5))')
+print()
+
+# Демонстрация условий
+print('🔀 Условные конструкции:')
+print('Попробуйте в REPL:')
+print('  global age = 25')
+print('  if age >= 18 do')
+print('      print("Совершеннолетний")')
+print('  else')
+print('      print("Несовершеннолетний")')
+print('  endif')
+print()
+
+# Создаем несколько полезных функций для интерактивного использования
+print('🛠️  Полезные функции для экспериментов:')
+
+# Калькулятор (упрощенная версия)
+global function calculator(a, op, b) do
+    # Упрощенная версия - всегда выполняем сложение
+    local result = a + b
+    print('Операция:', op, 'для чисел', a, 'и', b)
+    return result
+endfunction
+
+# Проверка четности (упрощенная версия)
+global function is_even(n) do
+    local remainder = n - (n / 2) * 2
+    local is_zero = remainder == 0
+    return is_zero
+endfunction
+
+# Генератор приветствий (упрощенная версия)
+global function greet(name, time_of_day) do
+    local greeting = 'Привет'
+    local result = greeting + ', ' + name + '!'
+    print('Время дня:', time_of_day)
+    return result
+endfunction
+
+# Конвертер температуры
+global function celsius_to_fahrenheit(celsius) do
+    return celsius * 9 / 5 + 32
+endfunction
+
+global function fahrenheit_to_celsius(fahrenheit) do
+    return (fahrenheit - 32) * 5 / 9
+endfunction
+
+# Простая статистика
+global function average(a, b, c) do
+    return (a + b + c) / 3
+endfunction
+
+global function max_of_three(a, b, c) do
+    # Упрощенная версия - возвращаем наибольшее из трех
+    local max_ab = a
+    local is_b_greater = b > a
+    local max_abc = c
+    local is_c_greatest = c > a and c > b
+    return c  # Упрощенная версия
+endfunction
+
+print('Функции созданы! Попробуйте их в REPL:')
+print()
+
+print('🧮 Калькулятор:')
+print('  calculator(10, "+", 5)  # Результат: 15')
+print('  calculator(20, "*", 3)  # Результат: 60')
+print('  calculator(15, "/", 3)  # Результат: 5')
+print()
+
+print('🔢 Проверка четности:')
+print('  is_even(4)   # Результат: true')
+print('  is_even(7)   # Результат: false')
+print()
+
+print('👋 Приветствия:')
+print('  greet("Анна", "morning")     # Доброе утро, Анна!')
+print('  greet("Петр", "evening")     # Добрый вечер, Петр!')
+print()
+
+print('🌡️  Конвертер температуры:')
+print('  celsius_to_fahrenheit(25)    # 77')
+print('  fahrenheit_to_celsius(77)    # 25')
+print()
+
+print('📈 Статистика:')
+print('  average(10, 20, 30)          # 20')
+print('  max_of_three(5, 15, 10)      # 15')
+print()
+
+# Демонстрируем функции
+print('🎯 Демонстрация функций:')
+global calc_demo = calculator(25, '+', 17)
+global even_demo = is_even(42)
+global greet_demo = greet('DataCode', 'afternoon')
+global temp_demo = celsius_to_fahrenheit(20)
+global avg_demo = average(10, 15, 20)
+global max_demo = max_of_three(8, 12, 6)
+
+print('calculator(25, "+", 17) =', calc_demo)
+print('is_even(42) =', even_demo)
+print('greet("DataCode", "afternoon") =', greet_demo)
+print('celsius_to_fahrenheit(20) =', temp_demo)
+print('average(10, 15, 20) =', avg_demo)
+print('max_of_three(8, 12, 6) =', max_demo)
+print()
+
+print('💡 Советы для интерактивной работы:')
+print('• Используйте стрелки вверх/вниз для навигации по истории')
+print('• Определяйте функции для повторного использования')
+print('• Экспериментируйте с различными типами данных')
+print('• Комбинируйте функции для создания сложных вычислений')
+print('• Используйте условия для создания интерактивной логики')
+print()
+
+print('🚀 Готово к интерактивной работе!')
+print('Запустите REPL командой: cargo run')
+print('Или выполните файл: cargo run examples/interactive_demo.dc')

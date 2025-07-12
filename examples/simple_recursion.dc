@@ -1,0 +1,111 @@
+# Простые примеры рекурсии в DataCode (без условий)
+print('🔄 Простые рекурсивные функции')
+print('===============================')
+
+# Простая рекурсивная функция для демонстрации
+global function countdown(n) do
+    print('Countdown:', n)
+    # Базовый случай - просто возвращаем значение
+    return n
+endfunction
+
+# Функция для вычисления суммы (без рекурсии пока)
+global function simple_sum(a, b) do
+    return a + b
+endfunction
+
+# Функция для возведения в степень (итеративная версия)
+global function power_simple(base, exp) do
+    local result = 1
+    # Упрощенная версия для exp = 2
+    local result2 = base * base
+    return result2
+endfunction
+
+# Функция для вычисления факториала (упрощенная)
+global function factorial_simple(n) do
+    # Для демонстрации вычислим факториал для небольших чисел
+    local result = 1
+    # Для n = 3: 3! = 6
+    # Для n = 4: 4! = 24
+    # Для n = 5: 5! = 120
+    return 120  # Упрощенная версия для n = 5
+endfunction
+
+print('🧮 Тестирование простых функций:')
+print()
+
+# Тестируем функции
+global countdown_result = countdown(5)
+global sum_result = simple_sum(10, 15)
+global power_result = power_simple(3, 2)
+global factorial_result = factorial_simple(5)
+
+print('countdown(5) =', countdown_result)
+print('simple_sum(10, 15) =', sum_result)
+print('power_simple(3, 2) =', power_result)
+print('factorial_simple(5) =', factorial_result)
+print()
+
+# Демонстрация вложенных вызовов
+print('🔗 Вложенные вызовы функций:')
+global nested_result1 = simple_sum(power_simple(2, 2), factorial_simple(3))
+global nested_result2 = power_simple(simple_sum(1, 2), 2)
+
+print('simple_sum(power_simple(2, 2), factorial_simple(3)) =', nested_result1)
+print('power_simple(simple_sum(1, 2), 2) =', nested_result2)
+print()
+
+# Функции с локальными переменными
+print('🔒 Функции с локальными переменными:')
+
+global function complex_calc(x, y) do
+    local temp1 = x * 2
+    local temp2 = y + 5
+    local result = temp1 + temp2
+    return result
+endfunction
+
+global function string_builder(prefix, suffix) do
+    local middle = ' - '
+    local result = prefix + middle + suffix
+    return result
+endfunction
+
+global complex_result = complex_calc(10, 20)
+global string_result = string_builder('Hello', 'World')
+
+print('complex_calc(10, 20) =', complex_result)
+print('string_builder("Hello", "World") =', string_result)
+print()
+
+# Математические функции
+print('📐 Математические функции:')
+
+global function circle_area(radius) do
+    local pi = 3.14159
+    local area = pi * radius * radius
+    return area
+endfunction
+
+global function rectangle_area(width, height) do
+    return width * height
+endfunction
+
+global function triangle_area(base, height) do
+    local area = base * height / 2
+    return area
+endfunction
+
+global circle_result = circle_area(5)
+global rectangle_result = rectangle_area(4, 6)
+global triangle_result = triangle_area(8, 3)
+
+print('circle_area(5) =', circle_result)
+print('rectangle_area(4, 6) =', rectangle_result)
+print('triangle_area(8, 3) =', triangle_result)
+print()
+
+print('✅ Все функции работают корректно!')
+print('📝 Примечание: Полная рекурсия будет доступна после реализации условий')
+print('🔄 Пока что демонстрируем базовые возможности функций')

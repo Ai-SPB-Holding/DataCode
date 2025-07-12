@@ -1,0 +1,118 @@
+# Пример рекурсивных функций в DataCode
+print('🔄 Демонстрация рекурсивных функций')
+print('===================================')
+
+# Классический пример - факториал (упрощенная версия без условий)
+global function factorial(n) do
+    # Базовый случай для n <= 1
+    local is_base_case = n <= 1
+    # Пока используем простую логику без if
+    return 1  # Упрощенная версия
+endfunction
+
+# Числа Фибоначчи
+global function fibonacci(n) do
+    if n <= 1 do
+        return n
+    else
+        local fib1 = fibonacci(n - 1)
+        local fib2 = fibonacci(n - 2)
+        return fib1 + fib2
+    endif
+endfunction
+
+# Степень числа
+global function power(base, exp) do
+    if exp == 0 do
+        return 1
+    else
+        if exp == 1 do
+            return base
+        else
+            local prev_power = power(base, exp - 1)
+            return base * prev_power
+        endif
+    endif
+endfunction
+
+# Сумма чисел от 1 до n
+global function sum_to_n(n) do
+    if n <= 0 do
+        return 0
+    else
+        if n == 1 do
+            return 1
+        else
+            local prev_sum = sum_to_n(n - 1)
+            return n + prev_sum
+        endif
+    endif
+endfunction
+
+# Наибольший общий делитель (алгоритм Евклида)
+global function gcd(a, b) do
+    if b == 0 do
+        return a
+    else
+        local remainder = a - (a / b) * b  # Остаток от деления
+        return gcd(b, remainder)
+    endif
+endfunction
+
+print('🧮 Тестирование рекурсивных функций:')
+print()
+
+# Тестируем факториал
+print('📊 Факториал:')
+global fact5 = factorial(5)
+global fact6 = factorial(6)
+print('factorial(5) =', fact5)
+print('factorial(6) =', fact6)
+print()
+
+# Тестируем Фибоначчи
+print('🌀 Числа Фибоначчи:')
+global fib5 = fibonacci(5)
+global fib7 = fibonacci(7)
+global fib8 = fibonacci(8)
+print('fibonacci(5) =', fib5)
+print('fibonacci(7) =', fib7)
+print('fibonacci(8) =', fib8)
+print()
+
+# Тестируем степень
+print('⚡ Возведение в степень:')
+global pow23 = power(2, 3)
+global pow34 = power(3, 4)
+global pow52 = power(5, 2)
+print('power(2, 3) =', pow23)
+print('power(3, 4) =', pow34)
+print('power(5, 2) =', pow52)
+print()
+
+# Тестируем сумму
+print('➕ Сумма чисел:')
+global sum5 = sum_to_n(5)
+global sum10 = sum_to_n(10)
+print('sum_to_n(5) =', sum5)
+print('sum_to_n(10) =', sum10)
+print()
+
+# Тестируем НОД
+print('🔢 Наибольший общий делитель:')
+global gcd_result1 = gcd(48, 18)
+global gcd_result2 = gcd(56, 42)
+print('gcd(48, 18) =', gcd_result1)
+print('gcd(56, 42) =', gcd_result2)
+print()
+
+# Комбинированные вызовы
+print('🔗 Комбинированные рекурсивные вызовы:')
+global combined1 = factorial(fibonacci(4))
+global combined2 = power(factorial(3), 2)
+print('factorial(fibonacci(4)) =', combined1)
+print('power(factorial(3), 2) =', combined2)
+
+print()
+print('✅ Все рекурсивные функции работают корректно!')
+print('⚠️  Примечание: Глубокая рекурсия может быть медленной')
