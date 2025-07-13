@@ -581,11 +581,21 @@ impl Interpreter {
 
             // Ищем " in " в середине
             if let Some(in_pos) = middle_part.find(" in ") {
-                let var_name = middle_part[..in_pos].trim();
+                let var_part = middle_part[..in_pos].trim();
                 let collection_expr = middle_part[in_pos + 4..].trim();
 
-                if var_name.is_empty() || collection_expr.is_empty() {
+                if var_part.is_empty() || collection_expr.is_empty() {
                     return Err(DataCodeError::syntax_error("Invalid for syntax", self.current_line, 0));
+                }
+
+                // Парсим переменные (может быть одна или несколько через запятую)
+                let var_names: Vec<&str> = var_part.split(',').map(|s| s.trim()).collect();
+
+                // Проверяем, что все имена переменных валидны
+                for var_name in &var_names {
+                    if var_name.is_empty() {
+                        return Err(DataCodeError::syntax_error("Empty variable name in for loop", self.current_line, 0));
+                    }
                 }
 
                 let collection_val = self.eval_expr(collection_expr)?;
@@ -595,8 +605,43 @@ impl Interpreter {
                     // Создаем новый локальный контекст для цикла
                     self.loop_stack.push(HashMap::new());
 
-                    // Устанавливаем переменную цикла в локальном контексте
-                    self.set_loop_variable(var_name.to_string(), item);
+                    // Обрабатываем переменные цикла
+                    if var_names.len() == 1 {
+                        // Одна переменная - присваиваем весь элемент
+                        self.set_loop_variable(var_names[0].to_string(), item);
+                    } else {
+                        // Множественные переменные - распаковываем массив
+                        match &item {
+                            Value::Array(item_array) => {
+                                if item_array.len() != var_names.len() {
+                                    self.loop_stack.pop(); // Убираем контекст перед ошибкой
+                                    return Err(DataCodeError::runtime_error(
+                                        &format!(
+                                            "Cannot unpack array of length {} into {} variables",
+                                            item_array.len(),
+                                            var_names.len()
+                                        ),
+                                        self.current_line
+                                    ));
+                                }
+
+                                // Присваиваем каждый элемент соответствующей переменной
+                                for (i, var_name) in var_names.iter().enumerate() {
+                                    self.set_loop_variable(var_name.to_string(), item_array[i].clone());
+                                }
+                            }
+                            _ => {
+                                self.loop_stack.pop(); // Убираем контекст перед ошибкой
+                                return Err(DataCodeError::runtime_error(
+                                    &format!(
+                                        "Cannot unpack non-array value into {} variables",
+                                        var_names.len()
+                                    ),
+                                    self.current_line
+                                ));
+                            }
+                        }
+                    }
 
                     // Выполняем тело цикла - используем exec() для обработки многострочных конструкций
                     if !body_code.trim().is_empty() {

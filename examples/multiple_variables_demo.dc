@@ -1,0 +1,223 @@
+# Демонстрация множественных переменных в циклах for
+# Поддержка синтаксиса: for i, data in enum(...) do
+
+print('🔄 Демонстрация множественных переменных в циклах for')
+print('======================================================')
+print()
+
+# 1. Основной пример - как в вашем запросе
+print('1️⃣ Основной пример: for i, data in enum(array)')
+print('===============================================')
+
+global customer_numbers = [1001, 1002, 'invalid', 1004, '1005x']
+print('Данные CustomerNo:', customer_numbers)
+print()
+
+print('Проверка типов с помощью for i, data in enum():')
+for i, data in enum(customer_numbers) do
+    if not isinstance(data, 'number') do
+        print('Строка', i, ': Некорректный CustomerNo =', data)
+    else
+        print('Строка', i, ': Корректный CustomerNo =', data)
+    endif
+forend
+print()
+
+# 2. Работа с парами данных
+print('2️⃣ Работа с парами данных')
+print('==========================')
+
+global pairs = [[10, 'ten'], [20, 'twenty'], [30, 'thirty']]
+print('Пары чисел и слов:', pairs)
+
+print('Распаковка пар:')
+for number, word in pairs do
+    print('Число:', number, '-> Слово:', word)
+forend
+print()
+
+# 3. Работа с тройками данных
+print('3. Работа с тройками данных')
+print('===========================')
+
+global students = [['Alice', 85, 'A'], ['Bob', 92, 'A+'], ['Charlie', 78, 'B+']]
+
+print('Данные студентов: [имя, балл, оценка]')
+for name, score, grade in students do
+    print('Студент:', name, '| Балл:', score, '| Оценка:', grade)
+
+    if score >= 90 do
+        print('  -> Отличник!')
+    else
+        if score >= 80 do
+            print('  -> Хорошист')
+        else
+            print('  -> Нужно подтянуться')
+        endif
+    endif
+forend
+print()
+
+# 4. Комбинирование enum с isinstance
+print('4️⃣ Комбинирование enum с isinstance')
+print('===================================')
+
+global mixed_data = [42, 'hello', true, null, 3.14]
+print('Смешанные данные:', mixed_data)
+
+print('Анализ типов по позициям:')
+for position, value in enum(mixed_data) do
+    if isinstance(value, 'number') do
+        print('Позиция', position, ': Число =', value)
+    else
+        if isinstance(value, 'string') do
+            print('Позиция', position, ': Строка =', value)
+        else
+            if isinstance(value, 'bool') do
+                print('Позиция', position, ': Булево =', value)
+            else
+                if isinstance(value, 'null') do
+                    print('Позиция', position, ': Null значение')
+                else
+                    print('Позиция', position, ': Неизвестный тип =', value)
+                endif
+            endif
+        endif
+    endif
+forend
+print()
+
+# 5. Сбор статистики
+print('5️⃣ Сбор статистики с множественными переменными')
+print('===============================================')
+
+global sales_data = [
+    ['January', 1000, 15],
+    ['February', 1200, 18],
+    ['March', 800, 12]
+]
+
+global total_sales = 0
+global total_customers = 0
+global best_month = ''
+global best_sales = 0
+
+print('Данные продаж: [месяц, продажи, клиенты]')
+for month, sales, customers in sales_data do
+    print('Месяц:', month, '| Продажи:', sales, '| Клиенты:', customers)
+    
+    global total_sales = total_sales + sales
+    global total_customers = total_customers + customers
+    
+    if sales > best_sales do
+        global best_sales = sales
+        global best_month = month
+    endif
+forend
+
+print()
+print('Итоговая статистика:')
+print('  Общие продажи:', total_sales)
+print('  Общее количество клиентов:', total_customers)
+print('  Лучший месяц:', best_month, 'с продажами:', best_sales)
+print()
+
+# 6. Работа с координатами
+print('6️⃣ Работа с координатами')
+print('========================')
+
+global points = [[0, 0], [3, 4], [6, 8], [1, 1]]
+print('Точки координат:', points)
+
+print('Расчет расстояний от начала координат:')
+for x, y in points do
+    global distance = (x * x + y * y) ^ 0.5
+    print('Точка (', x, ',', y, ') -> Расстояние:', distance)
+forend
+print()
+
+# 7. Обработка ошибок
+print('7️⃣ Обработка ошибок при несоответствии количества переменных')
+print('=============================================================')
+
+global wrong_data = [[1, 2], [3], [4, 5, 6]]
+print('Данные с разной длиной массивов:', wrong_data)
+
+print('Попытка распаковки в две переменные:')
+global processed_count = 0
+
+for item in wrong_data do
+    global item_length = length(item)
+    
+    if item_length == 2 do
+        # Можем безопасно распаковать
+        global first = item[0]
+        global second = item[1]
+        print('Успешно обработан:', first, ',', second)
+        global processed_count = processed_count + 1
+    else
+        print('Пропущен элемент неправильной длины:', item, '(длина:', item_length, ')')
+    endif
+forend
+
+print('Обработано элементов:', processed_count, 'из', length(wrong_data))
+print()
+
+# 8. Вложенные циклы с множественными переменными
+print('8️⃣ Вложенные циклы с множественными переменными')
+print('===============================================')
+
+global matrix = [
+    [[1, 'a'], [2, 'b']],
+    [[3, 'c'], [4, 'd']]
+]
+
+print('Матрица пар:', matrix)
+print('Обход матрицы:')
+
+for row_idx, row in enum(matrix) do
+    print('Строка', row_idx, ':')
+    
+    for col_idx, pair in enum(row) do
+        for number, letter in [pair] do
+            print('  [', row_idx, ',', col_idx, '] =', number, ',', letter)
+        forend
+    forend
+forend
+print()
+
+# 9. Практический пример: обработка CSV-подобных данных
+print('9️⃣ Практический пример: обработка табличных данных')
+print('==================================================')
+
+global csv_data = [
+    ['Name', 'Age', 'City'],
+    ['Alice', 25, 'New York'],
+    ['Bob', 30, 'London'],
+    ['Charlie', 35, 'Tokyo']
+]
+
+print('CSV-подобные данные:')
+for row_num, row in enum(csv_data) do
+    if row_num == 0 do
+        # Заголовок
+        for col_num, header in enum(row) do
+            print('Колонка', col_num, ':', header)
+        forend
+        print('---')
+    else
+        # Данные
+        for name, age, city in [row] do
+            print('Запись', row_num, ':', name, '(', age, 'лет) из', city)
+        forend
+    endif
+forend
+print()
+
+print('✅ Демонстрация завершена!')
+print('Множественные переменные в циклах for позволяют:')
+print('  • Автоматически распаковывать массивы')
+print('  • Работать с enum() более удобно')
+print('  • Обрабатывать структурированные данные')
+print('  • Писать более читаемый код')
+print('  • Избегать ручного индексирования')

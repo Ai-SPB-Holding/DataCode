@@ -1,0 +1,242 @@
+# Демонстрация функции enum() в DataCode
+# Функция enum() возвращает массив пар [индекс, значение] для эффективной итерации
+
+print('🔢 Демонстрация функции enum() в DataCode')
+print('==========================================')
+print()
+
+# 1. Базовое использование с массивами
+print('1️⃣ Использование enum() с массивами:')
+print('====================================')
+
+global fruits = ['apple', 'banana', 'cherry']
+global enumerated_fruits = enum(fruits)
+
+print('Исходный массив:', fruits)
+print('Результат enum():', enumerated_fruits)
+print()
+
+print('Разбор по элементам:')
+for pair in enumerated_fruits do
+    global index = pair[0]
+    global value = pair[1]
+    print('  Индекс:', index, '-> Значение:', value)
+forend
+print()
+
+# 2. Использование enum() в циклах для обработки данных
+print('2️⃣ Обработка данных с индексами:')
+print('=================================')
+
+global numbers = [10, 20, 30, 40, 50]
+print('Исходные числа:', numbers)
+
+print('Обработка с enum():')
+for pair in enum(numbers) do
+    global i = pair[0]
+    global num = pair[1]
+    global doubled = num * 2
+    print('  [', i, ']', num, '* 2 =', doubled)
+forend
+print()
+
+# 3. Фильтрация по индексам
+print('3️⃣ Фильтрация по индексам:')
+print('===========================')
+
+global data = ['first', 'second', 'third', 'fourth', 'fifth']
+print('Исходные данные:', data)
+
+print('Элементы с четными индексами:')
+for pair in enum(data) do
+    global idx = pair[0]
+    global val = pair[1]
+    # Проверяем четность индекса (простая проверка через деление)
+    global is_even = (idx == 0) or (idx == 2) or (idx == 4)
+    if is_even do
+        print('  Индекс', idx, ':', val)
+    endif
+forend
+print()
+
+# 4. Использование с строками
+print('4️⃣ Использование enum() со строками:')
+print('====================================')
+
+global text = 'Hello'
+global enumerated_chars = enum(text)
+
+print('Исходная строка:', text)
+print('Результат enum():', enumerated_chars)
+
+print('Символы с позициями:')
+for pair in enumerated_chars do
+    global pos = pair[0]
+    global char = pair[1]
+    print('  Позиция', pos, ':', char)
+forend
+print()
+
+# 5. Поиск элементов с их позициями
+print('5️⃣ Поиск элементов с позициями:')
+print('===============================')
+
+global colors = ['red', 'green', 'blue', 'green', 'yellow']
+global search_color = 'green'
+
+print('Массив цветов:', colors)
+print('Ищем цвет:', search_color)
+
+print('Найденные позиции:')
+for pair in enum(colors) do
+    global position = pair[0]
+    global color = pair[1]
+    if color == search_color do
+        print('  Найден на позиции:', position)
+    endif
+forend
+print()
+
+# 6. Создание индексированного словаря
+print('6️⃣ Создание индексированного списка:')
+print('====================================')
+
+global items = ['task1', 'task2', 'task3']
+print('Исходные задачи:', items)
+
+print('Пронумерованный список:')
+for pair in enum(items) do
+    global num = pair[0] + 1  # Начинаем с 1 вместо 0
+    global task = pair[1]
+    print('  ', num, '.', task)
+forend
+print()
+
+# 7. Сравнение соседних элементов
+print('7️⃣ Анализ изменений в данных:')
+print('=============================')
+
+global prices = [100, 105, 98, 102, 110]
+print('Цены по дням:', prices)
+
+print('Анализ изменений:')
+for pair in enum(prices) do
+    global day = pair[0]
+    global price = pair[1]
+    
+    if day == 0 do
+        print('  День', day + 1, ':', price, '(начальная цена)')
+    else
+        # Получаем предыдущую цену
+        global prev_price = prices[day - 1]
+        global change = price - prev_price
+        
+        if change > 0 do
+            print('  День', day + 1, ':', price, '(+', change, ')')
+        else
+            if change < 0 do
+                print('  День', day + 1, ':', price, '(', change, ')')
+            else
+                print('  День', day + 1, ':', price, '(без изменений)')
+            endif
+        endif
+    endif
+forend
+print()
+
+# 8. Работа с вложенными структурами
+print('8️⃣ Работа с вложенными массивами:')
+print('=================================')
+
+global matrix = [[1, 2], [3, 4], [5, 6]]
+print('Матрица:', matrix)
+
+print('Обход с индексами строк:')
+for pair in enum(matrix) do
+    global row_idx = pair[0]
+    global row = pair[1]
+    print('  Строка', row_idx, ':', row)
+    
+    # Обходим элементы строки
+    for inner_pair in enum(row) do
+        global col_idx = inner_pair[0]
+        global value = inner_pair[1]
+        print('    [', row_idx, ',', col_idx, '] =', value)
+    forend
+forend
+print()
+
+# 9. Практический пример: обработка данных клиентов
+print('9️⃣ Практический пример - обработка данных:')
+print('==========================================')
+
+global customers = ['Alice', 'Bob', 'Charlie', 'Diana']
+global orders = [150, 200, 75, 300]
+
+print('Клиенты:', customers)
+print('Заказы:', orders)
+
+print('Отчет по клиентам:')
+for pair in enum(customers) do
+    global customer_id = pair[0]
+    global customer_name = pair[1]
+    global order_amount = orders[customer_id]
+    
+    print('  ID:', customer_id, '| Клиент:', customer_name, '| Заказ:', order_amount)
+    
+    # Категоризация клиентов
+    if order_amount >= 200 do
+        print('    -> VIP клиент')
+    else
+        if order_amount >= 100 do
+            print('    -> Обычный клиент')
+        else
+            print('    -> Новый клиент')
+        endif
+    endif
+forend
+print()
+
+# 10. Функция для работы с enum
+print('🔟 Пользовательская функция с enum:')
+print('===================================')
+
+global function find_max_with_index(arr) do
+    global max_value = null
+    global max_index = -1
+
+    for pair in enum(arr) do
+        global idx = pair[0]
+        global val = pair[1]
+
+        if isinstance(val, 'number') do
+            if max_value == null do
+                global max_value = val
+                global max_index = idx
+            else
+                if val > max_value do
+                    global max_value = val
+                    global max_index = idx
+                endif
+            endif
+        endif
+    forend
+
+    return [max_index, max_value]
+endfunction
+
+global test_numbers = [45, 12, 89, 23, 67, 34]
+global result = find_max_with_index(test_numbers)
+
+print('Массив чисел:', test_numbers)
+print('Максимальное значение:', result[1], 'на позиции:', result[0])
+print()
+
+print('✅ Демонстрация завершена!')
+print('Функция enum() позволяет эффективно работать с индексами при итерации')
+print('Это особенно полезно для:')
+print('  • Отслеживания позиций элементов')
+print('  • Сравнения соседних элементов')
+print('  • Создания пронумерованных списков')
+print('  • Фильтрации по позициям')
+print('  • Синхронизации нескольких массивов')

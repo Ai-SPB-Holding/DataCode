@@ -1,0 +1,91 @@
+# Simple Data Filtering Demo for DataCode
+# Demonstrates new filtering functions
+
+print("DataCode Filtering Functions Demo")
+print("=================================")
+
+# Create test employee data
+global employees_data = []
+global employees_data = push(employees_data, [1, 'Alice', 28, 75000, 'Engineering', true])
+global employees_data = push(employees_data, [2, 'Bob', 35, 82000, 'Marketing', true])
+global employees_data = push(employees_data, [3, 'Charlie', 42, 68000, 'Engineering', false])
+global employees_data = push(employees_data, [4, 'Diana', 29, 71500, 'HR', true])
+global employees_data = push(employees_data, [5, 'Eve', 31, 89000, 'Marketing', true])
+global employees_data = push(employees_data, [6, 'Frank', 45, 105000, 'Engineering', true])
+
+global headers = ['id', 'name', 'age', 'salary', 'department', 'active']
+global employees = table(employees_data, headers)
+
+print("Original table:")
+show_table(employees)
+print("")
+
+# 1. Basic WHERE filtering
+print("1. table_where examples:")
+print("------------------------")
+
+global engineering = table_where(employees, 'department', '=', 'Engineering')
+print("Engineering employees:")
+show_table(engineering)
+
+global high_salary = table_where(employees, 'salary', '>', 80000)
+print("High salary employees (>80k):")
+show_table(high_salary)
+
+# 2. BETWEEN filtering
+print("2. table_between examples:")
+print("--------------------------")
+
+global middle_age = table_between(employees, 'age', 30, 40)
+print("Employees aged 30-40:")
+show_table(middle_age)
+
+# 3. IN filtering
+print("3. table_in examples:")
+print("--------------------")
+
+global tech_depts = table_in(employees, 'department', ['Engineering', 'Marketing'])
+print("Tech departments (Engineering + Marketing):")
+show_table(tech_depts)
+
+# 4. DISTINCT values
+print("4. table_distinct examples:")
+print("---------------------------")
+
+global departments = table_distinct(employees, 'department')
+print("Unique departments:")
+for dept in departments do
+    print("  - " + dept)
+endfor
+print("")
+
+# 5. SAMPLE random rows
+print("5. table_sample examples:")
+print("-------------------------")
+
+global sample_3 = table_sample(employees, 3)
+print("Random sample of 3 employees:")
+show_table(sample_3)
+
+# 6. Combined filtering
+print("6. Combined filtering:")
+print("---------------------")
+
+global active = table_where(employees, 'active', '=', true)
+global active_high = table_where(active, 'salary', '>', 75000)
+print("Active employees with salary > 75k:")
+show_table(active_high)
+
+# 7. Statistics on filtered data
+print("7. Statistics:")
+print("-------------")
+
+global eng_count = length(engineering['rows'])
+global total_count = length(employees['rows'])
+print("Engineering employees: " + eng_count + " out of " + total_count)
+
+global active_count = length(active_employees['rows'])
+print("Active employees: " + active_count + " out of " + total_count)
+
+print("")
+print("Demo completed! DataCode now supports professional data filtering!")
