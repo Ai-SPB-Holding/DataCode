@@ -29,6 +29,14 @@ pub struct Interpreter {
     pub current_line: usize,
     pub call_stack: Vec<HashMap<String, Value>>, // Стек локальных переменных для функций
     pub loop_stack: Vec<HashMap<String, Value>>, // Стек локальных переменных для циклов
+    pub exception_stack: Vec<TryBlock>, // Стек блоков try/catch
+}
+
+#[derive(Debug, Clone)]
+pub struct TryBlock {
+    pub catch_var: Option<String>,
+    pub catch_body: Vec<String>,
+    pub finally_body: Option<Vec<String>>,
 }
 
 impl Interpreter {
@@ -41,6 +49,7 @@ impl Interpreter {
             current_line: 1,
             call_stack: Vec::new(),
             loop_stack: Vec::new(),
+            exception_stack: Vec::new(),
         }
     }
 
@@ -152,6 +161,27 @@ impl Interpreter {
                 let obj_val = self.evaluate_expression(object)?;
                 self.evaluate_member(&obj_val, member)
             }
+
+            Expr::ArrayLiteral { elements } => {
+                let mut array_values = Vec::new();
+                for element in elements {
+                    array_values.push(self.evaluate_expression(element)?);
+                }
+                Ok(Value::Array(array_values))
+            }
+
+            Expr::TryBlock { try_body, catch_var, catch_body, finally_body } => {
+                self.execute_try_block(try_body, catch_var.as_deref(), catch_body, finally_body.as_ref())
+            }
+
+            Expr::ThrowStatement { message } => {
+                let msg_value = self.evaluate_expression(message)?;
+                let msg_str = match msg_value {
+                    Value::String(s) => s,
+                    other => format!("{:?}", other),
+                };
+                Err(DataCodeError::user_exception(&msg_str, self.current_line))
+            }
         }
     }
 
@@ -213,6 +243,63 @@ impl Interpreter {
 
         // Сбрасываем return_value
         self.return_value = None;
+
+        Ok(result)
+    }
+
+    fn execute_try_block(
+        &mut self,
+        try_body: &[String],
+        catch_var: Option<&str>,
+        catch_body: &[String],
+        finally_body: Option<&Vec<String>>
+    ) -> Result<Value> {
+        let result = Value::Null;
+        let mut exception_occurred = false;
+        let mut exception_message = String::new();
+
+        // Выполняем try блок
+        for line in try_body {
+            match self.exec(line) {
+                Ok(_) => {},
+                Err(e) => {
+                    exception_occurred = true;
+                    exception_message = format!("{}", e);
+                    break;
+                }
+            }
+        }
+
+        // Если произошло исключение, выполняем catch блок
+        if exception_occurred {
+            // Если есть переменная для исключения, сохраняем сообщение
+            if let Some(var_name) = catch_var {
+                self.set_variable(var_name.to_string(), Value::String(exception_message), false);
+            }
+
+            // Выполняем catch блок
+            for line in catch_body {
+                match self.exec(line) {
+                    Ok(_) => {},
+                    Err(e) => {
+                        // Если в catch блоке тоже произошла ошибка, выполняем finally и возвращаем ошибку
+                        if let Some(finally_lines) = finally_body {
+                            for finally_line in finally_lines {
+                                let _ = self.exec(finally_line); // Игнорируем ошибки в finally
+                            }
+                        }
+                        return Err(e);
+                    }
+                }
+            }
+        }
+
+        // Выполняем finally блок (если есть)
+        if let Some(finally_lines) = finally_body {
+            for finally_line in finally_lines {
+                let _ = self.exec(finally_line); // Игнорируем ошибки в finally
+            }
+        }
 
         Ok(result)
     }
@@ -341,6 +428,42 @@ impl Interpreter {
                 if self.return_value.is_some() {
                     break;
                 }
+            } else if line.starts_with("try") {
+                // Собираем весь try/catch/finally блок
+                let mut try_lines = vec![lines[i]];
+                let mut try_depth = 1;
+                i += 1;
+
+                while i < lines.len() && try_depth > 0 {
+                    let current_line = lines[i].trim();
+
+                    // Увеличиваем глубину при встрече нового try
+                    if current_line.starts_with("try") {
+                        try_depth += 1;
+                    }
+                    // Уменьшаем глубину при встрече endtry
+                    else if current_line == "endtry" {
+                        try_depth -= 1;
+                    }
+
+                    try_lines.push(lines[i]);
+
+                    // Если глубина стала 0, мы закончили основной блок try
+                    if try_depth == 0 {
+                        break;
+                    }
+
+                    i += 1;
+                }
+
+                // Выполняем весь try/catch блок как одну команду
+                let try_code = try_lines.join("\n");
+                self.exec_single_line(&try_code)?;
+
+                // Проверяем, был ли выполнен return
+                if self.return_value.is_some() {
+                    break;
+                }
             } else {
                 // Обычная строка
                 self.exec_single_line(lines[i])?;
@@ -410,15 +533,29 @@ impl Interpreter {
             let body_lines = &lines[1..lines.len()-1];
             let body_code = body_lines.join("\n");
 
-            let header_parts: Vec<&str> = header.trim().split_whitespace().collect();
-            if header_parts.len() < 5 || header_parts[2] != "in" || header_parts[4] != "do" {
+            // Более умный парсинг заголовка цикла
+            let header_trimmed = header.trim();
+
+            // Проверяем, что строка начинается с "for " и заканчивается на " do"
+            if !header_trimmed.starts_with("for ") || !header_trimmed.ends_with(" do") {
                 return Err(DataCodeError::syntax_error("Invalid for syntax", self.current_line, 0));
             }
-            let var_name = header_parts[1];
-            let collection_expr = header_parts[3];
-            let collection_val = self.eval_expr(collection_expr)?;
 
-            if let Value::Array(items) = collection_val {
+            // Убираем "for " в начале и " do" в конце
+            let middle_part = &header_trimmed[4..header_trimmed.len()-3];
+
+            // Ищем " in " в середине
+            if let Some(in_pos) = middle_part.find(" in ") {
+                let var_name = middle_part[..in_pos].trim();
+                let collection_expr = middle_part[in_pos + 4..].trim();
+
+                if var_name.is_empty() || collection_expr.is_empty() {
+                    return Err(DataCodeError::syntax_error("Invalid for syntax", self.current_line, 0));
+                }
+
+                let collection_val = self.eval_expr(collection_expr)?;
+
+                if let Value::Array(items) = collection_val {
                 for item in items {
                     // Создаем новый локальный контекст для цикла
                     self.loop_stack.push(HashMap::new());
@@ -440,13 +577,22 @@ impl Interpreter {
                     // Убираем локальный контекст цикла после завершения итерации
                     self.loop_stack.pop();
                 }
-                Ok(())
+                    Ok(())
+                } else {
+                    Err(DataCodeError::type_error("Array", "other", self.current_line))
+                }
             } else {
-                Err(DataCodeError::type_error("Array", "other", self.current_line))
+                return Err(DataCodeError::syntax_error("Invalid for syntax: missing 'in'", self.current_line, 0));
             }
         }
         else if code.trim_start().starts_with("if ") {
             return self.parse_if_statement(code);
+        }
+        else if code.trim_start().starts_with("try") {
+            return self.parse_try_statement(code);
+        }
+        else if code.trim_start().starts_with("throw ") {
+            return self.parse_throw_statement(code);
         } else {
             // Это выражение - вычисляем
             match self.eval_expr(code.trim()) {
@@ -560,13 +706,18 @@ impl Interpreter {
 
             BinaryOp::Divide => {
                 // Интеллектуальная обработка оператора /
-                // Если левый операнд - Path, то это PathJoin
+                // Если левый операнд - Path, то это PathJoin (может включать glob паттерны)
                 // Если оба операнда - числа, то это математическое деление
                 match (left, right) {
                     (Path(p), String(s)) => {
                         let mut path = p.clone();
                         path.push(s);
-                        Ok(Path(path))
+                        // Проверяем, содержит ли строка glob паттерны
+                        if s.contains('*') || s.contains('?') || s.contains('[') {
+                            Ok(Value::PathPattern(path))
+                        } else {
+                            Ok(Path(path))
+                        }
                     }
                     (Path(p1), Path(p2)) => {
                         let mut path = p1.clone();
@@ -697,6 +848,8 @@ impl Interpreter {
             (String(a), String(b)) => a == b,
             (Bool(a), Bool(b)) => a == b,
             (Null, Null) => true,
+            (Path(a), Path(b)) => a == b,
+            (PathPattern(a), PathPattern(b)) => a == b,
             (Array(a), Array(b)) => a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| self.values_equal(x, y)),
             _ => false,
         }
@@ -712,6 +865,7 @@ impl Interpreter {
             Value::Table(table) => !table.rows.is_empty(),
             Value::Null => false,
             Value::Path(p) => p.exists(),
+            Value::PathPattern(_) => true, // PathPattern всегда считается true
         }
     }
 
@@ -821,5 +975,98 @@ impl Interpreter {
         }
 
         Ok(condition_expr.to_string())
+    }
+
+    fn parse_try_statement(&mut self, code: &str) -> Result<()> {
+        let lines: Vec<&str> = code.lines().collect();
+
+        if lines.is_empty() {
+            return Err(DataCodeError::syntax_error("Empty try block", self.current_line, 0));
+        }
+
+        // Находим разделители блоков
+        let mut try_end = 0;
+        let mut catch_start = None;
+        let mut catch_end = None;
+        let mut finally_start = None;
+        let mut finally_end = None;
+
+        for (i, line) in lines.iter().enumerate() {
+            let trimmed = line.trim();
+            if trimmed == "catch" || trimmed.starts_with("catch ") {
+                try_end = i;
+                catch_start = Some(i);
+            } else if trimmed == "finally" {
+                if catch_start.is_some() {
+                    catch_end = Some(i);
+                } else {
+                    try_end = i;
+                }
+                finally_start = Some(i);
+            } else if trimmed == "endtry" {
+                if finally_start.is_some() {
+                    finally_end = Some(i);
+                } else if catch_start.is_some() {
+                    catch_end = Some(i);
+                } else {
+                    try_end = i;
+                }
+                break;
+            }
+        }
+
+        // Извлекаем блоки
+        let try_body: Vec<String> = if try_end > 1 {
+            lines[1..try_end].iter().map(|s| s.to_string()).collect()
+        } else {
+            Vec::new()
+        };
+
+        let (catch_var, catch_body) = if let Some(start) = catch_start {
+            let end = catch_end.unwrap_or(finally_start.unwrap_or(lines.len() - 1));
+            let catch_header = lines[start].trim();
+
+            // Парсим переменную исключения из "catch e" или просто "catch"
+            let catch_var = if catch_header.starts_with("catch ") {
+                Some(catch_header.strip_prefix("catch ").unwrap().trim().to_string())
+            } else {
+                None
+            };
+
+            let catch_body: Vec<String> = lines[start + 1..end].iter().map(|s| s.to_string()).collect();
+            (catch_var, catch_body)
+        } else {
+            (None, Vec::new())
+        };
+
+        let finally_body = if let Some(start) = finally_start {
+            let end = finally_end.unwrap_or(lines.len() - 1);
+            Some(lines[start + 1..end].iter().map(|s| s.to_string()).collect())
+        } else {
+            None
+        };
+
+        // Выполняем try блок
+        self.execute_try_block(&try_body, catch_var.as_deref(), &catch_body, finally_body.as_ref())?;
+
+        Ok(())
+    }
+
+    fn parse_throw_statement(&mut self, code: &str) -> Result<()> {
+        let code = code.trim();
+
+        if !code.starts_with("throw ") {
+            return Err(DataCodeError::syntax_error("Invalid throw statement", self.current_line, 0));
+        }
+
+        let message_expr = code.strip_prefix("throw ").unwrap().trim();
+        let message_value = self.eval_expr(message_expr)?;
+
+        let message_str = match message_value {
+            Value::String(s) => s,
+            other => format!("{:?}", other),
+        };
+
+        Err(DataCodeError::user_exception(&message_str, self.current_line))
     }
 }

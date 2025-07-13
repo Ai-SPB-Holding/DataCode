@@ -3,6 +3,7 @@ use crate::error::{DataCodeError, Result};
 use std::fs;
 use std::path::PathBuf;
 use chrono::Utc;
+use glob::glob;
 
 pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
     use Value::*;
@@ -29,6 +30,7 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             }
             match &args[0] {
                 Path(p) => {
+                    // Обычное чтение директории без фильтрации
                     let entries = fs::read_dir(p).map_err(|e|
                         DataCodeError::runtime_error(&format!("Failed to read dir: {}", e), line))?;
                     let mut files = vec![];
@@ -44,7 +46,40 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                     }
                     Ok(Array(files))
                 }
-                _ => Err(DataCodeError::type_error("Path", "other", line)),
+                Value::PathPattern(pattern) => {
+                    // Используем glob для поиска файлов по паттерну
+                    let pattern_str = pattern.to_str()
+                        .ok_or_else(|| DataCodeError::runtime_error("Invalid path pattern", line))?;
+
+                    let mut files = vec![];
+                    match glob(pattern_str) {
+                        Ok(paths) => {
+                            for entry in paths {
+                                match entry {
+                                    Ok(path) => {
+                                        if path.is_file() {
+                                            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                                                files.push(String(name.to_string()));
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        return Err(DataCodeError::runtime_error(
+                                            &format!("Glob error: {}", e), line
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            return Err(DataCodeError::runtime_error(
+                                &format!("Invalid glob pattern: {}", e), line
+                            ));
+                        }
+                    }
+                    Ok(Array(files))
+                }
+                _ => Err(DataCodeError::type_error("Path or PathPattern", "other", line)),
             }
         }
         "getcwd" => {
@@ -84,16 +119,38 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                             let mut table = crate::value::Table::new(column_names);
 
                             // Читаем данные и добавляем в таблицу
-                            for result in rdr.records() {
-                                let record = result.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
+                            let mut skipped_rows = 0;
+                            let expected_columns = table.columns.len();
 
-                                let row_data: Vec<Value> = record.iter()
-                                    .map(|s| parse_csv_value(s))
-                                    .collect();
+                            for (row_index, result) in rdr.records().enumerate() {
+                                match result {
+                                    Ok(record) => {
+                                        // Проверяем количество полей
+                                        if record.len() != expected_columns {
+                                            eprintln!("⚠️  Строка {} пропущена: ожидалось {} полей, найдено {} полей",
+                                                row_index + 2, expected_columns, record.len()); // +2 потому что строки начинаются с 1 и есть заголовок
+                                            skipped_rows += 1;
+                                            continue;
+                                        }
 
-                                if let Err(e) = table.add_row(row_data) {
-                                    return Err(DataCodeError::runtime_error(&e, line));
+                                        let row_data: Vec<Value> = record.iter()
+                                            .map(|s| parse_csv_value(s))
+                                            .collect();
+
+                                        if let Err(e) = table.add_row(row_data) {
+                                            eprintln!("⚠️  Ошибка добавления строки {}: {}", row_index + 2, e);
+                                            skipped_rows += 1;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        eprintln!("⚠️  Ошибка чтения строки {}: {}", row_index + 2, e);
+                                        skipped_rows += 1;
+                                    }
                                 }
+                            }
+
+                            if skipped_rows > 0 {
+                                eprintln!("⚠️  Всего пропущено строк: {}", skipped_rows);
                             }
 
                             // Выводим предупреждения о типизации
@@ -159,6 +216,7 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
                 .map(|v| match v {
                     Value::String(s) => s,
                     Value::Path(p) => p.display().to_string(),
+                    Value::PathPattern(p) => format!("Pattern({})", p.display()),
                     Value::Number(n) => n.to_string(),
                     Value::Bool(b) => b.to_string(),
                     Value::Null => "null".to_string(),
@@ -735,6 +793,131 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             }
         }
 
+        "analyze_csv" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("analyze_csv", 1, args.len(), line));
+            }
+            match &args[0] {
+                Value::Path(p) => {
+                    let mut rdr = csv::ReaderBuilder::new()
+                        .has_headers(true)
+                        .flexible(true) // Позволяет строкам иметь разное количество полей
+                        .from_path(p)
+                        .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV: {}", e), line))?;
+
+                    // Получаем заголовки
+                    let headers = rdr.headers()
+                        .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV headers: {}", e), line))?;
+                    let expected_columns = headers.len();
+
+                    let mut total_rows = 0;
+                    let mut invalid_rows = 0;
+                    let mut field_counts = std::collections::HashMap::new();
+
+                    for (row_index, result) in rdr.records().enumerate() {
+                        total_rows += 1;
+                        match result {
+                            Ok(record) => {
+                                let field_count = record.len();
+                                *field_counts.entry(field_count).or_insert(0) += 1;
+
+                                if field_count != expected_columns {
+                                    invalid_rows += 1;
+                                }
+                            }
+                            Err(_) => {
+                                invalid_rows += 1;
+                            }
+                        }
+                    }
+
+                    println!("📊 Анализ CSV файла: {}", p.display());
+                    println!("   Ожидаемое количество колонок: {}", expected_columns);
+                    println!("   Всего строк данных: {}", total_rows);
+                    println!("   Строк с ошибками: {}", invalid_rows);
+                    println!("   Распределение по количеству полей:");
+
+                    let mut sorted_counts: Vec<_> = field_counts.iter().collect();
+                    sorted_counts.sort_by_key(|&(k, _)| k);
+
+                    for (field_count, count) in sorted_counts {
+                        let percentage = (*count as f64 / total_rows as f64) * 100.0;
+                        println!("     {} полей: {} строк ({:.1}%)", field_count, count, percentage);
+                    }
+
+                    Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Path", "other", line)),
+            }
+        }
+
+        "read_csv_safe" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("read_csv_safe", 1, args.len(), line));
+            }
+            match &args[0] {
+                Value::Path(p) => {
+                    let mut rdr = csv::ReaderBuilder::new()
+                        .has_headers(true)
+                        .flexible(true) // Позволяет строкам иметь разное количество полей
+                        .from_path(p)
+                        .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV: {}", e), line))?;
+
+                    // Получаем заголовки
+                    let headers = rdr.headers()
+                        .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read CSV headers: {}", e), line))?;
+                    let column_names: Vec<std::string::String> = headers.iter().map(|s| s.to_string()).collect();
+                    let expected_columns = column_names.len();
+
+                    // Создаем таблицу
+                    let mut table = crate::value::Table::new(column_names);
+
+                    // Читаем данные и добавляем в таблицу
+                    let mut skipped_rows = 0;
+                    let mut total_rows = 0;
+
+                    for (row_index, result) in rdr.records().enumerate() {
+                        total_rows += 1;
+                        match result {
+                            Ok(record) => {
+                                // Если количество полей не совпадает, дополняем или обрезаем
+                                let mut row_data: Vec<Value> = record.iter()
+                                    .take(expected_columns) // Берем только нужное количество полей
+                                    .map(|s| parse_csv_value(s))
+                                    .collect();
+
+                                // Дополняем недостающие поля значениями Null
+                                while row_data.len() < expected_columns {
+                                    row_data.push(Value::Null);
+                                }
+
+                                if let Err(e) = table.add_row(row_data) {
+                                    eprintln!("⚠️  Ошибка добавления строки {}: {}", row_index + 2, e);
+                                    skipped_rows += 1;
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("⚠️  Ошибка чтения строки {}: {}", row_index + 2, e);
+                                skipped_rows += 1;
+                            }
+                        }
+                    }
+
+                    if skipped_rows > 0 {
+                        eprintln!("⚠️  Всего пропущено строк: {} из {}", skipped_rows, total_rows);
+                    }
+
+                    // Выводим предупреждения о типизации
+                    for warning in table.get_warnings() {
+                        eprintln!("⚠️  {}", warning);
+                    }
+
+                    Ok(Value::Table(table))
+                }
+                _ => Err(DataCodeError::type_error("Path", "other", line)),
+            }
+        }
+
         "table_sort" => {
             if args.len() < 2 {
                 return Err(DataCodeError::wrong_argument_count("table_sort", 2, args.len(), line));
@@ -882,6 +1065,7 @@ fn format_value_for_table(value: &Value) -> String {
         Value::Bool(b) => b.to_string(),
         Value::Null => "null".to_string(),
         Value::Path(p) => p.display().to_string(),
+        Value::PathPattern(p) => format!("Pattern({})", p.display()),
         Value::Array(_) => "[Array]".to_string(),
         Value::Object(_) => "{Object}".to_string(),
         Value::Table(_) => "[Table]".to_string(),

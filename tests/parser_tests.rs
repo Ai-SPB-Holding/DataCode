@@ -415,4 +415,96 @@ mod evaluator_tests {
             _ => panic!("Expected Path value"),
         }
     }
+
+    #[test]
+    fn test_array_literals() {
+        let vars = HashMap::new();
+
+        // Тест пустого массива
+        let result = parse_and_evaluate("[]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![]));
+
+        // Тест массива с числами
+        let result = parse_and_evaluate("[1, 2, 3]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0)
+        ]));
+
+        // Тест массива со строками
+        let result = parse_and_evaluate("['hello', 'world']", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![
+            Value::String("hello".to_string()),
+            Value::String("world".to_string())
+        ]));
+
+        // Тест массива с булевыми значениями
+        let result = parse_and_evaluate("[true, false, true]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true)
+        ]));
+
+        // Тест массива смешанных типов
+        let result = parse_and_evaluate("[1, 'hello', true, 3.14]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![
+            Value::Number(1.0),
+            Value::String("hello".to_string()),
+            Value::Bool(true),
+            Value::Number(3.14)
+        ]));
+
+        // Тест массива с trailing comma
+        let result = parse_and_evaluate("[1, 2, 3,]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0)
+        ]));
+
+        // Тест одноэлементного массива
+        let result = parse_and_evaluate("[42]", &vars, 1).unwrap();
+        assert_eq!(result, Value::Array(vec![Value::Number(42.0)]));
+    }
+
+    #[test]
+    fn test_array_literals_lexer() {
+        let mut lexer = Lexer::new("[1, 2, 3]");
+
+        assert_eq!(lexer.next_token(), Token::LeftBracket);
+        assert_eq!(lexer.next_token(), Token::Number(1.0));
+        assert_eq!(lexer.next_token(), Token::Comma);
+        assert_eq!(lexer.next_token(), Token::Number(2.0));
+        assert_eq!(lexer.next_token(), Token::Comma);
+        assert_eq!(lexer.next_token(), Token::Number(3.0));
+        assert_eq!(lexer.next_token(), Token::RightBracket);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_array_literals_parser() {
+        let mut parser = Parser::new("[1, 'hello', true]");
+        let expr = parser.parse_expression().unwrap();
+
+        match expr {
+            Expr::ArrayLiteral { elements } => {
+                assert_eq!(elements.len(), 3);
+                match &elements[0] {
+                    Expr::Literal(Value::Number(n)) => assert_eq!(*n, 1.0),
+                    _ => panic!("Expected number literal"),
+                }
+                match &elements[1] {
+                    Expr::Literal(Value::String(s)) => assert_eq!(s, "hello"),
+                    _ => panic!("Expected string literal"),
+                }
+                match &elements[2] {
+                    Expr::Literal(Value::Bool(b)) => assert_eq!(*b, true),
+                    _ => panic!("Expected boolean literal"),
+                }
+            }
+            _ => panic!("Expected array literal expression"),
+        }
+    }
 }

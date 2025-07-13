@@ -28,6 +28,12 @@ pub enum Token {
     And,            // and
     Or,             // or
     Not,            // not
+
+    // Обработка исключений
+    Try,            // try
+    Catch,          // catch
+    Finally,        // finally
+    Throw,          // throw
     
     // Скобки
     LeftParen,      // (
@@ -69,6 +75,18 @@ pub enum Expr {
     Member {
         object: Box<Expr>,
         member: String,
+    },
+    ArrayLiteral {
+        elements: Vec<Expr>,
+    },
+    TryBlock {
+        try_body: Vec<String>,
+        catch_var: Option<String>,
+        catch_body: Vec<String>,
+        finally_body: Option<Vec<String>>,
+    },
+    ThrowStatement {
+        message: Box<Expr>,
     },
 }
 
@@ -205,6 +223,10 @@ impl Lexer {
                         "and" => Token::And,
                         "or" => Token::Or,
                         "not" => Token::Not,
+                        "try" => Token::Try,
+                        "catch" => Token::Catch,
+                        "finally" => Token::Finally,
+                        "throw" => Token::Throw,
                         _ => Token::Identifier(ident),
                     };
                 }
@@ -541,6 +563,39 @@ impl Parser {
                 let expr = self.parse_expression()?;
                 self.expect(Token::RightParen)?;
                 Ok(expr)
+            }
+            Token::LeftBracket => {
+                self.advance(); // consume '['
+                let mut elements = Vec::new();
+
+                // Проверяем пустой массив
+                if matches!(self.current_token, Token::RightBracket) {
+                    self.advance(); // consume ']'
+                    return Ok(Expr::ArrayLiteral { elements });
+                }
+
+                // Парсим элементы массива
+                loop {
+                    elements.push(self.parse_expression()?);
+
+                    if matches!(self.current_token, Token::Comma) {
+                        self.advance(); // consume ','
+                        // Проверяем trailing comma
+                        if matches!(self.current_token, Token::RightBracket) {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                self.expect(Token::RightBracket)?;
+                Ok(Expr::ArrayLiteral { elements })
+            }
+            Token::Throw => {
+                self.advance(); // consume 'throw'
+                let message = Box::new(self.parse_expression()?);
+                Ok(Expr::ThrowStatement { message })
             }
             _ => Err(DataCodeError::syntax_error(
                 &format!("Unexpected token: {:?}", self.current_token),

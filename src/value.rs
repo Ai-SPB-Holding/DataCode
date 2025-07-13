@@ -240,6 +240,7 @@ pub enum Value {
     Table(Table),
     Null,
     Path(PathBuf),
+    PathPattern(PathBuf), // Для glob паттернов типа /path/*.csv
 }
 
 impl Value {
@@ -251,7 +252,12 @@ impl Value {
                 let mut new_path = p.clone();
                 let relative = s.trim_start_matches('/');
                 new_path.push(relative);
-                Ok(Path(new_path))
+                // Проверяем, содержит ли строка glob паттерны
+                if s.contains('*') || s.contains('?') || s.contains('[') {
+                    Ok(PathPattern(new_path))
+                } else {
+                    Ok(Path(new_path))
+                }
             }
             (String(s), Path(p)) => {
                 let mut new_str = s.clone();

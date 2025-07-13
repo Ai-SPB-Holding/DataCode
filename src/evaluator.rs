@@ -54,6 +54,29 @@ impl<'a> Evaluator<'a> {
                 let obj_val = self.evaluate(object)?;
                 self.evaluate_member(&obj_val, member)
             }
+
+            Expr::ArrayLiteral { elements } => {
+                let mut array_values = Vec::new();
+                for element in elements {
+                    array_values.push(self.evaluate(element)?);
+                }
+                Ok(Array(array_values))
+            }
+
+            Expr::TryBlock { .. } => {
+                // Try блоки не должны вычисляться как выражения в evaluator
+                // Они обрабатываются в интерпретаторе
+                Err(DataCodeError::syntax_error("Try blocks are not supported in expressions", 1, 0))
+            }
+
+            Expr::ThrowStatement { message } => {
+                let msg_value = self.evaluate(message)?;
+                let msg_str = match msg_value {
+                    Value::String(s) => s,
+                    other => format!("{:?}", other),
+                };
+                Err(DataCodeError::user_exception(&msg_str, 1))
+            }
         }
     }
     
@@ -231,6 +254,7 @@ impl<'a> Evaluator<'a> {
             Value::Table(table) => !table.rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
+            Value::PathPattern(_) => true, // PathPattern всегда считается true
         }
     }
 }

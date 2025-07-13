@@ -49,6 +49,12 @@ pub enum DataCodeError {
         message: String,
         line: usize,
     },
+
+    // Пользовательские исключения (throw)
+    UserException {
+        message: String,
+        line: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -122,6 +128,9 @@ impl fmt::Display for DataCodeError {
             }
             DataCodeError::ExpressionError { expression, message, line } => {
                 write!(f, "Expression Error at line {}: {} in '{}'", line, message, expression)
+            }
+            DataCodeError::UserException { message, line } => {
+                write!(f, "Exception at line {}: {}", line, message)
             }
         }
     }
@@ -210,6 +219,13 @@ impl DataCodeError {
     pub fn expression_error(expression: &str, message: &str, line: usize) -> Self {
         DataCodeError::ExpressionError {
             expression: expression.to_string(),
+            message: message.to_string(),
+            line,
+        }
+    }
+
+    pub fn user_exception(message: &str, line: usize) -> Self {
+        DataCodeError::UserException {
             message: message.to_string(),
             line,
         }

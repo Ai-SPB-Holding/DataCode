@@ -1,11 +1,13 @@
 # 🧠 DataCode - Interactive Programming Language
 
-**DataCode** is a simple, interactive programming language designed for fast data processing and easy learning. It features an intuitive syntax, built-in functions, and support for user-defined functions with local scope.
+**DataCode** is a simple, interactive programming language designed for fast data processing and easy learning. It features an intuitive syntax, powerful array support, built-in functions, and user-defined functions with local scope.
 
 ## 🚀 Features
 
 - **Interactive REPL** with multiline support and command history
 - **File execution** - write programs in `.dc` files
+- **Array literals** - `[1, 2, 3]`, `['a', 'b']`, mixed types supported
+- **Array indexing** - `arr[0]`, `nested[0][1]` with full nesting support
 - **User-defined functions** with local scope, parameters and recursion
 - **Conditional statements** - if/else/endif with nesting support
 - **For loops** - iterate over arrays with `for...in`
@@ -71,13 +73,20 @@ make test                  # Run tests
 
 ### Quick Examples
 ```bash
-# Create a DataCode file
+# Create a simple DataCode file
 echo 'print("Hello, DataCode!")' > hello.dc
 
-# Execute the file
+# Create an array example
+echo 'global arr = [1, 2, 3]
+print("Array:", arr)
+print("First element:", arr[0])' > arrays.dc
+
+# Execute the files
 datacode hello.dc          # (after global installation)
+datacode arrays.dc
 # or
 cargo run hello.dc         # (development mode)
+cargo run arrays.dc
 ```
 
 ### Программное использование
@@ -111,6 +120,35 @@ global diff = x - y         # Вычитание
 global prod = x * y         # Умножение
 global quot = x / y         # Деление
 global complex = (x + y) * 2 - 5  # Сложные выражения
+```
+
+### 🔹 Массивы
+```DataCode
+# Создание массивов любых типов
+global numbers = [1, 2, 3, 4, 5]
+global strings = ['hello', 'world', 'datacode']
+global booleans = [true, false, true]
+global mixed = [1, 'hello', true, 3.14]
+global empty = []
+
+# Вложенные массивы
+global matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+global nested_mixed = [[1, 'a'], [true, 3.14]]
+
+# Доступ к элементам (индексирование с 0)
+print(numbers[0])        # 1
+print(strings[1])        # world
+print(mixed[2])          # true
+print(matrix[0][1])      # 2
+print(nested_mixed[1][0]) # true
+
+# Trailing comma поддерживается
+global trailing = [1, 2, 3,]
+
+# Использование в циклах
+for item in [1, 2, 3] do
+    print('Item:', item)
+forend
 ```
 
 ### 🔹 Операторы сравнения
@@ -150,14 +188,31 @@ global greeting = 'Hello, ' + name + '!'
 
 ## 🔁 Циклы
 ```DataCode
+# Цикл по массиву переменных
 for file in files do
     local path = basePath / 'data' / file
     local text = read_file(path)
     print('>>', file, 'length:', text)
 forend
+
+# Цикл по литералу массива
+for number in [1, 2, 3, 4, 5] do
+    print('Number:', number, 'Squared:', number * number)
+forend
+
+# Цикл по смешанному массиву
+for item in ['hello', 42, true] do
+    print('Item:', item)
+forend
+
+# Цикл по вложенному массиву
+for row in [[1, 2], [3, 4], [5, 6]] do
+    print('Row:', row, 'Sum:', sum(row))
+forend
 ```
-- for x in array do ... forend
-- file — переменная, доступная внутри тела цикла
+- `for x in array do ... forend` - итерация по массиву
+- `x` — переменная, доступная внутри тела цикла
+- Поддерживаются как переменные-массивы, так и литералы массивов
 
 ---
 
@@ -225,33 +280,39 @@ forend
 
 ## 🧪 Пример программы
 ```DataCode
-# Пользовательская функция с условиями
-global function analyze_file(filepath) do
-    local content = read_file(filepath)
-    local size = length(content)
+# Пользовательская функция для анализа массивов
+global function analyze_array(arr) do
+    local size = count(arr)
+    local sum_val = sum(arr)
+    local avg_val = average(arr)
 
-    if size > 1000 do
-        return 'Большой файл: ' + size + ' символов'
-    else
-        if size > 100 do
-            return 'Средний файл: ' + size + ' символов'
-        else
-            return 'Маленький файл: ' + size + ' символов'
-        endif
-    endif
+    print('📊 Анализ массива:', arr)
+    print('  Размер:', size)
+    print('  Сумма:', sum_val)
+    print('  Среднее:', avg_val)
+
+    return [size, sum_val, avg_val]
 endfunction
 
-# Основная программа
+# Работа с массивами и файлами
 global basePath = getcwd()
 global dataPath = basePath / 'examples'
-global files = ['sample_data.csv', 'simple.csv']
 
-print('📁 Анализ файлов в:', dataPath)
+# Создаем массивы данных
+global numbers = [10, 20, 30, 40, 50]
+global mixed_data = [1, 'test', true, 3.14]
+global matrix = [[1, 2], [3, 4], [5, 6]]
+
+print('🧮 Анализ числовых данных')
+global stats = analyze_array(numbers)
+
+print('')
+print('📋 Работа с файлами')
+global files = ['sample.csv', 'data.txt']
 
 for file in files do
     local fullPath = dataPath / file
-    local analysis = analyze_file(fullPath)
-    print('📄', file, ':', analysis)
+    print('📄 Обрабатываем:', file)
 
     # Если это CSV файл, показываем таблицу
     if contains(file, '.csv') do
@@ -259,6 +320,13 @@ for file in files do
         print('📊 Содержимое таблицы:')
         table_head(table, 3)
     endif
+forend
+
+print('')
+print('🔢 Работа с вложенными массивами')
+for row in matrix do
+    local row_sum = sum(row)
+    print('Строка:', row, 'Сумма:', row_sum)
 forend
 
 print('✅ Анализ завершен!')
@@ -271,9 +339,11 @@ print('✅ Анализ завершен!')
 | Тип | Пример | Описание |
 |-----|--------|----------|
 | String | `'abc'`, `'hello.txt'` | Всегда в одинарных кавычках |
+| Number | `42`, `3.14` | Целые и дробные числа |
+| Bool | `true`, `false` | Логические значения |
+| Array | `[1, 'hello', true]` | Массивы любых типов данных |
 | Path | `base / 'file.csv'` | Строится через `/` |
-| Array | `['a', 'b']` (в будущем) | Пока возвращается из `list_files` |
-| Number | `42`, `3.14` | Поддержка в будущем |
+| Table | `table(data, headers)` | Табличные данные |
 | Null | — | Возвращается `print(...)` |
 
 
@@ -354,8 +424,16 @@ Goodbye! �
 ```
 
 ### Многострочные конструкции
-REPL поддерживает многострочный ввод для циклов:
+REPL поддерживает многострочный ввод для циклов и массивов:
 ```
+>>> global arr = [1, 2, 3, 4, 5]
+✓ arr = Array([Number(1.0), Number(2.0), Number(3.0), Number(4.0), Number(5.0)])
+>>> print(arr[0])
+1
+>>> global nested = [[1, 2], [3, 4]]
+✓ nested = Array([Array([Number(1.0), Number(2.0)]), Array([Number(3.0), Number(4.0)])])
+>>> print(nested[0][1])
+2
 >>> for i in [1, 2, 3] do
 ...     print('Number:', i)
 ...     global doubled = i * 2
@@ -373,6 +451,8 @@ Doubled: 6
 ### ✅ Полностью реализовано
 - ✅ Улучшенная система ошибок с детальными сообщениями
 - ✅ Мощный парсер выражений с приоритетом операторов
+- ✅ **Литералы массивов** `[1, 2, 3]`, `['a', 'b']`, смешанные типы
+- ✅ **Индексирование массивов** `arr[0]`, `nested[0][1]` с полной поддержкой вложенности
 - ✅ Арифметические операции (+, -, *, /)
 - ✅ Операторы сравнения (==, !=, <, >, <=, >=)
 - ✅ Логические операции (and, or, not)
@@ -381,7 +461,7 @@ Doubled: 6
 - ✅ Условные конструкции if/else/endif (с поддержкой вложенности)
 - ✅ Пользовательские функции с локальной областью видимости
 - ✅ Рекурсивные функции
-- ✅ Циклы for ... in
+- ✅ Циклы for ... in (включая литералы массивов)
 - ✅ 40+ встроенных функций (математические, строковые, файловые, табличные)
 - ✅ Работа с таблицами и CSV/Excel файлами
 - ✅ Автоматическая типизация данных с предупреждениями
@@ -390,16 +470,13 @@ Doubled: 6
 
 ### 🔄 Известные ограничения
 - ⚠️ Вложенные условия требуют осторожного использования
-- ⚠️ Нет синтаксиса литералов массивов `[1, 2, 3]`
-- ⚠️ Нет индексации массивов `arr[0]`
-- ⚠️ Нет синтаксиса объектов `{key: value}`
 
 ### 📋 Планируется в будущем
 - 📋 Циклы while и do-while
-- 📋 Объекты с методами
-- 📋 Массивы с индексацией
+- 📋 Объекты с методами `{key: value}`
 - 📋 Импорт модулей
 - 📋 Обработка исключений try/catch
+- 📋 Деструктуризация массивов
 
 ---
 
