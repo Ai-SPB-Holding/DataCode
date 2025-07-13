@@ -8,6 +8,7 @@ pub enum DataType {
     String,
     Bool,
     Date,
+    Currency,
     Null,
     Mixed,
 }
@@ -23,14 +24,19 @@ impl DataType {
                 }
             }
             Value::String(s) => {
-                // Попытка определить, является ли строка датой
-                if is_date_string(s) {
+                // Сначала проверяем, является ли строка денежным значением
+                if is_currency_string(s) {
+                    DataType::Currency
+                }
+                // Затем проверяем, является ли строка датой
+                else if is_date_string(s) {
                     DataType::Date
                 } else {
                     DataType::String
                 }
             }
             Value::Bool(_) => DataType::Bool,
+            Value::Currency(_) => DataType::Currency,
             Value::Null => DataType::Null,
             _ => DataType::Mixed,
         }
@@ -207,7 +213,6 @@ impl Table {
 
 // Вспомогательная функция для определения даты
 fn is_date_string(s: &str) -> bool {
-    // Простая проверка на формат даты (можно расширить)
     use chrono::{DateTime, NaiveDate};
 
     // Проверяем различные форматы дат
@@ -215,19 +220,153 @@ fn is_date_string(s: &str) -> bool {
         return true;
     }
 
+    // ISO формат YYYY-MM-DD
     if NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok() {
         return true;
     }
 
+    // Европейские форматы с точками
     if NaiveDate::parse_from_str(s, "%d.%m.%Y").is_ok() {
         return true;
     }
-
-    if NaiveDate::parse_from_str(s, "%d/%m/%Y").is_ok() {
+    if NaiveDate::parse_from_str(s, "%d.%m.%y").is_ok() {
         return true;
     }
 
+    // Форматы с слешами - день/месяц/год
+    if NaiveDate::parse_from_str(s, "%d/%m/%Y").is_ok() {
+        return true;
+    }
+    if NaiveDate::parse_from_str(s, "%d/%m/%y").is_ok() {
+        return true;
+    }
+
+    // Американские форматы - месяц/день/год
+    if NaiveDate::parse_from_str(s, "%m/%d/%Y").is_ok() {
+        return true;
+    }
+    if NaiveDate::parse_from_str(s, "%m/%d/%y").is_ok() {
+        return true;
+    }
+
+    // Форматы без ведущих нулей
+    // Пытаемся парсить как M/D/YYYY или D/M/YYYY
+    if let Some(captures) = regex::Regex::new(r"^(\d{1,2})/(\d{1,2})/(\d{4})$").unwrap().captures(s) {
+        if let (Ok(first), Ok(second), Ok(year)) = (
+            captures[1].parse::<u32>(),
+            captures[2].parse::<u32>(),
+            captures[3].parse::<i32>()
+        ) {
+            // Проверяем, может ли это быть валидной датой в любом из форматов
+            // Но только если значения не превышают разумные пределы
+
+            // Сначала пробуем месяц/день/год (американский формат)
+            if first <= 12 && second <= 31 {
+                if NaiveDate::from_ymd_opt(year, first, second).is_some() {
+                    return true;
+                }
+            }
+            // Затем пробуем день/месяц/год (европейский формат)
+            // НО только если первое число больше 12 (иначе это может быть американский формат)
+            if second <= 12 && first <= 31 && first > 12 {
+                if NaiveDate::from_ymd_opt(year, second, first).is_some() {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Форматы без ведущих нулей с двузначным годом
+    if let Some(captures) = regex::Regex::new(r"^(\d{1,2})/(\d{1,2})/(\d{2})$").unwrap().captures(s) {
+        if let (Ok(first), Ok(second), Ok(year_short)) = (
+            captures[1].parse::<u32>(),
+            captures[2].parse::<u32>(),
+            captures[3].parse::<i32>()
+        ) {
+            // Преобразуем двузначный год в четырехзначный (предполагаем 20xx для 00-30, 19xx для 31-99)
+            let year = if year_short <= 30 { 2000 + year_short } else { 1900 + year_short };
+
+            // Проверяем оба формата с той же логикой
+            if first <= 12 && second <= 31 {
+                if NaiveDate::from_ymd_opt(year, first, second).is_some() {
+                    return true;
+                }
+            }
+            // Европейский формат только если первое число больше 12
+            if second <= 12 && first <= 31 && first > 12 {
+                if NaiveDate::from_ymd_opt(year, second, first).is_some() {
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Форматы с дефисами без ведущих нулей
+    if let Some(captures) = regex::Regex::new(r"^(\d{4})-(\d{1,2})-(\d{1,2})$").unwrap().captures(s) {
+        if let (Ok(year), Ok(month), Ok(day)) = (
+            captures[1].parse::<i32>(),
+            captures[2].parse::<u32>(),
+            captures[3].parse::<u32>()
+        ) {
+            if NaiveDate::from_ymd_opt(year, month, day).is_some() {
+                return true;
+            }
+        }
+    }
+
     false
+}
+
+// Вспомогательная функция для определения денежных значений
+pub fn is_currency_string(s: &str) -> bool {
+    let trimmed = s.trim();
+
+    // Список валютных символов
+    let currency_symbols = ['$', '€', '₽', '£', '¥', '₹', '₩', '₪', '₦', '₡', '₨', '₫', '₱', '₲', '₴', '₵', '₸', '₼', '₽'];
+
+    // Проверяем, содержит ли строка валютный символ
+    let has_currency_symbol = currency_symbols.iter().any(|&symbol| trimmed.contains(symbol));
+
+    if !has_currency_symbol {
+        // Проверяем текстовые обозначения валют
+        let currency_codes = ["USD", "EUR", "RUB", "GBP", "JPY", "CNY", "INR", "KRW", "CAD", "AUD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK", "RSD", "BAM", "MKD", "ALL", "TRY", "UAH", "BYN", "MDL", "GEL", "AMD", "AZN", "KZT", "KGS", "TJS", "TMT", "UZS"];
+        let upper_trimmed = trimmed.to_uppercase();
+
+        // Проверяем, заканчивается ли строка кодом валюты
+        let has_currency_code = currency_codes.iter().any(|&code| {
+            upper_trimmed.ends_with(code) || upper_trimmed.starts_with(code)
+        });
+
+        if !has_currency_code {
+            return false;
+        }
+    }
+
+    // Удаляем валютные символы и коды для проверки числовой части
+    let mut cleaned = trimmed.to_string();
+
+    // Удаляем валютные символы
+    for symbol in currency_symbols.iter() {
+        cleaned = cleaned.replace(*symbol, "");
+    }
+
+    // Удаляем текстовые коды валют
+    let currency_codes = ["USD", "EUR", "RUB", "GBP", "JPY", "CNY", "INR", "KRW", "CAD", "AUD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "HRK", "RSD", "BAM", "MKD", "ALL", "TRY", "UAH", "BYN", "MDL", "GEL", "AMD", "AZN", "KZT", "KGS", "TJS", "TMT", "UZS"];
+    for code in currency_codes.iter() {
+        cleaned = cleaned.replace(code, "");
+    }
+
+    // Удаляем пробелы и запятые (разделители тысяч)
+    cleaned = cleaned.replace(" ", "").replace(",", "").replace(".", "");
+
+    // Проверяем, остались ли только цифры (возможно с минусом в начале)
+    if cleaned.is_empty() {
+        return false;
+    }
+
+    // Проверяем, что оставшаяся часть - это число
+    cleaned.chars().all(|c| c.is_ascii_digit()) ||
+    (cleaned.starts_with('-') && cleaned[1..].chars().all(|c| c.is_ascii_digit()))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -238,6 +377,7 @@ pub enum Value {
     Array(Vec<Value>),
     Object(HashMap<String, Value>),
     Table(Table),
+    Currency(String), // Хранит оригинальную строку с валютой
     Null,
     Path(PathBuf),
     PathPattern(PathBuf), // Для glob паттернов типа /path/*.csv

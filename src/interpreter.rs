@@ -305,6 +305,9 @@ impl Interpreter {
     }
 
     pub fn exec(&mut self, code: &str) -> Result<()> {
+        // Сбрасываем счетчик строк в начале выполнения
+        self.current_line = 0;
+
         // Если код содержит несколько строк, обрабатываем построчно
         if code.contains('\n') {
             return self.exec_multiline(code);
@@ -321,8 +324,34 @@ impl Interpreter {
         while i < lines.len() {
             let line = lines[i].trim();
 
-            // Пропускаем пустые строки и комментарии
+            // Увеличиваем номер строки для всех строк
+            self.current_line += 1;
+
+            // Пропускаем пустые строки и однострочные комментарии
             if line.is_empty() || line.starts_with('#') {
+                i += 1;
+                continue;
+            }
+
+            // Обработка многострочных комментариев с """
+            if line.starts_with("\"\"\"") {
+                // Если комментарий начинается и заканчивается на одной строке
+                if line.len() > 6 && line.ends_with("\"\"\"") {
+                    i += 1;
+                    continue;
+                }
+
+                // Ищем закрывающие """
+                i += 1;
+                while i < lines.len() {
+                    self.current_line += 1;
+                    let current_line = lines[i].trim();
+
+                    if current_line.ends_with("\"\"\"") {
+                        break;
+                    }
+                    i += 1;
+                }
                 i += 1;
                 continue;
             }
@@ -466,7 +495,7 @@ impl Interpreter {
                 }
             } else {
                 // Обычная строка
-                self.exec_single_line(lines[i])?;
+                self.exec_single_line_internal(lines[i], false)?;
             }
 
             // Проверяем, был ли выполнен return
@@ -480,12 +509,18 @@ impl Interpreter {
     }
 
     fn exec_single_line(&mut self, code: &str) -> Result<()> {
-        self.current_line += 1;
+        self.exec_single_line_internal(code, true)
+    }
 
+    fn exec_single_line_internal(&mut self, code: &str, increment_line: bool) -> Result<()> {
         // Пропускаем пустые строки и комментарии
         let trimmed_code = code.trim();
-        if trimmed_code.is_empty() || trimmed_code.starts_with('#') {
+        if trimmed_code.is_empty() || trimmed_code.starts_with('#') || trimmed_code.starts_with("\"\"\"") {
             return Ok(());
+        }
+
+        if increment_line {
+            self.current_line += 1;
         }
 
         // Обработка определения функций
@@ -814,6 +849,23 @@ impl Interpreter {
                     .cloned()
                     .ok_or_else(|| DataCodeError::runtime_error(&format!("Key '{}' not found", key), self.current_line))
             }
+            (Value::Table(table), Value::Number(n)) => {
+                let idx = *n as usize;
+                table.rows.get(idx)
+                    .map(|row| Value::Array(row.clone()))
+                    .ok_or_else(|| DataCodeError::runtime_error("Row index out of bounds", self.current_line))
+            }
+            (Value::Table(table), Value::String(column_name)) => {
+                // Получаем данные из колонки по имени
+                if let Some(column_index) = table.column_names.iter().position(|name| name == column_name) {
+                    let column_data: Vec<Value> = table.rows.iter()
+                        .map(|row| row.get(column_index).cloned().unwrap_or(Value::Null))
+                        .collect();
+                    Ok(Value::Array(column_data))
+                } else {
+                    Err(DataCodeError::runtime_error(&format!("Column '{}' not found in table", column_name), self.current_line))
+                }
+            }
             _ => Err(DataCodeError::type_error("indexable type", "other", self.current_line)),
         }
     }
@@ -860,6 +912,7 @@ impl Interpreter {
             Value::Bool(b) => *b,
             Value::Number(n) => *n != 0.0,
             Value::String(s) => !s.is_empty(),
+            Value::Currency(c) => !c.is_empty(),
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(obj) => !obj.is_empty(),
             Value::Table(table) => !table.rows.is_empty(),

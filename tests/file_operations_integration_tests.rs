@@ -60,18 +60,18 @@ mod file_operations_integration_tests {
                 
                 // Проверяем, что содержимое файлов различается по типу
                 let mut has_string = false;
-                let mut has_array = false;
-                
+                let mut has_table = false;
+
                 for content in contents {
                     match content {
                         Value::String(_) => has_string = true,
-                        Value::Array(_) => has_array = true,
+                        Value::Table(_) => has_table = true,
                         _ => {}
                     }
                 }
-                
+
                 assert!(has_string, "Should have at least one string content (txt file)");
-                assert!(has_array, "Should have at least one array content (csv/xlsx file)");
+                assert!(has_table, "Should have at least one table content (csv/xlsx file)");
             }
             _ => panic!("file_contents should be an array"),
         }
@@ -119,11 +119,11 @@ mod file_operations_integration_tests {
             # Подсчитываем количество строк
             global row_count = len(csv_data)
             
-            # Получаем заголовки (первая строка)
-            global headers = csv_data[0]
-            
+            # Получаем заголовки таблицы
+            global headers = table_headers(csv_data)
+
             # Получаем первую строку данных
-            global first_row = csv_data[1]
+            global first_row = csv_data[0]
         "#;
         
         let result = interp.exec(csv_processing_code);
@@ -132,7 +132,7 @@ mod file_operations_integration_tests {
         // Проверяем количество строк
         match interp.get_variable("row_count") {
             Some(Value::Number(count)) => {
-                assert_eq!(*count, 6.0); // Заголовок + 5 строк данных
+                assert_eq!(*count, 5.0); // 5 строк данных (заголовок не считается)
             }
             _ => panic!("row_count should be a number"),
         }
@@ -161,8 +161,8 @@ mod file_operations_integration_tests {
             # Подсчитываем количество строк
             global row_count = len(xlsx_data)
             
-            # Получаем заголовки (первая строка)
-            global headers = xlsx_data[0]
+            # Получаем заголовки таблицы
+            global headers = table_headers(xlsx_data)
         "#;
         
         let result = interp.exec(xlsx_processing_code);

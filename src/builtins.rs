@@ -215,6 +215,7 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             let parts: Vec<std::string::String> = args.into_iter()
                 .map(|v| match v {
                     Value::String(s) => s,
+                    Value::Currency(c) => c,
                     Value::Path(p) => p.display().to_string(),
                     Value::PathPattern(p) => format!("Pattern({})", p.display()),
                     Value::Number(n) => n.to_string(),
@@ -322,7 +323,9 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             match &args[0] {
                 Array(arr) => Ok(Number(arr.len() as f64)),
                 String(s) => Ok(Number(s.len() as f64)),
-                _ => Err(DataCodeError::type_error("Array or String", "other", line)),
+                Currency(c) => Ok(Number(c.len() as f64)),
+                Table(table) => Ok(Number(table.rows.len() as f64)),
+                _ => Err(DataCodeError::type_error("Array, String, Currency, or Table", "other", line)),
             }
         }
         "push" => {
@@ -492,7 +495,8 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             match &args[0] {
                 Array(arr) => Ok(Number(arr.len() as f64)),
                 String(s) => Ok(Number(s.len() as f64)),
-                _ => Err(DataCodeError::type_error("Array or String", "other", line)),
+                Table(table) => Ok(Number(table.rows.len() as f64)),
+                _ => Err(DataCodeError::type_error("Array, String, or Table", "other", line)),
             }
         }
         "unique" => {
@@ -526,7 +530,9 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             match &args[0] {
                 Array(arr) => Ok(Number(arr.len() as f64)),
                 String(s) => Ok(Number(s.len() as f64)),
-                _ => Err(DataCodeError::type_error("Array or String", "other", line)),
+                Currency(c) => Ok(Number(c.len() as f64)),
+                Table(table) => Ok(Number(table.rows.len() as f64)),
+                _ => Err(DataCodeError::type_error("Array, String, Currency, or Table", "other", line)),
             }
         }
         "div" => {
@@ -741,6 +747,22 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
 
                     print_table_formatted(&temp_table, None);
                     Ok(Value::Null)
+                }
+                _ => Err(DataCodeError::type_error("Table", "other", line)),
+            }
+        }
+
+        "table_headers" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("table_headers", 1, args.len(), line));
+            }
+
+            match &args[0] {
+                Value::Table(table) => {
+                    let headers: Vec<Value> = table.column_names.iter()
+                        .map(|name| Value::String(name.clone()))
+                        .collect();
+                    Ok(Value::Array(headers))
                 }
                 _ => Err(DataCodeError::type_error("Table", "other", line)),
             }
@@ -1063,6 +1085,7 @@ fn format_value_for_table(value: &Value) -> String {
             }
         }
         Value::Bool(b) => b.to_string(),
+        Value::Currency(c) => c.clone(),
         Value::Null => "null".to_string(),
         Value::Path(p) => p.display().to_string(),
         Value::PathPattern(p) => format!("Pattern({})", p.display()),
@@ -1113,6 +1136,11 @@ fn parse_csv_value(s: &str) -> Value {
         "true" | "yes" => return Value::Bool(true),
         "false" | "no" => return Value::Bool(false),
         _ => {}
+    }
+
+    // Проверяем, является ли это денежным значением
+    if crate::value::is_currency_string(trimmed) {
+        return Value::Currency(trimmed.to_string());
     }
 
     // По умолчанию - строка

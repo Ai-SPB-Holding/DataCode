@@ -17,6 +17,7 @@ enum MultilineType {
     ForLoop,
     IfStatement,
     Function,
+    Comment,
 }
 
 impl Repl {
@@ -48,6 +49,7 @@ impl Repl {
                     Some(MultilineType::ForLoop) => "... ",
                     Some(MultilineType::IfStatement) => "if> ",
                     Some(MultilineType::Function) => "fn> ",
+                    Some(MultilineType::Comment) => "/*> ",
                     None => "... ",
                 }
             } else {
@@ -135,6 +137,16 @@ impl Repl {
             } else if (line.trim_start().starts_with("global function ") || line.trim_start().starts_with("local function ")) && line.trim_end().ends_with(" do") {
                 self.start_multiline(line, MultilineType::Function);
                 return;
+            } else if line.trim().starts_with("\"\"\"") {
+                // Проверяем, закрывается ли комментарий на той же строке
+                let trimmed = line.trim();
+                if trimmed.len() == 3 || !trimmed[3..].ends_with("\"\"\"") {
+                    // Начало многострочного комментария
+                    self.start_multiline(line, MultilineType::Comment);
+                    return;
+                }
+                // Если комментарий закрывается на той же строке, просто игнорируем его
+                return;
             }
         }
 
@@ -146,12 +158,18 @@ impl Repl {
                 Some(MultilineType::ForLoop) => trimmed == "forend",
                 Some(MultilineType::IfStatement) => trimmed == "endif",
                 Some(MultilineType::Function) => trimmed == "endfunction",
+                Some(MultilineType::Comment) => trimmed.ends_with("\"\"\""),
                 None => false,
             };
 
             if should_end {
-                self.multiline_buffer.push(line);
-                self.execute_multiline();
+                if matches!(self.multiline_type, Some(MultilineType::Comment)) {
+                    // Для комментариев просто завершаем без выполнения
+                    self.end_multiline();
+                } else {
+                    self.multiline_buffer.push(line);
+                    self.execute_multiline();
+                }
             } else {
                 self.multiline_buffer.push(line);
             }
@@ -171,8 +189,15 @@ impl Repl {
     fn execute_multiline(&mut self) {
         let code = self.multiline_buffer.join("\n");
         self.execute_code(&code);
-        
+
         // Сбрасываем многострочный режим
+        self.in_multiline = false;
+        self.multiline_type = None;
+        self.multiline_buffer.clear();
+    }
+
+    fn end_multiline(&mut self) {
+        // Просто сбрасываем многострочный режим без выполнения
         self.in_multiline = false;
         self.multiline_type = None;
         self.multiline_buffer.clear();

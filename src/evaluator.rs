@@ -1,5 +1,5 @@
 use crate::value::Value;
-use crate::value::Value::{Number, String as ValueString, Bool, Array, Path, Null, Object};
+use crate::value::Value::{Number, String as ValueString, Bool, Array, Path, Null, Object, Table};
 use crate::error::{DataCodeError, Result};
 use crate::parser::{Expr, BinaryOp, UnaryOp};
 use crate::builtins::call_function;
@@ -205,6 +205,23 @@ impl<'a> Evaluator<'a> {
                     .cloned()
                     .ok_or_else(|| DataCodeError::runtime_error(&format!("Key '{}' not found", key), self.line))
             }
+            (Table(table), Number(n)) => {
+                let idx = *n as usize;
+                table.rows.get(idx)
+                    .map(|row| Array(row.clone()))
+                    .ok_or_else(|| DataCodeError::runtime_error("Row index out of bounds", self.line))
+            }
+            (Table(table), ValueString(column_name)) => {
+                // Получаем данные из колонки по имени
+                if let Some(column_index) = table.column_names.iter().position(|name| name == column_name) {
+                    let column_data: Vec<Value> = table.rows.iter()
+                        .map(|row| row.get(column_index).cloned().unwrap_or(Value::Null))
+                        .collect();
+                    Ok(Array(column_data))
+                } else {
+                    Err(DataCodeError::runtime_error(&format!("Column '{}' not found in table", column_name), self.line))
+                }
+            }
             _ => Err(DataCodeError::type_error("indexable type", "other", self.line)),
         }
     }
@@ -236,7 +253,8 @@ impl<'a> Evaluator<'a> {
         use Value::*;
         match (left, right) {
             (Number(a), Number(b)) => (a - b).abs() < f64::EPSILON,
-            (ValueString(a), ValueString(b)) => a == b,
+            (String(a), String(b)) => a == b,
+            (Currency(a), Currency(b)) => a == b,
             (Bool(a), Bool(b)) => a == b,
             (Null, Null) => true,
             (Array(a), Array(b)) => a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| self.values_equal(x, y)),
@@ -245,16 +263,18 @@ impl<'a> Evaluator<'a> {
     }
     
     fn to_bool(&self, value: &Value) -> bool {
+        use Value::*;
         match value {
             Bool(b) => *b,
             Number(n) => *n != 0.0,
-            ValueString(s) => !s.is_empty(),
+            String(s) => !s.is_empty(),
+            Currency(c) => !c.is_empty(),
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
-            Value::Table(table) => !table.rows.is_empty(),
+            Table(table) => !table.rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
-            Value::PathPattern(_) => true, // PathPattern всегда считается true
+            PathPattern(_) => true, // PathPattern всегда считается true
         }
     }
 }

@@ -38,39 +38,34 @@ mod file_reading_tests {
         interp.exec("global csv_content = read_file(csv_path)").unwrap();
         
         match interp.get_variable("csv_content") {
-            Some(Value::Array(rows)) => {
-                // Проверяем количество строк (заголовок + 5 строк данных)
-                assert_eq!(rows.len(), 6);
-                
-                // Проверяем заголовок
-                if let Value::Array(header_row) = &rows[0] {
-                    assert_eq!(header_row.len(), 4); // Name, Age, City, Salary
-                    if let Value::String(name_header) = &header_row[0] {
-                        assert_eq!(name_header, "Name");
-                    }
-                    if let Value::String(age_header) = &header_row[1] {
-                        assert_eq!(age_header, "Age");
-                    }
-                }
-                
+            Some(Value::Table(table)) => {
+                // Проверяем количество строк данных (без заголовка)
+                assert_eq!(table.rows.len(), 5);
+
+                // Проверяем заголовки
+                assert_eq!(table.column_names.len(), 4); // Name, Age, City, Salary
+                assert_eq!(table.column_names[0], "Name");
+                assert_eq!(table.column_names[1], "Age");
+                assert_eq!(table.column_names[2], "City");
+                assert_eq!(table.column_names[3], "Salary");
+
                 // Проверяем первую строку данных
-                if let Value::Array(first_data_row) = &rows[1] {
-                    assert_eq!(first_data_row.len(), 4);
-                    if let Value::String(name) = &first_data_row[0] {
-                        assert_eq!(name, "John Doe");
-                    }
-                    if let Value::String(age) = &first_data_row[1] {
-                        assert_eq!(age, "30");
-                    }
-                    if let Value::String(city) = &first_data_row[2] {
-                        assert_eq!(city, "New York");
-                    }
-                    if let Value::String(salary) = &first_data_row[3] {
-                        assert_eq!(salary, "50000");
-                    }
+                let first_data_row = &table.rows[0];
+                assert_eq!(first_data_row.len(), 4);
+                if let Value::String(name) = &first_data_row[0] {
+                    assert_eq!(name, "John Doe");
+                }
+                if let Value::Number(age) = &first_data_row[1] {
+                    assert_eq!(*age, 30.0);
+                }
+                if let Value::String(city) = &first_data_row[2] {
+                    assert_eq!(city, "New York");
+                }
+                if let Value::Number(salary) = &first_data_row[3] {
+                    assert_eq!(*salary, 50000.0);
                 }
             }
-            _ => panic!("read_file should return an array for csv files"),
+            _ => panic!("read_file should return a table for csv files"),
         }
     }
 
@@ -84,35 +79,30 @@ mod file_reading_tests {
         interp.exec("global xlsx_content = read_file(xlsx_path)").unwrap();
         
         match interp.get_variable("xlsx_content") {
-            Some(Value::Array(rows)) => {
+            Some(Value::Table(table)) => {
                 // Проверяем, что есть данные
-                assert!(rows.len() > 0);
-                
-                // Проверяем заголовок
-                if let Value::Array(header_row) = &rows[0] {
-                    assert_eq!(header_row.len(), 4); // Product, Price, Quantity, Category
-                    if let Value::String(product_header) = &header_row[0] {
-                        assert_eq!(product_header, "Product");
-                    }
-                    if let Value::String(price_header) = &header_row[1] {
-                        assert_eq!(price_header, "Price");
-                    }
-                }
-                
+                assert!(table.rows.len() > 0);
+
+                // Проверяем заголовки
+                assert_eq!(table.column_names.len(), 4); // Product, Price, Quantity, Category
+                assert_eq!(table.column_names[0], "Product");
+                assert_eq!(table.column_names[1], "Price");
+                assert_eq!(table.column_names[2], "Quantity");
+                assert_eq!(table.column_names[3], "Category");
+
                 // Проверяем первую строку данных
-                if rows.len() > 1 {
-                    if let Value::Array(first_data_row) = &rows[1] {
-                        assert_eq!(first_data_row.len(), 4);
-                        if let Value::String(product) = &first_data_row[0] {
-                            assert_eq!(product, "Laptop");
-                        }
-                        if let Value::String(price) = &first_data_row[1] {
-                            assert_eq!(price, "999.99");
-                        }
+                if table.rows.len() > 0 {
+                    let first_data_row = &table.rows[0];
+                    assert_eq!(first_data_row.len(), 4);
+                    if let Value::String(product) = &first_data_row[0] {
+                        assert_eq!(product, "Laptop");
+                    }
+                    if let Value::Number(price) = &first_data_row[1] {
+                        assert_eq!(*price, 999.99);
                     }
                 }
             }
-            _ => panic!("read_file should return an array for xlsx files"),
+            _ => panic!("read_file should return a table for xlsx files"),
         }
     }
 
@@ -216,14 +206,14 @@ mod file_reading_tests {
 
         // Проверяем csv файл
         match interp.get_variable("csv_content") {
-            Some(Value::Array(_)) => {}, // OK
-            _ => panic!("csv_content should be an array"),
+            Some(Value::Table(_)) => {}, // OK - CSV теперь возвращает Table
+            _ => panic!("csv_content should be a table"),
         }
 
         // Проверяем xlsx файл
         match interp.get_variable("xlsx_content") {
-            Some(Value::Array(_)) => {}, // OK
-            _ => panic!("xlsx_content should be an array"),
+            Some(Value::Table(_)) => {}, // OK - Excel тоже возвращает Table
+            _ => panic!("xlsx_content should be a table"),
         }
     }
 }

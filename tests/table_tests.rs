@@ -10,20 +10,16 @@ mod table_tests {
     #[test]
     fn test_table_creation_from_arrays() {
         let mut interp = Interpreter::new();
-        
-        // Создаем тестовые данные
-        let test_data = r#"
-            global data = [
-                [1, "Alice", true],
-                [2, "Bob", false],
-                [3, "Charlie", true]
-            ]
-            global headers = ["id", "name", "active"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok(), "Failed to create table: {:?}", result);
+
+        // Создаем тестовые данные по частям
+        let result1 = interp.exec("global data = [[1, 'Alice', true], [2, 'Bob', false], [3, 'Charlie', true]]");
+        assert!(result1.is_ok(), "Failed to create data array: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name', 'active']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
         
         // Проверяем, что таблица создана
         let table_value = interp.get_variable("my_table").unwrap();
@@ -82,20 +78,16 @@ mod table_tests {
     #[test]
     fn test_table_type_inference() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу с разными типами данных
-        let test_data = r#"
-            global data = [
-                [1, "Alice", 25.5, true],
-                [2, "Bob", 30, false],
-                ["3", "Charlie", "25", true]
-            ]
-            global headers = ["id", "name", "age", "active"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok(), "Failed to create table: {:?}", result);
+
+        // Создаем таблицу с разными типами данных по частям
+        let result1 = interp.exec("global data = [[1, 'Alice', 25.5, true], [2, 'Bob', 30, false], ['3', 'Charlie', '25', true]]");
+        assert!(result1.is_ok(), "Failed to create data array: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name', 'age', 'active']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
         
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
