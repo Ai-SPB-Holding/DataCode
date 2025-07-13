@@ -982,6 +982,60 @@ pub fn call_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value>
             }
         }
 
+        // Функция для проверки типов данных
+        "isinstance" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("isinstance", 2, args.len(), line));
+            }
+
+            let value = &args[0];
+            let type_name = match &args[1] {
+                String(s) => s.as_str(),
+                _ => return Err(DataCodeError::type_error("String", "other", line)),
+            };
+
+            let is_instance = match type_name.to_lowercase().as_str() {
+                "number" | "integer" | "int" | "float" => {
+                    matches!(value, Number(_))
+                }
+                "string" | "str" => {
+                    matches!(value, String(_))
+                }
+                "bool" | "boolean" => {
+                    matches!(value, Bool(_))
+                }
+                "array" | "list" => {
+                    matches!(value, Array(_))
+                }
+                "object" | "dict" | "map" => {
+                    matches!(value, Object(_))
+                }
+                "table" => {
+                    matches!(value, Table(_))
+                }
+                "currency" | "money" => {
+                    matches!(value, Currency(_))
+                }
+                "null" | "none" => {
+                    matches!(value, Null)
+                }
+                "path" => {
+                    matches!(value, Path(_))
+                }
+                "pathpattern" | "pattern" => {
+                    matches!(value, PathPattern(_))
+                }
+                _ => {
+                    return Err(DataCodeError::runtime_error(
+                        &format!("Unknown type name: '{}'. Valid types: number, string, bool, array, object, table, currency, null, path, pathpattern", type_name),
+                        line
+                    ));
+                }
+            };
+
+            Ok(Bool(is_instance))
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
@@ -1112,35 +1166,48 @@ fn compare_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     }
 }
 
-// Функция для парсинга значений из CSV
+// Оптимизированная функция для парсинга значений из CSV
 fn parse_csv_value(s: &str) -> Value {
     let trimmed = s.trim();
 
-    // Пустые значения
-    if trimmed.is_empty() || trimmed.to_lowercase() == "null" || trimmed.to_lowercase() == "na" {
+    // Быстрая проверка пустых значений
+    if trimmed.is_empty() {
         return Value::Null;
     }
 
-    // Сначала пытаемся парсить как число (целое)
-    if let Ok(int_val) = trimmed.parse::<i64>() {
-        return Value::Number(int_val as f64);
+    // Быстрая проверка специальных значений без создания lowercase строки
+    if trimmed.len() <= 5 {
+        match trimmed {
+            "null" | "NULL" | "Null" | "na" | "NA" | "Na" => return Value::Null,
+            "true" | "TRUE" | "True" | "yes" | "YES" | "Yes" => return Value::Bool(true),
+            "false" | "FALSE" | "False" | "no" | "NO" | "No" => return Value::Bool(false),
+            _ => {}
+        }
     }
 
-    // Затем как число с плавающей точкой
-    if let Ok(float_val) = trimmed.parse::<f64>() {
-        return Value::Number(float_val);
+    // Быстрая проверка чисел - проверяем первый символ
+    let first_char = trimmed.chars().next().unwrap();
+    if first_char.is_ascii_digit() || first_char == '-' || first_char == '+' {
+        // Сначала пытаемся парсить как число (целое)
+        if let Ok(int_val) = trimmed.parse::<i64>() {
+            return Value::Number(int_val as f64);
+        }
+
+        // Затем как число с плавающей точкой
+        if let Ok(float_val) = trimmed.parse::<f64>() {
+            return Value::Number(float_val);
+        }
     }
 
-    // Булевы значения (только явные текстовые значения)
-    match trimmed.to_lowercase().as_str() {
-        "true" | "yes" => return Value::Bool(true),
-        "false" | "no" => return Value::Bool(false),
-        _ => {}
-    }
-
-    // Проверяем, является ли это денежным значением
-    if crate::value::is_currency_string(trimmed) {
-        return Value::Currency(trimmed.to_string());
+    // Быстрая проверка валют - проверяем наличие валютных символов или цифр
+    if trimmed.len() <= 50 && (
+        trimmed.chars().any(|c| matches!(c, '$' | '€' | '₽' | '£' | '¥' | '₹' | '₩' | '₪')) ||
+        (trimmed.chars().any(|c| c.is_ascii_digit()) &&
+         trimmed.chars().any(|c| c.is_ascii_alphabetic()))
+    ) {
+        if crate::value::is_currency_string(trimmed) {
+            return Value::Currency(trimmed.to_string());
+        }
     }
 
     // По умолчанию - строка

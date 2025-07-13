@@ -7,6 +7,7 @@ pub enum Token {
     String(String),
     Number(f64),
     Bool(bool),
+    Null,
     Identifier(String),
     
     // Операторы
@@ -220,6 +221,7 @@ impl Lexer {
                     return match ident.as_str() {
                         "true" => Token::Bool(true),
                         "false" => Token::Bool(false),
+                        "null" => Token::Null,
                         "and" => Token::And,
                         "or" => Token::Or,
                         "not" => Token::Not,
@@ -518,6 +520,10 @@ impl Parser {
                 let value = *b;
                 self.advance();
                 Ok(Expr::Literal(Value::Bool(value)))
+            }
+            Token::Null => {
+                self.advance();
+                Ok(Expr::Literal(Value::Null))
             }
             Token::Identifier(name) => {
                 let name = name.clone();

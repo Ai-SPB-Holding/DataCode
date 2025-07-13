@@ -1,0 +1,168 @@
+# Демонстрация проверки типов и преобразования в DataCode
+# Этот файл показывает, как использовать функцию isinstance() для проверки типов данных
+
+print('🔍 Демонстрация проверки типов в DataCode')
+print('==========================================')
+print()
+
+# Создаем переменные разных типов
+global number_var = 42
+global float_var = 3.14159
+global string_var = 'Привет, DataCode!'
+global bool_var = true
+global array_var = [1, 2, 3, 'mixed', true]
+global null_var = null
+global path_var = path('/home/user/documents')
+
+print('📊 Созданные переменные:')
+print('number_var =', number_var)
+print('float_var =', float_var)
+print('string_var =', string_var)
+print('bool_var =', bool_var)
+print('array_var =', array_var)
+print('null_var =', null_var)
+print('path_var =', path_var)
+print()
+
+# Демонстрация проверки типов с isinstance()
+print('🔍 Проверка типов с isinstance():')
+print('================================')
+
+# Проверка числовых типов
+print('Проверка числовых типов:')
+print('isinstance(number_var, "number") =', isinstance(number_var, 'number'))
+print('isinstance(number_var, "int") =', isinstance(number_var, 'int'))
+print('isinstance(number_var, "integer") =', isinstance(number_var, 'integer'))
+print('isinstance(float_var, "number") =', isinstance(float_var, 'number'))
+print('isinstance(float_var, "float") =', isinstance(float_var, 'float'))
+print()
+
+# Проверка строковых типов
+print('Проверка строковых типов:')
+print('isinstance(string_var, "string") =', isinstance(string_var, 'string'))
+print('isinstance(string_var, "str") =', isinstance(string_var, 'str'))
+print('isinstance(number_var, "string") =', isinstance(number_var, 'string'))
+print()
+
+# Проверка логических типов
+print('Проверка логических типов:')
+print('isinstance(bool_var, "bool") =', isinstance(bool_var, 'bool'))
+print('isinstance(bool_var, "boolean") =', isinstance(bool_var, 'boolean'))
+print('isinstance(string_var, "bool") =', isinstance(string_var, 'bool'))
+print()
+
+# Проверка массивов
+print('Проверка массивов:')
+print('isinstance(array_var, "array") =', isinstance(array_var, 'array'))
+print('isinstance(array_var, "list") =', isinstance(array_var, 'list'))
+print('isinstance(string_var, "array") =', isinstance(string_var, 'array'))
+print()
+
+# Проверка null значений
+print('Проверка null значений:')
+print('isinstance(null_var, "null") =', isinstance(null_var, 'null'))
+print('isinstance(null_var, "none") =', isinstance(null_var, 'none'))
+print('isinstance(number_var, "null") =', isinstance(number_var, 'null'))
+print()
+
+# Проверка путей
+print('Проверка путей:')
+print('isinstance(path_var, "path") =', isinstance(path_var, 'path'))
+print('isinstance(string_var, "path") =', isinstance(string_var, 'path'))
+print()
+
+# Демонстрация использования isinstance в условных конструкциях
+print('🎯 Использование isinstance в условных конструкциях:')
+print('===================================================')
+
+global test_value = 42
+
+if isinstance(test_value, 'number') do
+    print('test_value является числом!')
+    if isinstance(test_value, 'int') do
+        print('Это целое число')
+    else
+        print('Это дробное число')
+    endif
+else
+    print('test_value не является числом')
+endif
+print()
+
+# Функция для определения типа переменной
+global function get_type_name(value) do
+    if isinstance(value, 'number') do
+        return 'число'
+    endif
+    if isinstance(value, 'string') do
+        return 'строка'
+    endif
+    if isinstance(value, 'bool') do
+        return 'логическое значение'
+    endif
+    if isinstance(value, 'array') do
+        return 'массив'
+    endif
+    if isinstance(value, 'null') do
+        return 'null'
+    endif
+    if isinstance(value, 'path') do
+        return 'путь'
+    endif
+    return 'неизвестный тип'
+endfunction
+
+print('🏷️  Определение типов с помощью функции:')
+print('========================================')
+print('Тип number_var:', get_type_name(number_var))
+print('Тип string_var:', get_type_name(string_var))
+print('Тип bool_var:', get_type_name(bool_var))
+print('Тип array_var:', get_type_name(array_var))
+print('Тип null_var:', get_type_name(null_var))
+print('Тип path_var:', get_type_name(path_var))
+print()
+
+# Демонстрация "преобразования" типов (на самом деле создание новых значений)
+print('🔄 Примеры работы с типами:')
+print('===========================')
+
+# Работа с числами как строками (через print)
+print('Число как строка: 42')
+global num_as_string = 'Число: 42'
+print('isinstance(num_as_string, "string") =', isinstance(num_as_string, 'string'))
+print()
+
+# Создание массива из разных типов
+global mixed_array = [number_var, string_var, bool_var]
+print('Смешанный массив:', mixed_array)
+print('isinstance(mixed_array, "array") =', isinstance(mixed_array, 'array'))
+print()
+
+# Проверка элементов массива
+print('Проверка типов элементов массива:')
+global first_element = mixed_array[0]
+global second_element = mixed_array[1]
+global third_element = mixed_array[2]
+
+print('Первый элемент:', first_element, '- тип:', get_type_name(first_element))
+print('Второй элемент:', second_element, '- тип:', get_type_name(second_element))
+print('Третий элемент:', third_element, '- тип:', get_type_name(third_element))
+print()
+
+# Демонстрация работы с валютными значениями (если поддерживается)
+print('💰 Работа с валютными значениями:')
+print('=================================')
+global currency_string = '$100.50'
+print('Валютная строка:', currency_string)
+print('isinstance(currency_string, "string") =', isinstance(currency_string, 'string'))
+
+# Попытка проверить, определяется ли как валюта
+# (результат зависит от того, как система обрабатывает валютные строки)
+global is_currency = isinstance(currency_string, 'currency')
+print('isinstance(currency_string, "currency") =', is_currency)
+print()
+
+print('✅ Демонстрация завершена!')
+print('Функция isinstance() позволяет проверять типы данных в DataCode')
+print('Поддерживаемые типы: number, string, bool, array, null, path, currency')
+print('Альтернативные имена: int/integer/float, str, boolean, list, none, money')

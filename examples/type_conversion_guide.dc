@@ -1,0 +1,211 @@
+# Руководство по работе с типами и их преобразованию в DataCode
+# Этот файл показывает, как работать с различными типами данных
+
+print('🔄 Руководство по типам и преобразованиям в DataCode')
+print('====================================================')
+print()
+
+# 1. Основные типы данных
+print('1️⃣ Основные типы данных:')
+print('========================')
+
+global my_number = 42
+global my_float = 3.14
+global my_string = 'Hello, DataCode!'
+global my_bool = true
+global my_array = [1, 2, 3]
+global my_null = null
+global my_path = path('/home/user')
+
+print('Число:', my_number, '- тип:', isinstance(my_number, 'number'))
+print('Дробное:', my_float, '- тип:', isinstance(my_float, 'number'))
+print('Строка:', my_string, '- тип:', isinstance(my_string, 'string'))
+print('Булево:', my_bool, '- тип:', isinstance(my_bool, 'bool'))
+print('Массив:', my_array, '- тип:', isinstance(my_array, 'array'))
+print('Null:', my_null, '- тип:', isinstance(my_null, 'null'))
+print('Путь:', my_path, '- тип:', isinstance(my_path, 'path'))
+print()
+
+# 2. Проверка типов с isinstance()
+print('2️⃣ Проверка типов с isinstance():')
+print('=================================')
+
+global function check_type(value) do
+    if isinstance(value, 'number') do
+        return 'Это число'
+    endif
+    if isinstance(value, 'string') do
+        return 'Это строка'
+    endif
+    if isinstance(value, 'bool') do
+        return 'Это булево значение'
+    endif
+    if isinstance(value, 'array') do
+        return 'Это массив'
+    endif
+    if isinstance(value, 'null') do
+        return 'Это null'
+    endif
+    if isinstance(value, 'path') do
+        return 'Это путь'
+    endif
+    return 'Неизвестный тип'
+endfunction
+
+print('check_type(42):', check_type(42))
+print('check_type("hello"):', check_type('hello'))
+print('check_type(true):', check_type(true))
+print('check_type([1,2,3]):', check_type([1, 2, 3]))
+print('check_type(null):', check_type(null))
+print()
+
+# 3. Работа с числами
+print('3️⃣ Работа с числами:')
+print('====================')
+
+global int_num = 42
+global float_num = 3.14
+
+print('Целое число:', int_num)
+print('Дробное число:', float_num)
+print('Оба являются числами:')
+print('  isinstance(int_num, "number"):', isinstance(int_num, 'number'))
+print('  isinstance(float_num, "number"):', isinstance(float_num, 'number'))
+print('  isinstance(int_num, "int"):', isinstance(int_num, 'int'))
+print('  isinstance(float_num, "float"):', isinstance(float_num, 'float'))
+print()
+
+# 4. Работа со строками
+print('4️⃣ Работа со строками:')
+print('======================')
+
+global text1 = 'Обычная строка'
+global text2 = '$100.50'  # Может быть определена как валюта
+global text3 = '12/9/2019'  # Может быть определена как дата
+
+print('Обычная строка:', text1)
+print('  isinstance(text1, "string"):', isinstance(text1, 'string'))
+
+print('Валютная строка:', text2)
+print('  isinstance(text2, "string"):', isinstance(text2, 'string'))
+print('  isinstance(text2, "currency"):', isinstance(text2, 'currency'))
+
+print('Строка с датой:', text3)
+print('  isinstance(text3, "string"):', isinstance(text3, 'string'))
+print()
+
+# 5. Работа с массивами
+print('5️⃣ Работа с массивами:')
+print('======================')
+
+global numbers = [1, 2, 3, 4, 5]
+global strings = ['a', 'b', 'c']
+global mixed = [1, 'hello', true, null]
+global empty = []
+
+print('Массив чисел:', numbers)
+print('Массив строк:', strings)
+print('Смешанный массив:', mixed)
+print('Пустой массив:', empty)
+
+print('Все являются массивами:')
+print('  isinstance(numbers, "array"):', isinstance(numbers, 'array'))
+print('  isinstance(strings, "list"):', isinstance(strings, 'list'))
+print('  isinstance(mixed, "array"):', isinstance(mixed, 'array'))
+print('  isinstance(empty, "array"):', isinstance(empty, 'array'))
+print()
+
+# 6. Проверка элементов массива
+print('6️⃣ Проверка элементов массива:')
+print('==============================')
+
+global data = [42, 'text', true, null, [1, 2]]
+
+print('Массив данных:', data)
+print('Типы элементов:')
+print('  data[0] (42):', isinstance(data[0], 'number'))
+print('  data[1] ("text"):', isinstance(data[1], 'string'))
+print('  data[2] (true):', isinstance(data[2], 'bool'))
+print('  data[3] (null):', isinstance(data[3], 'null'))
+print('  data[4] ([1,2]):', isinstance(data[4], 'array'))
+print()
+
+# 7. Условная логика на основе типов
+print('7️⃣ Условная логика на основе типов:')
+print('===================================')
+
+global function process_value(val) do
+    if isinstance(val, 'number') do
+        print('Обрабатываю число:', val)
+        return val * 2
+    endif
+    
+    if isinstance(val, 'string') do
+        print('Обрабатываю строку:', val)
+        return val + ' (обработано)'
+    endif
+    
+    if isinstance(val, 'bool') do
+        print('Обрабатываю булево значение:', val)
+        if val do
+            return 'Истина'
+        else
+            return 'Ложь'
+        endif
+    endif
+    
+    if isinstance(val, 'array') do
+        print('Обрабатываю массив:', val)
+        return length(val)
+    endif
+    
+    if isinstance(val, 'null') do
+        print('Обрабатываю null значение')
+        return 'Пустое значение'
+    endif
+    
+    return 'Неизвестный тип'
+endfunction
+
+print('Примеры обработки:')
+global result1 = process_value(10)
+print('Результат:', result1)
+
+global result2 = process_value('hello')
+print('Результат:', result2)
+
+global result3 = process_value(true)
+print('Результат:', result3)
+
+global result4 = process_value([1, 2, 3, 4])
+print('Результат:', result4)
+
+global result5 = process_value(null)
+print('Результат:', result5)
+print()
+
+# 8. Альтернативные имена типов
+print('8️⃣ Альтернативные имена типов:')
+print('==============================')
+
+global test_val = 42
+
+print('Число 42 можно проверить разными способами:')
+print('  isinstance(test_val, "number"):', isinstance(test_val, 'number'))
+print('  isinstance(test_val, "int"):', isinstance(test_val, 'int'))
+print('  isinstance(test_val, "integer"):', isinstance(test_val, 'integer'))
+
+global test_str = 'hello'
+print('Строку можно проверить как:')
+print('  isinstance(test_str, "string"):', isinstance(test_str, 'string'))
+print('  isinstance(test_str, "str"):', isinstance(test_str, 'str'))
+
+global test_arr = [1, 2, 3]
+print('Массив можно проверить как:')
+print('  isinstance(test_arr, "array"):', isinstance(test_arr, 'array'))
+print('  isinstance(test_arr, "list"):', isinstance(test_arr, 'list'))
+print()
+
+print('✅ Руководство завершено!')
+print('Функция isinstance() - мощный инструмент для проверки типов в DataCode')
+print('Используйте её для создания надёжного и типобезопасного кода!')

@@ -121,20 +121,17 @@ mod table_tests {
     #[test]
     fn test_show_table_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем простую таблицу
-        let test_data = r#"
-            global data = [
-                [1, "Alice"],
-                [2, "Bob"]
-            ]
-            global headers = ["id", "name"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем простую таблицу по частям
+        let result1 = interp.exec("global data = [[1, 'Alice'], [2, 'Bob']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Тестируем show_table (проверяем, что не падает)
         let result = interp.exec("show_table(my_table)");
         assert!(result.is_ok(), "show_table failed: {:?}", result);
@@ -143,21 +140,17 @@ mod table_tests {
     #[test]
     fn test_table_info_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу
-        let test_data = r#"
-            global data = [
-                [1, "Alice"],
-                [2, "Bob"],
-                [3, "Charlie"]
-            ]
-            global headers = ["id", "name"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем таблицу по частям
+        let result1 = interp.exec("global data = [[1, 'Alice'], [2, 'Bob'], [3, 'Charlie']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Тестируем table_info
         let result = interp.exec("table_info(my_table)");
         assert!(result.is_ok(), "table_info failed: {:?}", result);
@@ -166,27 +159,21 @@ mod table_tests {
     #[test]
     fn test_table_head_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу с несколькими строками
-        let test_data = r#"
-            global data = [
-                [1, "Alice"],
-                [2, "Bob"],
-                [3, "Charlie"],
-                [4, "David"],
-                [5, "Eve"]
-            ]
-            global headers = ["id", "name"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем таблицу с несколькими строками по частям
+        let result1 = interp.exec("global data = [[1, 'Alice'], [2, 'Bob'], [3, 'Charlie'], [4, 'David'], [5, 'Eve']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Тестируем table_head с параметром
         let result = interp.exec("table_head(my_table, 3)");
         assert!(result.is_ok(), "table_head failed: {:?}", result);
-        
+
         // Тестируем table_head без параметра (по умолчанию 5)
         let result = interp.exec("table_head(my_table)");
         assert!(result.is_ok(), "table_head without parameter failed: {:?}", result);
@@ -195,23 +182,17 @@ mod table_tests {
     #[test]
     fn test_table_tail_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу
-        let test_data = r#"
-            global data = [
-                [1, "Alice"],
-                [2, "Bob"],
-                [3, "Charlie"],
-                [4, "David"],
-                [5, "Eve"]
-            ]
-            global headers = ["id", "name"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем таблицу по частям
+        let result1 = interp.exec("global data = [[1, 'Alice'], [2, 'Bob'], [3, 'Charlie'], [4, 'David'], [5, 'Eve']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Тестируем table_tail
         let result = interp.exec("table_tail(my_table, 2)");
         assert!(result.is_ok(), "table_tail failed: {:?}", result);
@@ -220,23 +201,19 @@ mod table_tests {
     #[test]
     fn test_table_select_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу с несколькими колонками
-        let test_data = r#"
-            global data = [
-                [1, "Alice", 25, "Engineer"],
-                [2, "Bob", 30, "Designer"],
-                [3, "Charlie", 35, "Manager"]
-            ]
-            global headers = ["id", "name", "age", "job"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем таблицу с несколькими колонками по частям
+        let result1 = interp.exec("global data = [[1, 'Alice', 25, 'Engineer'], [2, 'Bob', 30, 'Designer'], [3, 'Charlie', 35, 'Manager']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name', 'age', 'job']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Выбираем только некоторые колонки
-        let result = interp.exec(r#"global selected = table_select(my_table, ["name", "age"])"#);
+        let result = interp.exec("global selected = table_select(my_table, ['name', 'age'])");
         assert!(result.is_ok(), "table_select failed: {:?}", result);
         
         // Проверяем результат
@@ -254,23 +231,19 @@ mod table_tests {
     #[test]
     fn test_table_sort_function() {
         let mut interp = Interpreter::new();
-        
-        // Создаем таблицу для сортировки
-        let test_data = r#"
-            global data = [
-                [3, "Charlie"],
-                [1, "Alice"],
-                [2, "Bob"]
-            ]
-            global headers = ["id", "name"]
-            global my_table = table(data, headers)
-        "#;
-        
-        let result = interp.exec(test_data);
-        assert!(result.is_ok());
-        
+
+        // Создаем таблицу для сортировки по частям
+        let result1 = interp.exec("global data = [[3, 'Charlie'], [1, 'Alice'], [2, 'Bob']]");
+        assert!(result1.is_ok(), "Failed to create data: {:?}", result1);
+
+        let result2 = interp.exec("global headers = ['id', 'name']");
+        assert!(result2.is_ok(), "Failed to create headers: {:?}", result2);
+
+        let result3 = interp.exec("global my_table = table(data, headers)");
+        assert!(result3.is_ok(), "Failed to create table: {:?}", result3);
+
         // Сортируем по id
-        let result = interp.exec(r#"global sorted = table_sort(my_table, "id")"#);
+        let result = interp.exec("global sorted = table_sort(my_table, 'id')");
         assert!(result.is_ok(), "table_sort failed: {:?}", result);
         
         // Проверяем результат
