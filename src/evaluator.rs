@@ -2,7 +2,7 @@ use crate::value::Value;
 use crate::value::Value::{Number, String as ValueString, Bool, Array, Path, Null, Object, Table};
 use crate::error::{DataCodeError, Result};
 use crate::parser::{Expr, BinaryOp, UnaryOp};
-use crate::builtins::call_function;
+use crate::builtins::call_builtin_function;
 use std::collections::HashMap;
 
 pub struct Evaluator<'a> {
@@ -41,7 +41,7 @@ impl<'a> Evaluator<'a> {
                 for arg in args {
                     arg_values.push(self.evaluate(arg)?);
                 }
-                call_function(name, arg_values, self.line)
+                call_builtin_function(name, arg_values, self.line)
             }
             
             Expr::Index { object, index } => {

@@ -1,6 +1,6 @@
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
-use crate::builtins::call_function;
+use crate::builtins::call_builtin_function;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -136,7 +136,7 @@ impl Interpreter {
                     self.call_user_function(name, arg_values)
                 } else {
                     // Встроенная функция
-                    call_function(name, arg_values, self.current_line)
+                    call_builtin_function(name, arg_values, self.current_line)
                 }
             }
 

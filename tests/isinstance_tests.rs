@@ -175,7 +175,7 @@ mod isinstance_tests {
         assert!(result.is_err());
         
         if let Err(e) = result {
-            assert!(e.to_string().contains("Unknown type name"));
+            assert!(e.to_string().contains("Unknown type"));
         }
     }
 

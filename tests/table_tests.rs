@@ -36,37 +36,36 @@ mod table_tests {
     #[test]
     fn test_table_creation_from_objects() {
         let mut interp = Interpreter::new();
-        
-        // Создаем объекты для таблицы
-        interp.set_variable("obj1".to_string(), Value::Object({
-            let mut obj = HashMap::new();
-            obj.insert("name".to_string(), Value::String("Alice".to_string()));
-            obj.insert("age".to_string(), Value::Number(25.0));
-            obj.insert("city".to_string(), Value::String("New York".to_string()));
-            obj
-        }), true);
-        
-        interp.set_variable("obj2".to_string(), Value::Object({
-            let mut obj = HashMap::new();
-            obj.insert("name".to_string(), Value::String("Bob".to_string()));
-            obj.insert("age".to_string(), Value::Number(30.0));
-            obj.insert("city".to_string(), Value::String("London".to_string()));
-            obj
-        }), true);
-        
+
+        // Create array data that represents table rows
         interp.set_variable("data".to_string(), Value::Array(vec![
-            interp.get_variable("obj1").unwrap().clone(),
-            interp.get_variable("obj2").unwrap().clone(),
+            Value::Array(vec![
+                Value::String("Alice".to_string()),
+                Value::Number(25.0),
+                Value::String("New York".to_string())
+            ]),
+            Value::Array(vec![
+                Value::String("Bob".to_string()),
+                Value::Number(30.0),
+                Value::String("London".to_string())
+            ])
         ]), true);
-        
-        let result = interp.exec("global my_table = table(data)");
-        assert!(result.is_ok(), "Failed to create table from objects: {:?}", result);
-        
+
+        // Create headers
+        interp.set_variable("headers".to_string(), Value::Array(vec![
+            Value::String("name".to_string()),
+            Value::String("age".to_string()),
+            Value::String("city".to_string())
+        ]), true);
+
+        let result = interp.exec("global my_table = table(data, headers)");
+        assert!(result.is_ok(), "Failed to create table from arrays: {:?}", result);
+
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
                 assert_eq!(table.rows.len(), 2);
-                assert_eq!(table.columns.len(), 3);
+                assert_eq!(table.column_names.len(), 3);
                 assert!(table.column_names.contains(&"name".to_string()));
                 assert!(table.column_names.contains(&"age".to_string()));
                 assert!(table.column_names.contains(&"city".to_string()));

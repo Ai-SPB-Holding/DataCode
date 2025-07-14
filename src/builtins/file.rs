@@ -1,4 +1,4 @@
-use crate::value::{Value, Table, DataType};
+use crate::value::{Value, Table as TableStruct};
 use crate::error::{DataCodeError, Result};
 use std::fs;
 use std::path::PathBuf;
@@ -138,7 +138,7 @@ fn read_csv_file(p: &std::path::Path, line: usize) -> Result<Value> {
         .map(|h| h.to_string())
         .collect();
 
-    let mut table = Table::new(headers);
+    let mut table = TableStruct::new(headers);
     let mut warnings = Vec::new();
 
     for (row_index, result) in rdr.records().enumerate() {
@@ -146,7 +146,7 @@ fn read_csv_file(p: &std::path::Path, line: usize) -> Result<Value> {
         
         let mut row_values = Vec::new();
         for (col_index, field) in record.iter().enumerate() {
-            let value = crate::value::parse_value_with_type_inference(field.trim());
+            let value = parse_csv_value(field.trim());
             row_values.push(value);
         }
         
@@ -184,7 +184,7 @@ fn read_xlsx_file(p: &std::path::Path, line: usize) -> Result<Value> {
         return Err(DataCodeError::runtime_error("Empty Excel file", line));
     };
 
-    let mut table = Table::new(headers);
+    let mut table = TableStruct::new(headers);
     
     for row in rows {
         let row_values: Vec<Value> = row.iter()
@@ -230,4 +230,33 @@ fn parse_excel_value(cell: &calamine::Data) -> Value {
         calamine::Data::DurationIso(dur) => Value::String(dur.clone()),
         calamine::Data::Error(e) => Value::String(format!("ERROR: {:?}", e)),
     }
+}
+
+fn parse_csv_value(s: &str) -> Value {
+    let trimmed = s.trim();
+
+    // Try to parse as number
+    if let Ok(n) = trimmed.parse::<f64>() {
+        return Value::Number(n);
+    }
+
+    // Try to parse as boolean
+    match trimmed.to_lowercase().as_str() {
+        "true" | "yes" | "1" => return Value::Bool(true),
+        "false" | "no" | "0" => return Value::Bool(false),
+        _ => {}
+    }
+
+    // Check for currency
+    if trimmed.starts_with('$') || trimmed.starts_with('€') || trimmed.starts_with('£') {
+        return Value::Currency(trimmed.to_string());
+    }
+
+    // Empty or null values
+    if trimmed.is_empty() || trimmed.to_lowercase() == "null" || trimmed.to_lowercase() == "na" {
+        return Value::Null;
+    }
+
+    // Default to string
+    Value::String(trimmed.to_string())
 }
