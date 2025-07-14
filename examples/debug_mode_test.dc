@@ -1,0 +1,40 @@
+# Тест режима отладки DataCode
+# Этот файл создан для демонстрации разницы между обычным и отладочным режимом
+
+print("=== Тест режима отладки ===")
+print("")
+
+# Создаем различные типы данных
+global departments = ["Engineering", "Marketing", "HR"]
+global employee_count = 150
+global is_active = true
+global budget = 1500000.50
+global empty_list = []
+global config = {name: "DataCode", version: "1.4.0", stable: true}
+
+print("Отделы:", departments)
+print("Количество сотрудников:", employee_count)
+print("Активен:", is_active)
+print("Бюджет:", budget)
+print("Пустой список:", empty_list)
+print("Конфигурация:", config)
+
+print("")
+print("=== Функциональные методы ===")
+
+# Тестируем функциональные методы
+global numbers = [1, 2, 3, 4, 5]
+global doubled = map(numbers, "abs")
+global filtered = filter(numbers, "abs")
+global maximum = reduce(numbers, "max")
+
+print("Числа:", numbers)
+print("После map:", doubled)
+print("После filter:", filtered)
+print("Максимум:", maximum)
+
+print("")
+print("=== Завершение теста ===")
+print("В обычном режиме: переменные не показываются")
+print("В режиме --debug: переменные показываются с типами")
+print("Запустите: datacode debug_mode_test.dc --debug")

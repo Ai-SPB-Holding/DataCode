@@ -1,7 +1,6 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
 use data_code::error::DataCodeError;
-use std::path::PathBuf;
 
 #[cfg(test)]
 mod file_reading_tests {

@@ -1,6 +1,5 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
-use data_code::error::DataCodeError;
 
 #[cfg(test)]
 mod isinstance_tests {
@@ -12,19 +11,19 @@ mod isinstance_tests {
         
         // Тест с целыми числами
         interp.exec("global x = 42").unwrap();
-        let result = interp.exec("global is_num = isinstance(x, 'number')").unwrap();
+        let _result = interp.exec("global is_num = isinstance(x, 'number')").unwrap();
         assert_eq!(interp.get_variable("is_num"), Some(&Value::Bool(true)));
         
         // Тест с дробными числами
         interp.exec("global y = 3.14").unwrap();
-        let result = interp.exec("global is_float = isinstance(y, 'float')").unwrap();
+        let _result = interp.exec("global is_float = isinstance(y, 'float')").unwrap();
         assert_eq!(interp.get_variable("is_float"), Some(&Value::Bool(true)));
         
         // Тест с альтернативными именами типов
-        let result = interp.exec("global is_int = isinstance(x, 'int')").unwrap();
+        let _result = interp.exec("global is_int = isinstance(x, 'int')").unwrap();
         assert_eq!(interp.get_variable("is_int"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global is_integer = isinstance(x, 'integer')").unwrap();
+        let _result = interp.exec("global is_integer = isinstance(x, 'integer')").unwrap();
         assert_eq!(interp.get_variable("is_integer"), Some(&Value::Bool(true)));
     }
 
@@ -33,16 +32,16 @@ mod isinstance_tests {
         let mut interp = Interpreter::new();
         
         interp.exec("global text = 'Hello, DataCode!'").unwrap();
-        let result = interp.exec("global is_str = isinstance(text, 'string')").unwrap();
+        let _result = interp.exec("global is_str = isinstance(text, 'string')").unwrap();
         assert_eq!(interp.get_variable("is_str"), Some(&Value::Bool(true)));
         
         // Тест с альтернативным именем типа
-        let result = interp.exec("global is_str2 = isinstance(text, 'str')").unwrap();
+        let _result = interp.exec("global is_str2 = isinstance(text, 'str')").unwrap();
         assert_eq!(interp.get_variable("is_str2"), Some(&Value::Bool(true)));
         
         // Негативный тест
         interp.exec("global num = 123").unwrap();
-        let result = interp.exec("global not_str = isinstance(num, 'string')").unwrap();
+        let _result = interp.exec("global not_str = isinstance(num, 'string')").unwrap();
         assert_eq!(interp.get_variable("not_str"), Some(&Value::Bool(false)));
     }
 
@@ -51,15 +50,15 @@ mod isinstance_tests {
         let mut interp = Interpreter::new();
         
         interp.exec("global flag = true").unwrap();
-        let result = interp.exec("global is_bool = isinstance(flag, 'bool')").unwrap();
+        let _result = interp.exec("global is_bool = isinstance(flag, 'bool')").unwrap();
         assert_eq!(interp.get_variable("is_bool"), Some(&Value::Bool(true)));
         
         // Тест с альтернативным именем типа
-        let result = interp.exec("global is_boolean = isinstance(flag, 'boolean')").unwrap();
+        let _result = interp.exec("global is_boolean = isinstance(flag, 'boolean')").unwrap();
         assert_eq!(interp.get_variable("is_boolean"), Some(&Value::Bool(true)));
         
         interp.exec("global flag2 = false").unwrap();
-        let result = interp.exec("global is_bool2 = isinstance(flag2, 'bool')").unwrap();
+        let _result = interp.exec("global is_bool2 = isinstance(flag2, 'bool')").unwrap();
         assert_eq!(interp.get_variable("is_bool2"), Some(&Value::Bool(true)));
     }
 
@@ -68,16 +67,16 @@ mod isinstance_tests {
         let mut interp = Interpreter::new();
         
         interp.exec("global arr = [1, 2, 3]").unwrap();
-        let result = interp.exec("global is_array = isinstance(arr, 'array')").unwrap();
+        let _result = interp.exec("global is_array = isinstance(arr, 'array')").unwrap();
         assert_eq!(interp.get_variable("is_array"), Some(&Value::Bool(true)));
         
         // Тест с альтернативным именем типа
-        let result = interp.exec("global is_list = isinstance(arr, 'list')").unwrap();
+        let _result = interp.exec("global is_list = isinstance(arr, 'list')").unwrap();
         assert_eq!(interp.get_variable("is_list"), Some(&Value::Bool(true)));
         
         // Тест с пустым массивом
         interp.exec("global empty_arr = []").unwrap();
-        let result = interp.exec("global is_empty_array = isinstance(empty_arr, 'array')").unwrap();
+        let _result = interp.exec("global is_empty_array = isinstance(empty_arr, 'array')").unwrap();
         assert_eq!(interp.get_variable("is_empty_array"), Some(&Value::Bool(true)));
     }
 
@@ -104,7 +103,7 @@ mod isinstance_tests {
         // Проверяем, что это валюта (если система автоматически определила тип)
         // Или создаем валюту явно через функцию, если такая есть
         let result = interp.exec("global is_currency = isinstance(money, 'currency')");
-        
+
         // Если автоматическое определение валюты работает, тест должен пройти
         // Иначе нужно будет добавить функцию для создания валютных значений
         if result.is_ok() {
@@ -114,10 +113,10 @@ mod isinstance_tests {
                 println!("Currency detection result: {}", is_curr);
             }
         }
-        
+
         // Тест с альтернативным именем типа
-        let result = interp.exec("global is_money = isinstance(money, 'money')");
-        if result.is_ok() {
+        let result2 = interp.exec("global is_money = isinstance(money, 'money')");
+        if result2.is_ok() {
             if let Some(Value::Bool(is_money)) = interp.get_variable("is_money") {
                 println!("Money detection result: {}", is_money);
             }
@@ -130,7 +129,7 @@ mod isinstance_tests {
         
         // Создаем путь через функцию path()
         interp.exec("global my_path = path('/home/user')").unwrap();
-        let result = interp.exec("global is_path = isinstance(my_path, 'path')").unwrap();
+        let _result = interp.exec("global is_path = isinstance(my_path, 'path')").unwrap();
         assert_eq!(interp.get_variable("is_path"), Some(&Value::Bool(true)));
     }
 
@@ -141,13 +140,13 @@ mod isinstance_tests {
         interp.exec("global x = 42").unwrap();
         
         // Тест с разными регистрами
-        let result = interp.exec("global is_num1 = isinstance(x, 'NUMBER')").unwrap();
+        let _result = interp.exec("global is_num1 = isinstance(x, 'NUMBER')").unwrap();
         assert_eq!(interp.get_variable("is_num1"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global is_num2 = isinstance(x, 'Number')").unwrap();
+        let _result = interp.exec("global is_num2 = isinstance(x, 'Number')").unwrap();
         assert_eq!(interp.get_variable("is_num2"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global is_num3 = isinstance(x, 'nUmBeR')").unwrap();
+        let _result = interp.exec("global is_num3 = isinstance(x, 'nUmBeR')").unwrap();
         assert_eq!(interp.get_variable("is_num3"), Some(&Value::Bool(true)));
     }
 
@@ -158,10 +157,10 @@ mod isinstance_tests {
         // Тест с недостаточным количеством аргументов
         let result = interp.exec("global test1 = isinstance(42)");
         assert!(result.is_err());
-        
+
         // Тест с избыточным количеством аргументов
-        let result = interp.exec("global test2 = isinstance(42, 'number', 'extra')");
-        assert!(result.is_err());
+        let result2 = interp.exec("global test2 = isinstance(42, 'number', 'extra')");
+        assert!(result2.is_err());
     }
 
     #[test]
@@ -173,7 +172,7 @@ mod isinstance_tests {
         // Тест с неизвестным типом
         let result = interp.exec("global test = isinstance(x, 'unknown_type')");
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("Unknown type"));
         }
@@ -220,22 +219,22 @@ mod isinstance_tests {
         interp.exec("global arr = [1, 2, 3]").unwrap();
         
         // Проверяем каждую переменную на разные типы
-        let result = interp.exec("global num_is_num = isinstance(num, 'number')").unwrap();
+        let _result = interp.exec("global num_is_num = isinstance(num, 'number')").unwrap();
         assert_eq!(interp.get_variable("num_is_num"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global num_is_str = isinstance(num, 'string')").unwrap();
+        let _result = interp.exec("global num_is_str = isinstance(num, 'string')").unwrap();
         assert_eq!(interp.get_variable("num_is_str"), Some(&Value::Bool(false)));
         
-        let result = interp.exec("global text_is_str = isinstance(text, 'string')").unwrap();
+        let _result = interp.exec("global text_is_str = isinstance(text, 'string')").unwrap();
         assert_eq!(interp.get_variable("text_is_str"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global text_is_num = isinstance(text, 'number')").unwrap();
+        let _result = interp.exec("global text_is_num = isinstance(text, 'number')").unwrap();
         assert_eq!(interp.get_variable("text_is_num"), Some(&Value::Bool(false)));
         
-        let result = interp.exec("global flag_is_bool = isinstance(flag, 'bool')").unwrap();
+        let _result = interp.exec("global flag_is_bool = isinstance(flag, 'bool')").unwrap();
         assert_eq!(interp.get_variable("flag_is_bool"), Some(&Value::Bool(true)));
         
-        let result = interp.exec("global arr_is_array = isinstance(arr, 'array')").unwrap();
+        let _result = interp.exec("global arr_is_array = isinstance(arr, 'array')").unwrap();
         assert_eq!(interp.get_variable("arr_is_array"), Some(&Value::Bool(true)));
     }
 }

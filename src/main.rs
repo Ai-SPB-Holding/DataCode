@@ -15,13 +15,44 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 1 {
-        let arg = &args[1];
+        // Проверяем наличие флага --debug или --verbose
+        let debug_mode = args.contains(&"--debug".to_string()) || args.contains(&"--verbose".to_string());
 
-        // Проверяем, является ли аргумент файлом .dc
-        if arg.ends_with(".dc") {
-            run_file(arg);
+        // Находим файл .dc или команду (исключая флаги)
+        let mut file_or_command = None;
+        for arg in &args[1..] {
+            if !arg.starts_with("--") {
+                file_or_command = Some(arg);
+                break;
+            }
+        }
+
+        if let Some(arg) = file_or_command {
+            // Проверяем, является ли аргумент файлом .dc
+            if arg.ends_with(".dc") {
+                run_file(arg, debug_mode);
+            } else {
+                match arg.as_str() {
+                    "repl" | "-i" => {
+                        repl::start_repl();
+                    }
+                    "demo" => {
+                        run_demo();
+                    }
+                    "help" | "-h" => {
+                        show_help();
+                    }
+                    _ => {
+                        println!("❌ Unknown argument: {}", arg);
+                        println!("💡 Tip: Use .dc extension for DataCode files");
+                        show_help();
+                    }
+                }
+            }
         } else {
-            match arg.as_str() {
+            // Проверяем флаги без файла
+            let first_arg = &args[1];
+            match first_arg.as_str() {
                 "--repl" | "-i" => {
                     repl::start_repl();
                 }
@@ -32,7 +63,7 @@ fn main() {
                     show_help();
                 }
                 _ => {
-                    println!("❌ Unknown argument: {}", arg);
+                    println!("❌ Unknown argument: {}", first_arg);
                     println!("💡 Tip: Use .dc extension for DataCode files");
                     show_help();
                 }
@@ -44,12 +75,15 @@ fn main() {
     }
 }
 
-fn run_file(file_path: &str) {
+fn run_file(file_path: &str, debug_mode: bool) {
     use interpreter::Interpreter;
 
     println!("🧠 DataCode File Executor");
     println!("========================");
     println!("📁 Executing file: {}", file_path);
+    if debug_mode {
+        println!("🔍 Debug mode: ON");
+    }
     println!();
 
     // Проверяем существование файла
@@ -89,7 +123,7 @@ fn run_file(file_path: &str) {
 
             // Показываем финальные переменные если они есть
             let vars = interpreter.get_all_variables();
-            if !vars.is_empty() {
+            if !vars.is_empty() && debug_mode {
                 println!();
                 println!("📊 Final Variables:");
                 for (name, value) in vars {
@@ -175,6 +209,7 @@ fn show_help() {
     println!("Usage:");
     println!("  datacode                   # Start interactive REPL (default)");
     println!("  datacode main.dc           # Execute DataCode file");
+    println!("  datacode main.dc --debug   # Execute with debug info (shows variable types)");
     println!("  datacode --repl            # Start interactive REPL");
     println!("  datacode --demo            # Run demonstration");
     println!("  datacode --help            # Show this help");
@@ -183,6 +218,13 @@ fn show_help() {
     println!("  • Create files with .dc extension");
     println!("  • Write DataCode programs in files");
     println!("  • Execute with: datacode filename.dc");
+    println!("  • Use --debug flag to see detailed variable information");
+    println!();
+    println!("Debug Mode:");
+    println!("  • Shows final variables with full type information");
+    println!("  • Example: departments = Array([String(\"Engineering\"), String(\"Marketing\")])");
+    println!("  • Useful for development and debugging");
+    println!("  • Flags: --debug or --verbose");
     println!();
     println!("Features:");
     println!("  • Interactive REPL with multiline support");
@@ -192,6 +234,7 @@ fn show_help() {
     println!("  • For loops and control structures");
     println!("  • Improved error messages with line numbers");
     println!("  • Path manipulation");
+    println!("  • Functional programming methods (map, filter, reduce)");
     println!();
     println!("Example DataCode file (example.dc):");
     println!("  # Simple DataCode program");
@@ -203,4 +246,5 @@ fn show_help() {
     println!("  print(message)");
     println!();
     println!("Run with: datacode example.dc");
+    println!("Debug run: datacode example.dc --debug");
 }

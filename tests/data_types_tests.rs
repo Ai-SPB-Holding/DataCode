@@ -1,4 +1,4 @@
-use data_code::value::{Value, DataType, is_currency_string};
+use data_code::value::{Value, DataType};
 use data_code::interpreter::Interpreter;
 
 #[cfg(test)]
@@ -89,7 +89,6 @@ mod currency_tests {
         ];
 
         for currency_str in test_cases {
-            assert!(is_currency_string(currency_str), "Should be currency: {}", currency_str);
             let value = Value::String(currency_str.to_string());
             let data_type = DataType::from_value(&value);
             assert_eq!(data_type, DataType::Currency, "Failed for currency: {}", currency_str);
@@ -108,7 +107,6 @@ mod currency_tests {
         ];
 
         for currency_str in test_cases {
-            assert!(is_currency_string(currency_str), "Should be currency: {}", currency_str);
             let value = Value::String(currency_str.to_string());
             let data_type = DataType::from_value(&value);
             assert_eq!(data_type, DataType::Currency, "Failed for currency: {}", currency_str);
@@ -126,7 +124,6 @@ mod currency_tests {
         ];
 
         for currency_str in test_cases {
-            assert!(!is_currency_string(currency_str), "Should not be currency: {}", currency_str);
             let value = Value::String(currency_str.to_string());
             let data_type = DataType::from_value(&value);
             assert_ne!(data_type, DataType::Currency, "Should not be currency: {}", currency_str);

@@ -1,7 +1,39 @@
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
-use std::path::PathBuf;
 use chrono::Utc;
+
+/// Форматировать значение для вывода
+fn format_value_for_print(value: &Value) -> String {
+    use Value::*;
+    match value {
+        Number(n) => {
+            if n.fract() == 0.0 {
+                format!("{}", *n as i64)
+            } else {
+                format!("{}", n)
+            }
+        }
+        String(s) => s.clone(),
+        Bool(b) => b.to_string(),
+        Currency(c) => c.clone(),
+        Array(arr) => {
+            let items: Vec<std::string::String> = arr.iter().map(format_value_for_print).collect();
+            format!("[{}]", items.join(", "))
+        }
+        Object(obj) => {
+            let items: Vec<std::string::String> = obj.iter()
+                .map(|(k, v)| format!("{}: {}", k, format_value_for_print(v)))
+                .collect();
+            format!("{{{}}}", items.join(", "))
+        }
+        Table(table) => {
+            format!("Table({} rows, {} columns)", table.rows.len(), table.column_names.len())
+        }
+        Null => "null".to_string(),
+        Path(p) => p.display().to_string(),
+        PathPattern(p) => format!("Pattern({})", p.display()),
+    }
+}
 
 /// System and utility functions
 pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
@@ -17,24 +49,7 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
         
         "print" => {
             let parts: Vec<std::string::String> = args.into_iter()
-                .map(|v| match v {
-                    Value::String(s) => s,
-                    Value::Currency(c) => c,
-                    Value::Path(p) => p.display().to_string(),
-                    Value::PathPattern(p) => format!("{}*", p.display()),
-                    Value::Number(n) => {
-                        if n.fract() == 0.0 {
-                            format!("{}", n as i64)
-                        } else {
-                            format!("{}", n)
-                        }
-                    }
-                    Value::Bool(b) => if b { "true".to_string() } else { "false".to_string() },
-                    Value::Null => "null".to_string(),
-                    Value::Array(arr) => format!("[{}]", arr.len()),
-                    Value::Object(obj) => format!("{{{}}}", obj.len()),
-                    Value::Table(table) => format!("Table({}x{})", table.rows.len(), table.columns.len()),
-                })
+                .map(|v| format_value_for_print(&v))
                 .collect();
             println!("{}", parts.join(" "));
             Ok(Value::Null)
@@ -102,12 +117,25 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
 
             Ok(Bool(is_instance))
         }
-        
+
+        "isset" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("isset", 1, args.len(), line));
+            }
+
+            // Для базовой реализации - проверяем, что значение не является Null
+            // В будущем можно будет расширить для проверки существования переменных
+            match &args[0] {
+                Null => Ok(Bool(false)),
+                _ => Ok(Bool(true)),
+            }
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
 
 /// Check if a function name belongs to system functions
 pub fn is_system_function(name: &str) -> bool {
-    matches!(name, "now" | "print" | "getcwd" | "isinstance")
+    matches!(name, "now" | "print" | "getcwd" | "isinstance" | "isset")
 }

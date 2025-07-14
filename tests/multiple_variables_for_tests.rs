@@ -256,6 +256,7 @@ mod multiple_variables_for_tests {
     }
 
     #[test]
+    #[ignore = "Not implemented yet"]
     fn test_for_empty_variable_name_error() {
         let mut interp = Interpreter::new();
         

@@ -164,15 +164,212 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                 _ => Err(DataCodeError::type_error("Array, String, or Table", "other", line)),
             }
         }
-        
+
+        "range" => {
+            match args.len() {
+                1 => {
+                    // range(n) -> [0, 1, 2, ..., n-1]
+                    let end = match &args[0] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+
+                    if end < 0 {
+                        return Err(DataCodeError::runtime_error("Range end cannot be negative", line));
+                    }
+
+                    let range: Vec<Value> = (0..end)
+                        .map(|i| Number(i as f64))
+                        .collect();
+                    Ok(Array(range))
+                }
+                2 => {
+                    // range(start, end) -> [start, start+1, ..., end-1]
+                    let start = match &args[0] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+                    let end = match &args[1] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+
+                    let range: Vec<Value> = (start..end)
+                        .map(|i| Number(i as f64))
+                        .collect();
+                    Ok(Array(range))
+                }
+                3 => {
+                    // range(start, end, step)
+                    let start = match &args[0] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+                    let end = match &args[1] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+                    let step = match &args[2] {
+                        Number(n) => *n as i32,
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    };
+
+                    if step == 0 {
+                        return Err(DataCodeError::runtime_error("Range step cannot be zero", line));
+                    }
+
+                    let mut range = Vec::new();
+                    if step > 0 {
+                        let mut current = start;
+                        while current < end {
+                            range.push(Number(current as f64));
+                            current += step;
+                        }
+                    } else {
+                        let mut current = start;
+                        while current > end {
+                            range.push(Number(current as f64));
+                            current += step;
+                        }
+                    }
+
+                    Ok(Array(range))
+                }
+                _ => Err(DataCodeError::wrong_argument_count("range", 1, args.len(), line))
+            }
+        }
+
+        "map" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("map", 2, args.len(), line));
+            }
+
+            match (&args[0], &args[1]) {
+                (Array(arr), String(func_name)) => {
+                    let mut result = Vec::new();
+
+                    for item in arr {
+                        // Вызываем функцию для каждого элемента
+                        let mapped_value = call_function_with_single_arg(func_name, item.clone(), line)?;
+                        result.push(mapped_value);
+                    }
+
+                    Ok(Array(result))
+                }
+                _ => Err(DataCodeError::type_error("Array and String (function name)", "other", line)),
+            }
+        }
+
+        "filter" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("filter", 2, args.len(), line));
+            }
+
+            match (&args[0], &args[1]) {
+                (Array(arr), String(func_name)) => {
+                    let mut result = Vec::new();
+
+                    for item in arr {
+                        // Вызываем функцию-предикат для каждого элемента
+                        let should_include = call_function_with_single_arg(func_name, item.clone(), line)?;
+
+                        // Проверяем результат как булево значение
+                        let include = match should_include {
+                            Value::Bool(b) => b,
+                            Value::Number(n) => n != 0.0,
+                            Value::String(s) => !s.is_empty(),
+                            Value::Null => false,
+                            _ => true,
+                        };
+
+                        if include {
+                            result.push(item.clone());
+                        }
+                    }
+
+                    Ok(Array(result))
+                }
+                _ => Err(DataCodeError::type_error("Array and String (function name)", "other", line)),
+            }
+        }
+
+        "reduce" => {
+            if args.len() < 2 || args.len() > 3 {
+                return Err(DataCodeError::wrong_argument_count("reduce", 2, args.len(), line));
+            }
+
+            match &args[0] {
+                Array(arr) => {
+                    if arr.is_empty() {
+                        return if args.len() == 3 {
+                            Ok(args[2].clone()) // Возвращаем начальное значение
+                        } else {
+                            Err(DataCodeError::runtime_error("Cannot reduce empty array without initial value", line))
+                        };
+                    }
+
+                    let func_name = match &args[1] {
+                        String(name) => name,
+                        _ => return Err(DataCodeError::type_error("String (function name)", "other", line)),
+                    };
+
+                    // Определяем начальное значение и начальный индекс
+                    let (mut accumulator, start_index) = if args.len() == 3 {
+                        (args[2].clone(), 0)
+                    } else {
+                        (arr[0].clone(), 1)
+                    };
+
+                    // Применяем функцию к каждому элементу
+                    for i in start_index..arr.len() {
+                        accumulator = call_function_with_two_args(func_name, accumulator, arr[i].clone(), line)?;
+                    }
+
+                    Ok(accumulator)
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
 
 /// Check if a function name belongs to array functions
 pub fn is_array_function(name: &str) -> bool {
-    matches!(name, 
-        "length" | "len" | "push" | "pop" | "append" | "sort" | 
-        "unique" | "array" | "sum" | "average" | "count"
+    matches!(name,
+        "length" | "len" | "push" | "pop" | "append" | "sort" |
+        "unique" | "array" | "sum" | "average" | "count" | "range" |
+        "map" | "filter" | "reduce"
     )
+}
+
+/// Вызвать функцию с одним аргументом (для map и filter)
+fn call_function_with_single_arg(func_name: &str, arg: Value, line: usize) -> Result<Value> {
+    // Сначала проверяем встроенные функции
+    if crate::builtins::is_builtin_function(func_name) {
+        return crate::builtins::call_builtin_function(func_name, vec![arg], line);
+    }
+
+    // Для пользовательских функций нужен доступ к интерпретатору
+    // Пока что возвращаем ошибку - это будет исправлено в следующих версиях
+    Err(DataCodeError::runtime_error(
+        &format!("User function '{}' calls in functional methods not yet supported", func_name),
+        line,
+    ))
+}
+
+/// Вызвать функцию с двумя аргументами (для reduce)
+fn call_function_with_two_args(func_name: &str, arg1: Value, arg2: Value, line: usize) -> Result<Value> {
+    // Сначала проверяем встроенные функции
+    if crate::builtins::is_builtin_function(func_name) {
+        return crate::builtins::call_builtin_function(func_name, vec![arg1, arg2], line);
+    }
+
+    // Для пользовательских функций нужен доступ к интерпретатору
+    // Пока что возвращаем ошибку - это будет исправлено в следующих версиях
+    Err(DataCodeError::runtime_error(
+        &format!("User function '{}' calls in functional methods not yet supported", func_name),
+        line,
+    ))
 }

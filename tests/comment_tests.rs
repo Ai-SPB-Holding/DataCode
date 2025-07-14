@@ -1,6 +1,7 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
 
+
 #[test]
 fn test_single_line_comments() {
     let mut interpreter = Interpreter::new();
@@ -14,10 +15,10 @@ global y = 24
     
     let result = interpreter.exec(code);
     assert!(result.is_ok());
-    
+
     // Проверяем, что переменные были созданы
-    assert_eq!(interpreter.variables.get("x"), Some(&Value::Number(42.0)));
-    assert_eq!(interpreter.variables.get("y"), Some(&Value::Number(24.0)));
+    assert_eq!(interpreter.get_variable("x"), Some(&Value::Number(42.0)));
+    assert_eq!(interpreter.get_variable("y"), Some(&Value::Number(24.0)));
 }
 
 #[test]
@@ -43,9 +44,9 @@ global y = 24
     assert!(result.is_ok());
     
     // Проверяем, что только нужные переменные были созданы
-    assert_eq!(interpreter.variables.get("x"), Some(&Value::Number(42.0)));
-    assert_eq!(interpreter.variables.get("y"), Some(&Value::Number(24.0)));
-    assert!(!interpreter.variables.contains_key("ignored"));
+    assert_eq!(interpreter.get_variable("x"), Some(&Value::Number(42.0)));
+    assert_eq!(interpreter.get_variable("y"), Some(&Value::Number(24.0)));
+    assert!(!interpreter.get_all_variables().contains_key("ignored"));
 }
 
 #[test]
@@ -62,8 +63,8 @@ global y = 24
     assert!(result.is_ok());
     
     // Проверяем, что переменные были созданы
-    assert_eq!(interpreter.variables.get("x"), Some(&Value::Number(42.0)));
-    assert_eq!(interpreter.variables.get("y"), Some(&Value::Number(24.0)));
+    assert_eq!(interpreter.get_variable("x"), Some(&Value::Number(42.0)));
+    assert_eq!(interpreter.get_variable("y"), Some(&Value::Number(24.0)));
 }
 
 #[test]
@@ -87,9 +88,9 @@ global z = 30
     assert!(result.is_ok());
     
     // Проверяем, что все переменные были созданы
-    assert_eq!(interpreter.variables.get("x"), Some(&Value::Number(10.0)));
-    assert_eq!(interpreter.variables.get("y"), Some(&Value::Number(20.0)));
-    assert_eq!(interpreter.variables.get("z"), Some(&Value::Number(30.0)));
+    assert_eq!(interpreter.get_variable("x"), Some(&Value::Number(10.0)));
+    assert_eq!(interpreter.get_variable("y"), Some(&Value::Number(20.0)));
+    assert_eq!(interpreter.get_variable("z"), Some(&Value::Number(30.0)));
 }
 
 #[test]
@@ -112,12 +113,43 @@ if x > 0 do
 endif
 "#;
     
+    // Сначала проверим, что лексер правильно обрабатывает код
+    println!("Тестируемый код:");
+    println!("{}", code);
+
+    // Тестируем код только с комментариями - простой случай
+    let simple_comment = r#"# Это простой комментарий"#;
+
+    println!("Простой комментарий:");
+    let simple_comment_result = interpreter.exec(simple_comment);
+    if let Err(e) = &simple_comment_result {
+        println!("Ошибка в простом комментарии: {:?}", e);
+    } else {
+        println!("Простой комментарий выполнен успешно");
+    }
+
+    // Тестируем многострочный комментарий отдельно
+    let multiline_comment = r#""""
+Это многострочный комментарий
+""""#;
+
+    println!("Многострочный комментарий:");
+    let multiline_comment_result = interpreter.exec(multiline_comment);
+    if let Err(e) = &multiline_comment_result {
+        println!("Ошибка в многострочном комментарии: {:?}", e);
+    } else {
+        println!("Многострочный комментарий выполнен успешно");
+    }
+
     let result = interpreter.exec(code);
+    if let Err(e) = &result {
+        println!("Ошибка выполнения: {:?}", e);
+    }
     assert!(result.is_ok());
     
     // Проверяем, что только нужные переменные были созданы
-    assert_eq!(interpreter.variables.get("x"), Some(&Value::Number(5.0)));
-    assert_eq!(interpreter.variables.get("should_exist"), Some(&Value::Number(10.0)));
-    assert!(!interpreter.variables.contains_key("should_not_exist"));
-    assert!(!interpreter.variables.contains_key("also_should_not_exist"));
+    assert_eq!(interpreter.get_variable("x"), Some(&Value::Number(5.0)));
+    assert_eq!(interpreter.get_variable("should_exist"), Some(&Value::Number(10.0)));
+    assert!(!interpreter.get_all_variables().contains_key("should_not_exist"));
+    assert!(!interpreter.get_all_variables().contains_key("also_should_not_exist"));
 }

@@ -1,7 +1,5 @@
 use data_code::interpreter::Interpreter;
-use data_code::value::{Value, Table, TableColumn, DataType};
-use data_code::error::DataCodeError;
-use std::collections::HashMap;
+use data_code::value::{Value, DataType};
 
 #[cfg(test)]
 mod table_tests {

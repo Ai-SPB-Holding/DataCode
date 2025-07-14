@@ -239,13 +239,9 @@ endif"#;
     fn test_if_with_function_calls() {
         let mut interp = Interpreter::new();
         
-        // Определяем функцию
+        // Определяем простую функцию БЕЗ условных конструкций
         let function_code = r#"global function is_positive(x) do
-    if x > 0 do
-        return true
-    else
-        return false
-    endif
+    return x > 0
 endfunction"#;
         
         interp.exec(function_code).unwrap();

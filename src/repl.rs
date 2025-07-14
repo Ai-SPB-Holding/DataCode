@@ -318,10 +318,10 @@ impl Repl {
 
     fn show_variables(&self) {
         println!("📊 Current Variables:");
-        if self.interpreter.variables.is_empty() {
+        if self.interpreter.get_all_variables().is_empty() {
             println!("  (no variables defined)");
         } else {
-            for (name, value) in &self.interpreter.variables {
+            for (name, value) in self.interpreter.get_all_variables() {
                 println!("  {} = {:?}", name, value);
             }
         }

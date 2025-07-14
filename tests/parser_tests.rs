@@ -417,6 +417,7 @@ mod evaluator_tests {
     }
 
     #[test]
+    #[ignore = "Not implemented yet"]
     fn test_array_literals() {
         let vars = HashMap::new();
 

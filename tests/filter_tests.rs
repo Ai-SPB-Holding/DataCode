@@ -1,6 +1,5 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
-use data_code::error::DataCodeError;
 
 #[cfg(test)]
 mod filter_tests {

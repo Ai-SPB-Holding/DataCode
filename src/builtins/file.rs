@@ -145,7 +145,7 @@ fn read_csv_file(p: &std::path::Path, line: usize) -> Result<Value> {
         let record = result.map_err(|e| DataCodeError::runtime_error(&format!("Failed to read row {}: {}", row_index + 1, e), line))?;
         
         let mut row_values = Vec::new();
-        for (col_index, field) in record.iter().enumerate() {
+        for (_col_index, field) in record.iter().enumerate() {
             let value = parse_csv_value(field.trim());
             row_values.push(value);
         }
@@ -199,7 +199,7 @@ fn read_xlsx_file(p: &std::path::Path, line: usize) -> Result<Value> {
     Ok(Value::Table(table))
 }
 
-fn analyze_csv_file(p: &std::path::Path, line: usize) -> Result<Value> {
+fn analyze_csv_file(_p: &std::path::Path, _line: usize) -> Result<Value> {
     // Implementation for CSV analysis
     // This is a placeholder - you can implement detailed CSV analysis here
     Ok(Value::String("CSV analysis not yet implemented".to_string()))
