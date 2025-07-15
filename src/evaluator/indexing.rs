@@ -22,8 +22,14 @@ impl<'a> IndexingHandler<'a> {
             (Value::Array(arr), Value::Number(n)) => self.index_array(arr, *n),
             (Value::String(s), Value::Number(n)) => self.index_string(s, *n),
             (Value::Object(obj), Value::String(key)) => self.index_object(obj, key),
-            (Value::Table(table), Value::Number(n)) => self.index_table_row(table, *n),
-            (Value::Table(table), Value::String(column_name)) => self.index_table_column(table, column_name),
+            (Value::Table(table), Value::Number(n)) => {
+                let table_borrowed = table.borrow();
+                self.index_table_row(&*table_borrowed, *n)
+            },
+            (Value::Table(table), Value::String(column_name)) => {
+                let table_borrowed = table.borrow();
+                self.index_table_column(&*table_borrowed, column_name)
+            },
             _ => Err(DataCodeError::type_error("indexable type", "other", self.evaluator.line())),
         }
     }
@@ -149,7 +155,10 @@ impl<'a> MemberAccessHandler<'a> {
     pub fn evaluate(&self, object: &Value, member: &str) -> Result<Value> {
         match object {
             Value::Object(obj) => self.access_object_member(obj, member),
-            Value::Table(table) => self.access_table_member(table, member),
+            Value::Table(table) => {
+                let table_borrowed = table.borrow();
+                self.access_table_member(&*table_borrowed, member)
+            },
             Value::Array(arr) => self.access_array_member(arr, member),
             Value::String(s) => self.access_string_member(s, member),
             _ => Err(DataCodeError::runtime_error(

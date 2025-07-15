@@ -171,7 +171,7 @@ impl BinaryOp {
             BinaryOp::Equal | BinaryOp::NotEqual => 3,
             BinaryOp::Less | BinaryOp::Greater | BinaryOp::LessEqual | BinaryOp::GreaterEqual => 4,
             BinaryOp::Add | BinaryOp::Subtract => 5,
-            BinaryOp::Multiply | BinaryOp::Divide | BinaryOp::PathJoin => 6,
+            BinaryOp::Multiply | BinaryOp::Divide | BinaryOp::Modulo | BinaryOp::PathJoin => 6,
         }
     }
     

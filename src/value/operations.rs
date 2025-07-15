@@ -17,6 +17,9 @@ pub trait ValueOperations {
     /// Деление значений
     fn divide(&self, other: &Value) -> Result<Value, String>;
 
+    /// Остаток от деления
+    fn modulo(&self, other: &Value) -> Result<Value, String>;
+
     /// Сравнение на равенство
     fn equals(&self, other: &Value) -> bool;
 
@@ -55,7 +58,11 @@ impl ValueOperations for Value {
     fn divide(&self, other: &Value) -> Result<Value, String> {
         divide_values(self, other)
     }
-    
+
+    fn modulo(&self, other: &Value) -> Result<Value, String> {
+        modulo_values(self, other)
+    }
+
     fn equals(&self, other: &Value) -> bool {
         values_equal(self, other)
     }
@@ -114,13 +121,42 @@ impl ValueOperations for Value {
 }
 
 /// Сложение двух значений
+/// Phase 1 Optimization: Improved string concatenation performance
 pub fn add_values(left: &Value, right: &Value) -> Result<Value, String> {
     use Value::*;
     match (left, right) {
         (Number(a), Number(b)) => Ok(Number(a + b)),
-        (String(a), String(b)) => Ok(String(format!("{}{}", a, b))),
-        (String(a), Number(b)) => Ok(String(format!("{}{}", a, b))),
-        (Number(a), String(b)) => Ok(String(format!("{}{}", a, b))),
+        (String(a), String(b)) => {
+            // Phase 1 Optimization: Use std::string::String::with_capacity for better performance
+            let mut result = std::string::String::with_capacity(a.len() + b.len());
+            result.push_str(a);
+            result.push_str(b);
+            Ok(String(result))
+        },
+        (String(a), Number(b)) => {
+            // Phase 1 Optimization: Pre-allocate capacity for number conversion
+            let b_str = if b.fract() == 0.0 {
+                format!("{}", *b as i64)
+            } else {
+                b.to_string()
+            };
+            let mut result = std::string::String::with_capacity(a.len() + b_str.len());
+            result.push_str(a);
+            result.push_str(&b_str);
+            Ok(String(result))
+        },
+        (Number(a), String(b)) => {
+            // Phase 1 Optimization: Pre-allocate capacity for number conversion
+            let a_str = if a.fract() == 0.0 {
+                format!("{}", *a as i64)
+            } else {
+                a.to_string()
+            };
+            let mut result = std::string::String::with_capacity(a_str.len() + b.len());
+            result.push_str(&a_str);
+            result.push_str(b);
+            Ok(String(result))
+        },
         (Path(p), String(s)) => {
             let mut new_path = p.clone();
             let relative = s.trim_start_matches('/');
@@ -198,6 +234,21 @@ pub fn divide_values(left: &Value, right: &Value) -> Result<Value, String> {
             }
         }
         _ => Err(format!("Unsupported divide operation between {:?} and {:?}", left, right)),
+    }
+}
+
+/// Остаток от деления двух значений
+pub fn modulo_values(left: &Value, right: &Value) -> Result<Value, String> {
+    use Value::*;
+    match (left, right) {
+        (Number(a), Number(b)) => {
+            if *b == 0.0 {
+                Err("Modulo by zero".to_string())
+            } else {
+                Ok(Number(a % b))
+            }
+        }
+        _ => Err(format!("Unsupported modulo operation between {:?} and {:?}", left, right)),
     }
 }
 

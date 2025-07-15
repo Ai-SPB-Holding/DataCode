@@ -27,13 +27,24 @@ impl TableColumn {
     }
 
     /// Добавить значение в колонку и обновить статистику типов
+    /// Phase 1 Optimization: Reduced type inference overhead
     pub fn add_value(&mut self, value: &Value) {
         let data_type = DataType::from_value(value);
         *self.type_counts.entry(data_type.clone()).or_insert(0) += 1;
         self.total_values += 1;
 
-        // Определяем основной тип на основе большинства
-        self.infer_primary_type();
+        // Phase 1 Optimization: Only infer type every 100 values or at the end
+        // This reduces computational overhead during bulk operations
+        if self.total_values % 100 == 0 || self.should_infer_immediately(&data_type) {
+            self.infer_primary_type();
+        }
+    }
+
+    /// Phase 1 Optimization: Determine if immediate type inference is needed
+    fn should_infer_immediately(&self, new_type: &DataType) -> bool {
+        // Infer immediately if this is the first value or if type changes significantly
+        self.total_values == 1 ||
+        (self.inferred_type != *new_type && !self.inferred_type.is_compatible_with(new_type))
     }
 
     /// Определить основной тип колонки на основе статистики
@@ -148,6 +159,11 @@ impl TableColumn {
     pub fn is_homogeneous(&self) -> bool {
         self.warnings.is_empty()
     }
+
+    /// Phase 1 Optimization: Finalize type inference after bulk operations
+    pub fn finalize_type_inference(&mut self) {
+        self.infer_primary_type();
+    }
 }
 
 /// Таблица данных
@@ -190,6 +206,41 @@ impl Table {
 
         self.rows.push(row);
         Ok(())
+    }
+
+    /// Phase 1 Optimization: Add multiple rows efficiently
+    pub fn add_rows(&mut self, rows: Vec<Vec<Value>>) -> Result<(), String> {
+        // Pre-allocate capacity for better performance
+        self.rows.reserve(rows.len());
+
+        for row in rows {
+            if row.len() != self.column_names.len() {
+                return Err(format!(
+                    "Количество значений в строке ({}) не соответствует количеству колонок ({})",
+                    row.len(), self.column_names.len()
+                ));
+            }
+
+            // Update column type information
+            for (i, value) in row.iter().enumerate() {
+                if let Some(column) = self.columns.get_mut(i) {
+                    column.add_value(value);
+                }
+            }
+
+            self.rows.push(row);
+        }
+
+        // Finalize type inference after bulk operation
+        self.finalize_type_inference();
+        Ok(())
+    }
+
+    /// Phase 1 Optimization: Finalize type inference for all columns
+    pub fn finalize_type_inference(&mut self) {
+        for column in &mut self.columns {
+            column.finalize_type_inference();
+        }
     }
 
     /// Получить все предупреждения от всех колонок
@@ -271,10 +322,12 @@ mod tests {
         let mut column = TableColumn::new("numbers".to_string());
 
         column.add_value(&Value::Number(42.0));
+        column.finalize_type_inference(); // Phase 1 Optimization: Finalize after adding values
         assert_eq!(column.total_values, 1);
         assert_eq!(column.inferred_type, DataType::Integer);
 
         column.add_value(&Value::Number(3.14));
+        column.finalize_type_inference(); // Phase 1 Optimization: Finalize after adding values
         assert_eq!(column.total_values, 2);
         assert_eq!(column.inferred_type, DataType::Float);
     }
@@ -286,6 +339,7 @@ mod tests {
         column.add_value(&Value::Number(42.0));  // Integer
         column.add_value(&Value::Number(3.14));  // Float
         column.add_value(&Value::Number(10.0));  // Integer
+        column.finalize_type_inference(); // Phase 1 Optimization: Finalize after adding values
 
         // Должен быть Float (так как есть хотя бы одно float значение)
         assert_eq!(column.inferred_type, DataType::Float);

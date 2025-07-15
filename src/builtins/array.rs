@@ -25,11 +25,95 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             }
             match &args[0] {
                 Array(arr) => {
-                    let mut new_arr = arr.clone();
+                    // Phase 1 Aggressive Optimization: Use Vec::with_capacity for better performance
+                    // For very large arrays, use a more aggressive growth strategy
+                    let new_capacity = if arr.is_empty() {
+                        16  // Start with larger initial capacity
+                    } else if arr.len() < 1000 {
+                        (arr.len() * 2).max(arr.len() + 100)  // Aggressive growth for small-medium arrays
+                    } else if arr.len() < 10000 {
+                        arr.len() + (arr.len() / 2)  // 1.5x growth for large arrays
+                    } else {
+                        arr.len() + (arr.len() / 4)  // 1.25x growth for very large arrays
+                    };
+
+                    let mut new_arr = Vec::with_capacity(new_capacity);
+                    new_arr.extend_from_slice(arr);
                     new_arr.push(args[1].clone());
                     Ok(Array(new_arr))
                 }
                 _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+
+        "array_builder" => {
+            // Phase 1 Optimization: Create an array builder for efficient bulk operations
+            if args.len() > 1 {
+                return Err(DataCodeError::wrong_argument_count("array_builder", 0, args.len(), line));
+            }
+            let initial_capacity = if args.is_empty() { 1000 } else {
+                match &args[0] {
+                    Number(n) => *n as usize,
+                    _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                }
+            };
+            Ok(Array(Vec::with_capacity(initial_capacity)))
+        }
+
+        "extend" => {
+            // Phase 1 Optimization: Bulk extend operation
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("extend", 2, args.len(), line));
+            }
+            match (&args[0], &args[1]) {
+                (Array(arr1), Array(arr2)) => {
+                    let mut new_arr = Vec::with_capacity(arr1.len() + arr2.len());
+                    new_arr.extend_from_slice(arr1);
+                    new_arr.extend_from_slice(arr2);
+                    Ok(Array(new_arr))
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+
+        "bulk_create" => {
+            // Phase 1 Aggressive Optimization: Create array in bulk to avoid O(n²) complexity
+            if args.len() != 3 {
+                return Err(DataCodeError::wrong_argument_count("bulk_create", 3, args.len(), line));
+            }
+            match (&args[0], &args[1], &args[2]) {
+                (Number(count), Array(template), Array(params)) => {
+                    let count = *count as usize;
+                    let mut result = Vec::with_capacity(count);
+
+                    for i in 0..count {
+                        // Create row based on template and parameters
+                        let mut row = Vec::with_capacity(template.len());
+                        for (j, template_item) in template.iter().enumerate() {
+                            match template_item {
+                                String(s) if s == "INDEX" => {
+                                    row.push(Number(i as f64));
+                                }
+                                String(s) if s.starts_with("PARAM_") => {
+                                    if let Ok(param_idx) = s[6..].parse::<usize>() {
+                                        if param_idx < params.len() {
+                                            row.push(params[param_idx].clone());
+                                        } else {
+                                            row.push(Value::Null);
+                                        }
+                                    } else {
+                                        row.push(template_item.clone());
+                                    }
+                                }
+                                _ => row.push(template_item.clone()),
+                            }
+                        }
+                        result.push(Array(row));
+                    }
+
+                    Ok(Array(result))
+                }
+                _ => Err(DataCodeError::type_error("Number, Array, Array", "other", line)),
             }
         }
         
@@ -340,7 +424,7 @@ pub fn is_array_function(name: &str) -> bool {
     matches!(name,
         "length" | "len" | "push" | "pop" | "append" | "sort" |
         "unique" | "array" | "sum" | "average" | "count" | "range" |
-        "map" | "filter" | "reduce"
+        "map" | "filter" | "reduce" | "array_builder" | "extend" | "bulk_create"
     )
 }
 

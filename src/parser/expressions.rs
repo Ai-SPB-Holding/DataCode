@@ -126,14 +126,15 @@ impl<'a> ExpressionParser<'a> {
         Ok(left)
     }
     
-    /// Парсить умножение и деление
+    /// Парсить умножение, деление и остаток от деления
     fn parse_multiplication(&mut self) -> Result<Expr> {
         let mut left = self.parse_unary()?;
 
-        while matches!(self.parser.current_token(), Token::Multiply | Token::Divide) {
+        while matches!(self.parser.current_token(), Token::Multiply | Token::Divide | Token::Modulo) {
             let op = match self.parser.current_token() {
                 Token::Multiply => BinaryOp::Multiply,
                 Token::Divide => BinaryOp::Divide,
+                Token::Modulo => BinaryOp::Modulo,
                 _ => unreachable!(),
             };
             self.parser.advance();

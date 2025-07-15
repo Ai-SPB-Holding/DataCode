@@ -28,6 +28,7 @@ impl<'a> BinaryOperatorHandler<'a> {
             BinaryOp::Subtract => self.evaluate_subtract(left, right),
             BinaryOp::Multiply => self.evaluate_multiply(left, right),
             BinaryOp::Divide => self.evaluate_divide(left, right),
+            BinaryOp::Modulo => self.evaluate_modulo(left, right),
             BinaryOp::Equal => Ok(Bool(self.evaluator.values_equal(left, right))),
             BinaryOp::NotEqual => Ok(Bool(!self.evaluator.values_equal(left, right))),
             BinaryOp::Less => self.evaluate_less(left, right),
@@ -119,7 +120,21 @@ impl<'a> BinaryOperatorHandler<'a> {
             }
         }
     }
-    
+
+    /// Остаток от деления (модуло)
+    fn evaluate_modulo(&self, left: &Value, right: &Value) -> Result<Value> {
+        match (left, right) {
+            (Number(a), Number(b)) => {
+                if *b == 0.0 {
+                    Err(DataCodeError::runtime_error("Modulo by zero", self.evaluator.line()))
+                } else {
+                    Ok(Number(a % b))
+                }
+            }
+            _ => Err(DataCodeError::type_error("Number", "other", self.evaluator.line())),
+        }
+    }
+
     /// Сравнение "меньше"
     fn evaluate_less(&self, left: &Value, right: &Value) -> Result<Value> {
         match (left, right) {
@@ -223,7 +238,7 @@ impl OperatorEvaluable for BinaryOp {
             BinaryOp::Equal | BinaryOp::NotEqual => 3,
             BinaryOp::Less | BinaryOp::Greater | BinaryOp::LessEqual | BinaryOp::GreaterEqual => 4,
             BinaryOp::Add | BinaryOp::Subtract => 5,
-            BinaryOp::Multiply | BinaryOp::Divide => 6,
+            BinaryOp::Multiply | BinaryOp::Divide | BinaryOp::Modulo => 6,
             BinaryOp::PathJoin => 7,
         }
     }

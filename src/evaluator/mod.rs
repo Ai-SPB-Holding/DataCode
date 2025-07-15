@@ -103,7 +103,7 @@ impl<'a> Evaluator<'a> {
             Value::String(s) => !s.is_empty(),
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(obj) => !obj.is_empty(),
-            Value::Table(table) => !table.rows.is_empty(),
+            Value::Table(table) => !table.borrow().rows.is_empty(),
             Value::Null => false,
             _ => true,
         }

@@ -35,13 +35,14 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                     };
 
                     let mut table = TableStruct::new(headers);
-                    
+
+                    // Phase 1 Optimization: Collect all rows first, then add in bulk
+                    let mut processed_rows = Vec::with_capacity(rows.len());
+
                     for (row_index, row_value) in rows.iter().enumerate() {
                         match row_value {
                             Array(row_data) => {
-                                if let Err(e) = table.add_row(row_data.clone()) {
-                                    eprintln!("Warning: Row {}: {}", row_index + 1, e);
-                                }
+                                processed_rows.push(row_data.clone());
                             }
                             _ => {
                                 return Err(DataCodeError::runtime_error(
@@ -51,7 +52,12 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                             }
                         }
                     }
-                    
+
+                    // Use bulk add operation for better performance
+                    if let Err(e) = table.add_rows(processed_rows) {
+                        eprintln!("Warning: {}", e);
+                    }
+
                     Ok(Value::table(table))
                 }
                 _ => Err(DataCodeError::type_error("Array", "other", line)),

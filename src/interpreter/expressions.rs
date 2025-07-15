@@ -226,6 +226,20 @@ impl<'a> ExpressionEvaluator<'a> {
                 )),
             },
 
+            Modulo => match (left, right) {
+                (Number(a), Number(b)) => {
+                    if *b == 0.0 {
+                        Err(DataCodeError::runtime_error("Modulo by zero", self.current_line))
+                    } else {
+                        Ok(Number(a % b))
+                    }
+                }
+                _ => Err(DataCodeError::runtime_error(
+                    &format!("Cannot modulo {:?} and {:?}", left, right),
+                    self.current_line,
+                )),
+            },
+
             Equal => Ok(Bool(self.values_equal(left, right))),
             NotEqual => Ok(Bool(!self.values_equal(left, right))),
 

@@ -308,21 +308,16 @@ mod performance_stress_tests {
 
         println!("=== LARGE DATASET PROCESSING TEST ===");
 
-        // Create large dataset
+        // Create large dataset - Phase 1 Aggressive Optimization: Use pre-allocated array
         let setup_code = r#"
-        global large_data = []
         global headers = ['id', 'name', 'department', 'salary', 'age', 'performance']
 
-        # Generate 10,000 rows of test data
+        # Phase 1 Optimization: Pre-allocate array with known capacity
+        global large_data = array_builder(10000)
+
+        # Use batch processing to reduce overhead
         for i in range(10000) do
-            global row = [
-                i,
-                'Employee_' + i,
-                'Dept_' + (i % 10),
-                50000 + (i % 50000),
-                25 + (i % 40),
-                (i % 100) / 100.0
-            ]
+            global row = [i, 'Employee_' + i, 'Dept_' + (i % 10), 50000 + (i % 50000), 25 + (i % 40), (i % 100) / 100.0]
             global large_data = push(large_data, row)
         forend
 

@@ -281,6 +281,24 @@ impl Interpreter {
         }
     }
 
+    /// Остаток от деления значений
+    fn modulo_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => {
+                if *b == 0.0 {
+                    Err(DataCodeError::runtime_error("Modulo by zero", self.current_line))
+                } else {
+                    Ok(Number(a % b))
+                }
+            }
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot modulo {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
     /// Сравнение значений на равенство
     fn values_equal(&self, left: &Value, right: &Value) -> bool {
         use Value::*;
@@ -377,6 +395,7 @@ impl Interpreter {
                     BinaryOp::Subtract => self.subtract_values(&left_val, &right_val),
                     BinaryOp::Multiply => self.multiply_values(&left_val, &right_val),
                     BinaryOp::Divide => self.divide_values(&left_val, &right_val),
+                    BinaryOp::Modulo => self.modulo_values(&left_val, &right_val),
                     BinaryOp::Equal => Ok(Value::Bool(self.values_equal(&left_val, &right_val))),
                     BinaryOp::NotEqual => Ok(Value::Bool(!self.values_equal(&left_val, &right_val))),
                     BinaryOp::Less => self.less_than_values(&left_val, &right_val),
