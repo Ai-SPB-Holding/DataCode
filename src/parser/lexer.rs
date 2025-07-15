@@ -186,6 +186,10 @@ impl Lexer {
                     self.advance();
                     return Token::Divide;
                 }
+                Some('%') => {
+                    self.advance();
+                    return Token::Modulo;
+                }
                 Some('=') => {
                     if self.peek() == Some('=') {
                         self.advance();

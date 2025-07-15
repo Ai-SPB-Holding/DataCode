@@ -37,11 +37,12 @@ mod table_create_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 2);
-                assert_eq!(table.column_names.len(), 3);
-                assert!(table.column_names.contains(&"id".to_string()));
-                assert!(table.column_names.contains(&"name".to_string()));
-                assert!(table.column_names.contains(&"age".to_string()));
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 2);
+                assert_eq!(table_borrowed.column_names.len(), 3);
+                assert!(table_borrowed.column_names.contains(&"id".to_string()));
+                assert!(table_borrowed.column_names.contains(&"name".to_string()));
+                assert!(table_borrowed.column_names.contains(&"age".to_string()));
             }
             _ => panic!("Expected Table, got {:?}", table_value),
         }
@@ -70,10 +71,11 @@ mod table_create_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 2);
-                assert_eq!(table.column_names.len(), 2);
-                assert!(table.column_names.contains(&"Column_0".to_string()));
-                assert!(table.column_names.contains(&"Column_1".to_string()));
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 2);
+                assert_eq!(table_borrowed.column_names.len(), 2);
+                assert!(table_borrowed.column_names.contains(&"Column_0".to_string()));
+                assert!(table_borrowed.column_names.contains(&"Column_1".to_string()));
             }
             _ => panic!("Expected Table, got {:?}", table_value),
         }
@@ -109,9 +111,11 @@ mod table_create_tests {
         
         match (table1, table2) {
             (Value::Table(t1), Value::Table(t2)) => {
-                assert_eq!(t1.rows.len(), t2.rows.len());
-                assert_eq!(t1.column_names.len(), t2.column_names.len());
-                assert_eq!(t1.column_names, t2.column_names);
+                let t1_borrowed = t1.borrow();
+                let t2_borrowed = t2.borrow();
+                assert_eq!(t1_borrowed.rows.len(), t2_borrowed.rows.len());
+                assert_eq!(t1_borrowed.column_names.len(), t2_borrowed.column_names.len());
+                assert_eq!(t1_borrowed.column_names, t2_borrowed.column_names);
             }
             _ => panic!("Both should be tables"),
         }
@@ -166,11 +170,12 @@ mod table_create_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 2);
-                assert_eq!(table.column_names.len(), 4);
-                
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 2);
+                assert_eq!(table_borrowed.column_names.len(), 4);
+
                 // Check first row data types
-                let first_row = &table.rows[0];
+                let first_row = &table_borrowed.rows[0];
                 assert!(matches!(first_row[0], Value::Number(_)));
                 assert!(matches!(first_row[1], Value::String(_)));
                 assert!(matches!(first_row[2], Value::Bool(_)));

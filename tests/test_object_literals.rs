@@ -1,6 +1,6 @@
 use data_code::interpreter::Interpreter;
 use data_code::value::Value;
-use std::collections::HashMap;
+
 
 #[test]
 fn test_empty_object_literal() {

@@ -53,6 +53,40 @@ impl VariableManager {
         }
     }
 
+    /// Умно установить переменную - обновляет существующую переменную в её текущей области видимости
+    pub fn set_variable_smart(&mut self, name: String, value: Value) {
+        // Сначала ищем в локальных переменных циклов (проверяем все уровни, начиная с последнего)
+        for loop_vars in self.loop_stack.iter_mut().rev() {
+            if loop_vars.contains_key(&name) {
+                loop_vars.insert(name, value);
+                return;
+            }
+        }
+
+        // Затем ищем в локальных переменных функций (стек вызовов)
+        if let Some(local_vars) = self.call_stack.last_mut() {
+            if local_vars.contains_key(&name) {
+                local_vars.insert(name, value);
+                return;
+            }
+        }
+
+        // Затем в глобальных переменных
+        if self.global_variables.contains_key(&name) {
+            self.global_variables.insert(name, value);
+            return;
+        }
+
+        // Если переменная не найдена, создаем как локальную (если в функции) или глобальную
+        if self.call_stack.is_empty() {
+            self.global_variables.insert(name, value);
+        } else {
+            if let Some(local_vars) = self.call_stack.last_mut() {
+                local_vars.insert(name, value);
+            }
+        }
+    }
+
     /// Специальный метод для установки переменной цикла
     pub fn set_loop_variable(&mut self, name: String, value: Value) {
         if let Some(loop_vars) = self.loop_stack.last_mut() {

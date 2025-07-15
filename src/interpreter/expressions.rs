@@ -38,47 +38,81 @@ impl<'a> ExpressionEvaluator<'a> {
             }
 
             Expr::FunctionCall { name, args } => {
-                // Сначала вычисляем аргументы
-                let mut arg_values = Vec::new();
-                for arg in args {
-                    arg_values.push(self.evaluate(arg)?);
-                }
-
                 // Проверяем, является ли это пользовательской функцией
                 if self.function_manager.contains_function(name) {
-                    // Для пользовательских функций нужен полный интерпретатор
-                    // Это будет реализовано в основном модуле
+                    // Для пользовательских функций возвращаем специальную ошибку,
+                    // которая будет обработана на уровне интерпретатора
                     Err(DataCodeError::runtime_error(
-                        "User function calls require full interpreter context",
+                        &format!("USER_FUNCTION_CALL_EXPR:{}:{}", name, args.len()),
                         self.current_line,
                     ))
                 } else {
+                    // Сначала вычисляем аргументы для встроенных функций
+                    let mut arg_values = Vec::new();
+                    for arg in args {
+                        arg_values.push(self.evaluate(arg)?);
+                    }
                     // Встроенная функция
                     call_builtin_function(name, arg_values, self.current_line)
                 }
             }
 
             Expr::Binary { left, operator, right } => {
-                let left_val = self.evaluate(left)?;
-                let right_val = self.evaluate(right)?;
+                // Сначала пытаемся вычислить левую часть
+                let left_val = match self.evaluate(left) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
+
+                // Затем пытаемся вычислить правую часть
+                let right_val = match self.evaluate(right) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
+
                 self.evaluate_binary_op(&left_val, operator, &right_val)
             }
 
             Expr::Unary { operator, operand } => {
-                let operand_val = self.evaluate(operand)?;
+                let operand_val = match self.evaluate(operand) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
                 self.evaluate_unary_op(operator, &operand_val)
             }
 
             Expr::Index { object, index } => {
-                let obj_val = self.evaluate(object)?;
-                let idx_val = self.evaluate(index)?;
+                let obj_val = match self.evaluate(object) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
+                let idx_val = match self.evaluate(index) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
                 self.evaluate_index_access(&obj_val, &idx_val)
             }
 
             Expr::ArrayLiteral { elements } => {
                 let mut array_values = Vec::new();
                 for element in elements {
-                    array_values.push(self.evaluate(element)?);
+                    let element_val = match self.evaluate(element) {
+                        Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                            return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                        }
+                        result => result?
+                    };
+                    array_values.push(element_val);
                 }
                 Ok(Value::Array(array_values))
             }
@@ -86,14 +120,24 @@ impl<'a> ExpressionEvaluator<'a> {
             Expr::ObjectLiteral { pairs } => {
                 let mut object_map = std::collections::HashMap::new();
                 for (key, value_expr) in pairs {
-                    let value = self.evaluate(value_expr)?;
+                    let value = match self.evaluate(value_expr) {
+                        Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                            return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                        }
+                        result => result?
+                    };
                     object_map.insert(key.clone(), value);
                 }
                 Ok(Value::Object(object_map))
             }
 
             Expr::Member { object, member } => {
-                let obj_val = self.evaluate(object)?;
+                let obj_val = match self.evaluate(object) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        return Err(e); // Пробрасываем ошибку вызова пользовательской функции
+                    }
+                    result => result?
+                };
                 self.evaluate_member_access(&obj_val, member)
             }
 
@@ -276,8 +320,9 @@ impl<'a> ExpressionEvaluator<'a> {
                 }
             }
             (Table(table), String(column_name)) => {
-                if let Some(col_index) = table.column_names.iter().position(|name| name == column_name) {
-                    let column_data: Vec<Value> = table.rows.iter()
+                let table_borrowed = table.borrow();
+                if let Some(col_index) = table_borrowed.column_names.iter().position(|name| name == column_name) {
+                    let column_data: Vec<Value> = table_borrowed.rows.iter()
                         .map(|row| row.get(col_index).cloned().unwrap_or(Null))
                         .collect();
                     Ok(Array(column_data))
@@ -365,7 +410,7 @@ impl<'a> ExpressionEvaluator<'a> {
             Currency(c) => !c.is_empty(),
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
-            Table(table) => !table.rows.is_empty(),
+            Table(table) => !table.borrow().rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
             PathPattern(_) => true,

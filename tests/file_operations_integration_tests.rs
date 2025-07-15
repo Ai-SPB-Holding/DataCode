@@ -65,7 +65,9 @@ mod file_operations_integration_tests {
                     match content {
                         Value::String(_) => has_string = true,
                         Value::Table(_) => has_table = true,
-                        _ => {}
+                        _ => {
+                            println!("Unexpected content type: {:?}", content);
+                        }
                     }
                 }
 
@@ -102,7 +104,8 @@ mod file_operations_integration_tests {
             Some(Value::String(content)) => {
                 assert!(content.contains("Hello, DataCode!"));
             }
-            _ => panic!("Content should be a string"),
+            Some(other) => panic!("Content should be a string, got: {:?}", other),
+            None => panic!("Content variable not found"),
         }
     }
 
@@ -166,6 +169,10 @@ mod file_operations_integration_tests {
         "#;
         
         let result = interp.exec(xlsx_processing_code);
+        if result.is_err() {
+            println!("XLSX processing error: {:?}", result);
+            println!("Variables: {:?}", interp.get_variable("xlsx_data"));
+        }
         assert!(result.is_ok(), "XLSX processing should succeed: {:?}", result);
         
         // Проверяем количество строк
@@ -200,7 +207,10 @@ mod file_operations_integration_tests {
         
         // 2. Несуществующий файл
         let result2 = interp.exec("global bad_content = read_file(path('nonexistent.txt'))");
-        assert!(result2.is_err());
+        if result2.is_ok() {
+            println!("Expected error but got success. Variable: {:?}", interp.get_variable("bad_content"));
+        }
+        assert!(result2.is_err(), "Reading nonexistent file should fail");
         
         // 3. Неправильный тип аргумента для read_file
         let result3 = interp.exec("global bad_read = read_file('not_a_path')");

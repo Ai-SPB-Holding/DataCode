@@ -6,7 +6,7 @@ pub struct UserFunction {
     pub name: String,
     pub parameters: Vec<String>,
     pub body: Vec<String>,
-    pub is_global: bool,
+    pub _is_global: bool,
 }
 
 impl UserFunction {
@@ -15,7 +15,7 @@ impl UserFunction {
             name,
             parameters,
             body,
-            is_global,
+            _is_global: is_global,
         }
     }
 }
@@ -24,17 +24,17 @@ impl UserFunction {
 #[derive(Debug, Clone)]
 pub struct TryBlock {
     /// Переменная для хранения сообщения об ошибке в блоке catch
-    pub catch_var: Option<String>,
+    pub _catch_var: Option<String>,
     /// Тело блока catch
-    pub catch_body: Vec<String>,
+    pub _catch_body: Vec<String>,
     /// Тело блока finally (выполняется всегда)
-    pub finally_body: Option<Vec<String>>,
+    pub _finally_body: Option<Vec<String>>,
     /// Уникальный идентификатор блока для отслеживания в стеке
-    pub block_id: usize,
+    pub _block_id: usize,
     /// Уровень вложенности блока (для отладки)
-    pub nesting_level: usize,
+    pub _nesting_level: usize,
     /// Флаг, указывающий, что блок активен (находится в процессе выполнения)
-    pub is_active: bool,
+    pub _is_active: bool,
 }
 
 impl TryBlock {
@@ -47,23 +47,51 @@ impl TryBlock {
         nesting_level: usize,
     ) -> Self {
         Self {
-            catch_var,
-            catch_body,
-            finally_body,
+            _catch_var: catch_var,
+            _catch_body: catch_body,
+            _finally_body: finally_body,
+            _block_id: block_id,
+            _nesting_level: nesting_level,
+            _is_active: true,
+        }
+    }
+
+    /// Создать простой блок try/catch для тестов
+    pub fn new_simple(block_id: usize, nesting_level: usize) -> Self {
+        Self::new(
+            Some("error".to_string()),
+            vec!["print('Error caught')".to_string()],
+            None,
             block_id,
             nesting_level,
-            is_active: true,
+        )
+    }
+
+    /// Создать блок try/catch с минимальными параметрами для тестов (альтернативный конструктор)
+    pub fn new_minimal(block_id: usize, line: usize) -> Self {
+        Self {
+            _catch_var: Some("error".to_string()),
+            _catch_body: vec!["print('Error caught')".to_string()],
+            _finally_body: None,
+            _block_id: block_id,
+            _nesting_level: line,
+            _is_active: true,
         }
     }
 
     /// Проверить, может ли этот блок обработать исключение
     pub fn can_handle_exception(&self) -> bool {
-        self.is_active && !self.catch_body.is_empty()
+        self._is_active && !self._catch_body.is_empty()
+    }
+
+    /// Проверить, активен ли блок
+    pub fn is_active(&self) -> bool {
+        self._is_active
     }
 
     /// Деактивировать блок (когда он завершает выполнение)
     pub fn deactivate(&mut self) {
-        self.is_active = false;
+        self._is_active = false;
     }
 }
 
@@ -126,7 +154,7 @@ mod tests {
         assert_eq!(func.name, "test_func");
         assert_eq!(func.parameters.len(), 2);
         assert_eq!(func.body.len(), 1);
-        assert!(func.is_global);
+        assert!(func._is_global);
     }
 
     #[test]
@@ -167,12 +195,12 @@ mod tests {
             0,
         );
 
-        assert_eq!(try_block.catch_var, Some("error".to_string()));
-        assert_eq!(try_block.catch_body.len(), 1);
-        assert!(try_block.finally_body.is_some());
-        assert_eq!(try_block.block_id, 1);
-        assert_eq!(try_block.nesting_level, 0);
-        assert!(try_block.is_active);
+        assert_eq!(try_block._catch_var, Some("error".to_string()));
+        assert_eq!(try_block._catch_body.len(), 1);
+        assert!(try_block._finally_body.is_some());
+        assert_eq!(try_block._block_id, 1);
+        assert_eq!(try_block._nesting_level, 0);
+        assert!(try_block._is_active);
         assert!(try_block.can_handle_exception());
     }
 }

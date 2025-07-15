@@ -17,6 +17,7 @@ pub enum Token {
     Minus,          // -
     Multiply,       // *
     Divide,         // /
+    Modulo,         // %
     PathJoin,       // / (для путей)
     
     // Операторы сравнения
@@ -116,6 +117,7 @@ pub enum BinaryOp {
     Subtract,
     Multiply,
     Divide,
+    Modulo,
     PathJoin,
     Equal,
     NotEqual,
@@ -142,8 +144,8 @@ impl Token {
     
     /// Проверить, является ли токен оператором
     pub fn is_operator(&self) -> bool {
-        matches!(self, 
-            Token::Plus | Token::Minus | Token::Multiply | Token::Divide |
+        matches!(self,
+            Token::Plus | Token::Minus | Token::Multiply | Token::Divide | Token::Modulo |
             Token::Equal | Token::NotEqual | Token::Less | Token::Greater |
             Token::LessEqual | Token::GreaterEqual | Token::And | Token::Or | Token::Not
         )

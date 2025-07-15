@@ -2,6 +2,7 @@ use crate::value::Value;
 use crate::error::{DataCodeError, Result};
 use crate::builtins::call_builtin_function;
 use std::collections::HashMap;
+use std::time::Instant;
 
 // Подмодули
 pub mod user_functions;
@@ -21,6 +22,7 @@ pub struct Interpreter {
     pub variable_manager: VariableManager,
     /// Менеджер пользовательских функций
     pub function_manager: UserFunctionManager,
+
     /// Возвращаемое значение функции
     pub return_value: Option<Value>,
     /// Текущая строка для отслеживания ошибок
@@ -54,6 +56,11 @@ impl Interpreter {
         self.variable_manager.set_variable(name, value, is_global);
     }
 
+    /// Умно установить переменную - обновляет существующую переменную в её текущей области видимости
+    pub fn set_variable_smart(&mut self, name: String, value: Value) {
+        self.variable_manager.set_variable_smart(name, value);
+    }
+
     /// Получить все глобальные переменные
     pub fn get_all_variables(&self) -> &HashMap<String, Value> {
         self.variable_manager.get_all_global_variables()
@@ -72,7 +79,7 @@ impl Interpreter {
             return Ok(Value::Null);
         }
 
-        // Парсим выражение
+        // Парсим выражение (пока без оптимизатора)
         let mut parser = crate::parser::Parser::new(trimmed_expr);
         let parsed_expr = parser.parse_expression()?;
 
@@ -82,7 +89,14 @@ impl Interpreter {
 
     /// Выполнить строку кода (будет реализовано в execution.rs)
     pub fn exec(&mut self, line: &str) -> Result<()> {
-        execution::execute_line(self, line)
+        let start_time = Instant::now();
+        let result = execution::execute_line(self, line);
+        let _duration = start_time.elapsed();
+
+        // Профилирование выполнения (временно отключено для совместимости)
+        // TODO: Добавить профилирование после исправления импортов
+
+        result
     }
 
     /// Выполнить многострочный код
@@ -133,21 +147,21 @@ impl Interpreter {
                     &self.function_manager,
                     self.current_line,
                 );
-                evaluator.evaluate(expr)
+
+                match evaluator.evaluate(expr) {
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        // Обрабатываем вызов пользовательской функции из выражения
+                        // Ищем вызов пользовательской функции в выражении рекурсивно
+                        self.handle_user_function_in_expression(expr)
+                    }
+                    result => result
+                }
             }
         }
     }
 
     /// Вызвать пользовательскую функцию
-    fn call_user_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value> {
-        // Проверяем глубину рекурсии
-        if self.recursion_depth > 5 {
-            return Err(DataCodeError::runtime_error(
-                &format!("Maximum recursion depth exceeded when calling function '{}' (depth: {})", name, self.recursion_depth),
-                self.current_line
-            ));
-        }
-
+    pub fn call_user_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value> {
         let function = self.function_manager.get_function(name)
             .ok_or_else(|| DataCodeError::function_not_found(name, self.current_line))?
             .clone();
@@ -162,51 +176,40 @@ impl Interpreter {
             ));
         }
 
-        // Увеличиваем глубину рекурсии
-        self.recursion_depth += 1;
-
-        // Входим в новую область видимости
-        self.variable_manager.enter_function_scope();
+        // Входим в область видимости функции (с проверкой рекурсии)
+        self.enter_function_scope()?;
 
         // Устанавливаем параметры функции
-        self.variable_manager
-            .set_function_parameters(&function.parameters, args)
-            .map_err(|e| DataCodeError::runtime_error(&e, self.current_line))?;
+        if let Err(e) = self.variable_manager
+            .set_function_parameters(&function.parameters, args) {
+            self.exit_function_scope();
+            return Err(DataCodeError::runtime_error(&e, self.current_line));
+        }
 
         // Сохраняем текущее возвращаемое значение
         let old_return_value = self.return_value.take();
 
-        // Выполняем тело функции напрямую без рекурсии
-        if let Err(e) = execution::execute_block_directly(self, &function.body.iter().map(|s| s.as_str()).collect::<Vec<_>>()) {
-            // Восстанавливаем состояние при ошибке
-            self.variable_manager.exit_function_scope();
-            self.return_value = old_return_value;
-            self.recursion_depth -= 1;
-            return Err(e);
-        }
+        // Выполняем тело функции
+        let execution_result = execution::execute_block_directly(
+            self,
+            &function.body.iter().map(|s| s.as_str()).collect::<Vec<_>>()
+        );
 
         // Получаем результат выполнения функции
-        let result = if let Some(return_val) = &self.return_value {
-            return_val.clone()
+        let final_result = if let Some(return_val) = self.return_value.take() {
+            return_val
         } else {
             Value::Null
         };
 
-        // Обновляем результат если был вызван return
-        let final_result = if self.return_value.is_some() {
-            self.return_value.take().unwrap()
-        } else {
-            result
-        };
-
-        // Выходим из области видимости
-        self.variable_manager.exit_function_scope();
-
         // Восстанавливаем предыдущее возвращаемое значение
         self.return_value = old_return_value;
 
-        // Уменьшаем глубину рекурсии
-        self.recursion_depth -= 1;
+        // Выходим из области видимости функции
+        self.exit_function_scope();
+
+        // Проверяем результат выполнения
+        execution_result?;
 
         Ok(final_result)
     }
@@ -220,6 +223,205 @@ impl Interpreter {
     pub fn has_user_function(&self, name: &str) -> bool {
         self.function_manager.contains_function(name)
     }
+
+    /// Сложение значений
+    fn add_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => Ok(Number(a + b)),
+            (String(a), String(b)) => Ok(String(format!("{}{}", a, b))),
+            (String(a), Number(b)) => Ok(String(format!("{}{}", a, b))),
+            (Number(a), String(b)) => Ok(String(format!("{}{}", a, b))),
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot add {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Вычитание значений
+    fn subtract_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => Ok(Number(a - b)),
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot subtract {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Умножение значений
+    fn multiply_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => Ok(Number(a * b)),
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot multiply {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Деление значений
+    fn divide_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => {
+                if *b == 0.0 {
+                    Err(DataCodeError::runtime_error("Division by zero", self.current_line))
+                } else {
+                    Ok(Number(a / b))
+                }
+            }
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot divide {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Сравнение значений на равенство
+    fn values_equal(&self, left: &Value, right: &Value) -> bool {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => a == b,
+            (String(a), String(b)) => a == b,
+            (Bool(a), Bool(b)) => a == b,
+            (Null, Null) => true,
+            _ => false,
+        }
+    }
+
+    /// Сравнение значений "меньше чем"
+    fn less_than_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => Ok(Bool(a < b)),
+            (String(a), String(b)) => Ok(Bool(a < b)),
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot compare {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Сравнение значений "больше чем"
+    fn greater_than_values(&self, left: &Value, right: &Value) -> Result<Value> {
+        use Value::*;
+        match (left, right) {
+            (Number(a), Number(b)) => Ok(Bool(a > b)),
+            (String(a), String(b)) => Ok(Bool(a > b)),
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Cannot compare {:?} and {:?}", left, right),
+                self.current_line,
+            )),
+        }
+    }
+
+    /// Преобразование значения в булево
+    fn to_bool(&self, value: &Value) -> bool {
+        use Value::*;
+        match value {
+            Bool(b) => *b,
+            Number(n) => *n != 0.0,
+            String(s) => !s.is_empty(),
+            Null => false,
+            _ => true,
+        }
+    }
+
+    /// Обработать пользовательскую функцию в выражении рекурсивно
+    fn handle_user_function_in_expression(&mut self, expr: &crate::parser::tokens::Expr) -> Result<Value> {
+        use crate::parser::tokens::Expr;
+
+        match expr {
+            Expr::FunctionCall { name, args } => {
+                if self.function_manager.contains_function(name) {
+                    // Вычисляем аргументы в контексте интерпретатора
+                    let mut arg_values = Vec::new();
+                    for arg in args {
+                        let arg_value = self.evaluate_expression(arg)?;
+                        arg_values.push(arg_value);
+                    }
+
+                    self.call_user_function(name, arg_values)
+                } else {
+                    Err(DataCodeError::function_not_found(name, self.current_line))
+                }
+            }
+
+            Expr::Binary { left, operator, right } => {
+                // Сначала пытаемся вычислить левую часть
+                let left_val = match self.evaluate_expression(left) {
+                    Ok(val) => val,
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        self.handle_user_function_in_expression(left)?
+                    }
+                    Err(e) => return Err(e)
+                };
+
+                // Затем пытаемся вычислить правую часть
+                let right_val = match self.evaluate_expression(right) {
+                    Ok(val) => val,
+                    Err(e) if e.to_string().contains("USER_FUNCTION_CALL_EXPR:") => {
+                        self.handle_user_function_in_expression(right)?
+                    }
+                    Err(e) => return Err(e)
+                };
+
+                // Выполняем бинарную операцию
+                use crate::parser::tokens::BinaryOp;
+                match operator {
+                    BinaryOp::Add => self.add_values(&left_val, &right_val),
+                    BinaryOp::Subtract => self.subtract_values(&left_val, &right_val),
+                    BinaryOp::Multiply => self.multiply_values(&left_val, &right_val),
+                    BinaryOp::Divide => self.divide_values(&left_val, &right_val),
+                    BinaryOp::Equal => Ok(Value::Bool(self.values_equal(&left_val, &right_val))),
+                    BinaryOp::NotEqual => Ok(Value::Bool(!self.values_equal(&left_val, &right_val))),
+                    BinaryOp::Less => self.less_than_values(&left_val, &right_val),
+                    BinaryOp::Greater => self.greater_than_values(&left_val, &right_val),
+                    BinaryOp::LessEqual => {
+                        let less = self.less_than_values(&left_val, &right_val)?;
+                        let equal = self.values_equal(&left_val, &right_val);
+                        Ok(Value::Bool(less.as_bool().unwrap_or(false) || equal))
+                    }
+                    BinaryOp::GreaterEqual => {
+                        let greater = self.greater_than_values(&left_val, &right_val)?;
+                        let equal = self.values_equal(&left_val, &right_val);
+                        Ok(Value::Bool(greater.as_bool().unwrap_or(false) || equal))
+                    }
+                    BinaryOp::And => {
+                        let left_bool = self.to_bool(&left_val);
+                        if !left_bool {
+                            Ok(Value::Bool(false))
+                        } else {
+                            Ok(Value::Bool(self.to_bool(&right_val)))
+                        }
+                    }
+                    BinaryOp::Or => {
+                        let left_bool = self.to_bool(&left_val);
+                        if left_bool {
+                            Ok(Value::Bool(true))
+                        } else {
+                            Ok(Value::Bool(self.to_bool(&right_val)))
+                        }
+                    }
+                    _ => Err(DataCodeError::runtime_error(
+                        &format!("Unsupported binary operator: {:?}", operator),
+                        self.current_line,
+                    )),
+                }
+            }
+
+            _ => {
+                // Для других типов выражений просто пытаемся их вычислить
+                self.evaluate_expression(expr)
+            }
+        }
+    }
+
+
 
     /// Войти в область видимости цикла
     pub fn enter_loop_scope(&mut self) {
@@ -285,6 +487,45 @@ impl Interpreter {
         // В более сложной реализации можно использовать глобальный счетчик
         self.exception_stack.len() + 1
     }
+
+    /// Войти в область видимости функции (увеличить глубину рекурсии)
+    pub fn enter_function_scope(&mut self) -> Result<()> {
+        self.recursion_depth += 1;
+
+        // Проверяем лимит рекурсии (по умолчанию 1000)
+        const MAX_RECURSION_DEPTH: usize = 1000;
+        if self.recursion_depth > MAX_RECURSION_DEPTH {
+            return Err(DataCodeError::runtime_error(
+                &format!("Превышена максимальная глубина рекурсии ({})", MAX_RECURSION_DEPTH),
+                self.current_line
+            ));
+        }
+
+        self.variable_manager.enter_function_scope();
+        Ok(())
+    }
+
+    /// Выйти из области видимости функции (уменьшить глубину рекурсии)
+    pub fn exit_function_scope(&mut self) {
+        if self.recursion_depth > 0 {
+            self.recursion_depth -= 1;
+        }
+        self.variable_manager.exit_function_scope();
+    }
+
+    /// Проверить, находимся ли мы в функции
+    pub fn is_in_function(&self) -> bool {
+        self.recursion_depth > 0
+    }
+
+    /// Получить текущую глубину рекурсии
+    pub fn get_recursion_depth(&self) -> usize {
+        self.recursion_depth
+    }
+
+
+
+
 }
 
 impl Default for Interpreter {

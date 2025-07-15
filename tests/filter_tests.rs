@@ -34,13 +34,14 @@ mod filter_tests {
         
         // Проверяем результат
         if let Some(Value::Table(table)) = interp.get_variable("filtered") {
-            assert_eq!(table.rows.len(), 5); // Bob, Charlie, Eve, Frank, Henry
-            
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 5); // Bob, Charlie, Eve, Frank, Henry
+
             // Проверяем, что все возрасты больше 30
-            let age_col_index = table.column_names.iter().position(|name| name == "age").unwrap();
-            for row in &table.rows {
+            let age_col_index = table_borrowed.column_names.iter().position(|name| name == "age").unwrap();
+            for row in &table_borrowed.rows {
                 if let Some(Value::Number(age)) = row.get(age_col_index) {
-                    assert!(*age > 30.0);
+                    assert!(age > &30.0);
                 }
             }
         } else {
@@ -61,19 +62,20 @@ mod filter_tests {
         interp.exec("global filtered = table_where(high_salary, 'active', '=', true)").unwrap();
         
         if let Some(Value::Table(table)) = interp.get_variable("filtered") {
-            assert_eq!(table.rows.len(), 2); // Alice и Frank
-            
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 2); // Alice и Frank
+
             // Проверяем условия
-            let dept_col = table.column_names.iter().position(|name| name == "department").unwrap();
-            let salary_col = table.column_names.iter().position(|name| name == "salary").unwrap();
-            let active_col = table.column_names.iter().position(|name| name == "active").unwrap();
-            
-            for row in &table.rows {
-                if let (Some(Value::String(dept)), Some(Value::Number(salary)), Some(Value::Bool(active))) = 
+            let dept_col = table_borrowed.column_names.iter().position(|name| name == "department").unwrap();
+            let salary_col = table_borrowed.column_names.iter().position(|name| name == "salary").unwrap();
+            let active_col = table_borrowed.column_names.iter().position(|name| name == "active").unwrap();
+
+            for row in &table_borrowed.rows {
+                if let (Some(Value::String(dept)), Some(Value::Number(salary)), Some(Value::Bool(active))) =
                     (row.get(dept_col), row.get(salary_col), row.get(active_col)) {
                     assert_eq!(dept, "Engineering");
-                    assert!(*salary > 70000.0);
-                    assert!(*active);
+                    assert!(salary > &70000.0);
+                    assert!(active);
                 }
             }
         } else {
@@ -90,25 +92,29 @@ mod filter_tests {
         // Равенство
         interp.exec("global eq_result = table_where(employees, 'department', '=', 'Engineering')").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("eq_result") {
-            assert_eq!(table.rows.len(), 3); // Alice, Charlie, Frank
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 3); // Alice, Charlie, Frank
         }
         
         // Больше
         interp.exec("global gt_result = table_where(employees, 'salary', '>', 80000)").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("gt_result") {
-            assert_eq!(table.rows.len(), 4); // Bob, Eve, Frank, Henry
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 4); // Bob, Eve, Frank, Henry
         }
         
         // Меньше или равно
         interp.exec("global le_result = table_where(employees, 'age', '<=', 30)").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("le_result") {
-            assert_eq!(table.rows.len(), 3); // Alice, Diana, Grace
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 3); // Alice, Diana, Grace
         }
         
         // Не равно
         interp.exec("global ne_result = table_where(employees, 'active', '!=', true)").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("ne_result") {
-            assert_eq!(table.rows.len(), 2); // Charlie, Grace
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 2); // Charlie, Grace
         }
     }
 
@@ -120,16 +126,17 @@ mod filter_tests {
         interp.exec("global query_result = table_query(employees, 'salary >= 75000 and age < 40')").unwrap();
         
         if let Some(Value::Table(table)) = interp.get_variable("query_result") {
-            assert_eq!(table.rows.len(), 4); // Alice, Bob, Diana, Eve
-            
-            let salary_col = table.column_names.iter().position(|name| name == "salary").unwrap();
-            let age_col = table.column_names.iter().position(|name| name == "age").unwrap();
-            
-            for row in &table.rows {
-                if let (Some(Value::Number(salary)), Some(Value::Number(age))) = 
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 4); // Alice, Bob, Diana, Eve
+
+            let salary_col = table_borrowed.column_names.iter().position(|name| name == "salary").unwrap();
+            let age_col = table_borrowed.column_names.iter().position(|name| name == "age").unwrap();
+
+            for row in &table_borrowed.rows {
+                if let (Some(Value::Number(salary)), Some(Value::Number(age))) =
                     (row.get(salary_col), row.get(age_col)) {
-                    assert!(*salary >= 75000.0);
-                    assert!(*age < 40.0);
+                    assert!(salary >= &75000.0);
+                    assert!(age < &40.0);
                 }
             }
         }
@@ -162,15 +169,17 @@ mod filter_tests {
         interp.exec("global sample_result = table_sample(employees, 3)").unwrap();
         
         if let Some(Value::Table(table)) = interp.get_variable("sample_result") {
-            assert_eq!(table.rows.len(), 3);
-            assert_eq!(table.column_names.len(), 6); // Все колонки должны остаться
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 3);
+            assert_eq!(table_borrowed.column_names.len(), 6); // Все колонки должны остаться
         }
-        
+
         // Тестируем случай когда запрашиваем больше строк чем есть
         interp.exec("global large_sample = table_sample(employees, 20)").unwrap();
-        
+
         if let Some(Value::Table(table)) = interp.get_variable("large_sample") {
-            assert_eq!(table.rows.len(), 8); // Все строки
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 8); // Все строки
         }
     }
 
@@ -182,11 +191,12 @@ mod filter_tests {
         interp.exec("global between_result = table_between(employees, 'age', 30, 40)").unwrap();
         
         if let Some(Value::Table(table)) = interp.get_variable("between_result") {
-            let age_col = table.column_names.iter().position(|name| name == "age").unwrap();
-            
-            for row in &table.rows {
+            let table_borrowed = table.borrow();
+            let age_col = table_borrowed.column_names.iter().position(|name| name == "age").unwrap();
+
+            for row in &table_borrowed.rows {
                 if let Some(Value::Number(age)) = row.get(age_col) {
-                    assert!(*age >= 30.0 && *age <= 40.0);
+                    assert!(age >= &30.0 && age <= &40.0);
                 }
             }
         }
@@ -200,11 +210,12 @@ mod filter_tests {
         interp.exec("global in_result = table_in(employees, 'department', ['Engineering', 'HR'])").unwrap();
         
         if let Some(Value::Table(table)) = interp.get_variable("in_result") {
-            assert_eq!(table.rows.len(), 5); // Alice, Charlie, Frank, Diana, Grace
-            
-            let dept_col = table.column_names.iter().position(|name| name == "department").unwrap();
-            
-            for row in &table.rows {
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 5); // Alice, Charlie, Frank, Diana, Grace
+
+            let dept_col = table_borrowed.column_names.iter().position(|name| name == "department").unwrap();
+
+            for row in &table_borrowed.rows {
                 if let Some(Value::String(dept)) = row.get(dept_col) {
                     assert!(dept == "Engineering" || dept == "HR");
                 }
@@ -229,13 +240,15 @@ mod filter_tests {
         // Тестируем фильтрацию по null значениям
         interp.exec("global null_names = table_is_null(test_table, 'name')").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("null_names") {
-            assert_eq!(table.rows.len(), 1); // Только Bob
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 1); // Только Bob
         }
-        
+
         // Тестируем фильтрацию по не-null значениям
         interp.exec("global not_null_ages = table_not_null(test_table, 'age')").unwrap();
         if let Some(Value::Table(table)) = interp.get_variable("not_null_ages") {
-            assert_eq!(table.rows.len(), 3); // Alice, Bob, Diana
+            let table_borrowed = table.borrow();
+            assert_eq!(table_borrowed.rows.len(), 3); // Alice, Bob, Diana
         }
     }
 

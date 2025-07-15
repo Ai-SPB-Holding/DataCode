@@ -159,7 +159,7 @@ fn read_csv_file(p: &std::path::Path, line: usize) -> Result<Value> {
         eprintln!("⚠️  {}", warning);
     }
 
-    Ok(Value::Table(table))
+    Ok(Value::table(table))
 }
 
 fn read_xlsx_file(p: &std::path::Path, line: usize) -> Result<Value> {
@@ -196,7 +196,7 @@ fn read_xlsx_file(p: &std::path::Path, line: usize) -> Result<Value> {
         }
     }
 
-    Ok(Value::Table(table))
+    Ok(Value::table(table))
 }
 
 fn analyze_csv_file(_p: &std::path::Path, _line: usize) -> Result<Value> {

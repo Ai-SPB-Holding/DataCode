@@ -23,9 +23,10 @@ mod table_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 3);
-                assert_eq!(table.columns.len(), 3);
-                assert_eq!(table.column_names, vec!["id", "name", "active"]);
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 3);
+                assert_eq!(table_borrowed.columns.len(), 3);
+                assert_eq!(table_borrowed.column_names, vec!["id", "name", "active"]);
             }
             _ => panic!("Expected Table, got {:?}", table_value),
         }
@@ -62,11 +63,12 @@ mod table_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 2);
-                assert_eq!(table.column_names.len(), 3);
-                assert!(table.column_names.contains(&"name".to_string()));
-                assert!(table.column_names.contains(&"age".to_string()));
-                assert!(table.column_names.contains(&"city".to_string()));
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 2);
+                assert_eq!(table_borrowed.column_names.len(), 3);
+                assert!(table_borrowed.column_names.contains(&"name".to_string()));
+                assert!(table_borrowed.column_names.contains(&"age".to_string()));
+                assert!(table_borrowed.column_names.contains(&"city".to_string()));
             }
             _ => panic!("Expected Table, got {:?}", table_value),
         }
@@ -89,11 +91,12 @@ mod table_tests {
         let table_value = interp.get_variable("my_table").unwrap();
         match table_value {
             Value::Table(table) => {
+                let table_borrowed = table.borrow();
                 // Проверяем типизацию колонок
-                let id_column = &table.columns[0];
-                let name_column = &table.columns[1];
-                let age_column = &table.columns[2];
-                let active_column = &table.columns[3];
+                let id_column = &table_borrowed.columns[0];
+                let name_column = &table_borrowed.columns[1];
+                let age_column = &table_borrowed.columns[2];
+                let active_column = &table_borrowed.columns[3];
                 
                 // id колонка должна быть смешанной (числа и строки)
                 assert_eq!(id_column.name, "id");
@@ -217,9 +220,10 @@ mod table_tests {
         let selected_value = interp.get_variable("selected").unwrap();
         match selected_value {
             Value::Table(table) => {
-                assert_eq!(table.columns.len(), 2);
-                assert_eq!(table.column_names, vec!["name", "age"]);
-                assert_eq!(table.rows.len(), 3);
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.columns.len(), 2);
+                assert_eq!(table_borrowed.column_names, vec!["name", "age"]);
+                assert_eq!(table_borrowed.rows.len(), 3);
             }
             _ => panic!("Expected Table, got {:?}", selected_value),
         }
@@ -247,9 +251,10 @@ mod table_tests {
         let sorted_value = interp.get_variable("sorted").unwrap();
         match sorted_value {
             Value::Table(table) => {
-                assert_eq!(table.rows.len(), 3);
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 3);
                 // Первая строка должна содержать id=1
-                if let Some(Value::Number(first_id)) = table.rows[0].get(0) {
+                if let Some(Value::Number(first_id)) = table_borrowed.rows[0].get(0) {
                     assert_eq!(*first_id, 1.0);
                 } else {
                     panic!("Expected first row to have id=1");

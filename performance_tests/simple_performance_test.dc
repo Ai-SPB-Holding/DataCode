@@ -1,0 +1,47 @@
+# Simple Performance Test for DataCode
+print("=== SIMPLE PERFORMANCE TEST ===")
+
+# Test 1: Basic arithmetic operations
+print("Test 1: Arithmetic operations...")
+global result = 0
+for i in range(1000) do
+    global result = result + i * 2 - 1
+forend
+print("Arithmetic result:", result)
+
+# Test 2: Array operations
+print("Test 2: Array operations...")
+global arr = []
+for i in range(500) do
+    global arr = push(arr, i)
+forend
+print("Array length:", len(arr))
+
+# Test 3: String operations
+print("Test 3: String operations...")
+global str_result = ""
+for i in range(100) do
+    global str_result = str_result + "item" + i + "_"
+forend
+print("String length:", len(str_result))
+
+# Test 4: Table operations
+print("Test 4: Table operations...")
+global data = []
+for i in range(100) do
+    global row = [i, "Item_" + i, i * 2]
+    global data = push(data, row)
+forend
+
+global headers = ["id", "name", "value"]
+global test_table = table_create(data, headers)
+print("Table rows:", len(test_table["id"]))
+
+# Test 5: Column access
+print("Test 5: Column access...")
+global names = test_table["name"]
+global values = test_table["value"]
+print("Names count:", len(names))
+print("Values count:", len(values))
+
+print("=== PERFORMANCE TEST COMPLETED ===")

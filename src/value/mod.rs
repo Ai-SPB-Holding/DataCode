@@ -5,10 +5,12 @@ pub mod types;
 pub mod table;
 pub mod conversions;
 pub mod operations;
+pub mod lazy;
 
 // Реэкспорт основных типов для удобства использования
 pub use types::{Value, DataType};
 pub use table::Table;
+pub use lazy::LazyTable;
 
 pub use operations::ValueOperations;
 

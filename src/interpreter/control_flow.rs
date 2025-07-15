@@ -40,7 +40,10 @@ impl ControlFlowHandler {
 
         let result = match iterable_value {
             Value::Array(arr) => Self::iterate_over_array(interpreter, variable, &arr, body),
-            Value::Table(table) => Self::iterate_over_table(interpreter, variable, &table, body),
+            Value::Table(table) => {
+                let table_borrowed = table.borrow();
+                Self::iterate_over_table(interpreter, variable, &*table_borrowed, body)
+            },
             Value::String(s) => Self::iterate_over_string(interpreter, variable, &s, body),
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot iterate over {:?}", iterable_value),
@@ -93,9 +96,9 @@ impl ControlFlowHandler {
 
         // Если была ошибка, выполняем catch
         if let Err(error) = try_result {
-            if !try_block.catch_body.is_empty() {
+            if !try_block._catch_body.is_empty() {
                 // Устанавливаем переменную ошибки, если указана
-                if let Some(var_name) = &try_block.catch_var {
+                if let Some(var_name) = &try_block._catch_var {
                     let error_message = format!("{}", error);
                     interpreter.set_variable(
                         var_name.clone(),
@@ -105,12 +108,12 @@ impl ControlFlowHandler {
                 }
 
                 // Выполняем catch блок
-                Self::execute_block(interpreter, &try_block.catch_body)?;
+                Self::execute_block(interpreter, &try_block._catch_body)?;
             }
         }
 
         // Выполняем finally блок, если есть
-        if let Some(finally_lines) = &try_block.finally_body {
+        if let Some(finally_lines) = &try_block._finally_body {
             Self::execute_block(interpreter, finally_lines)?;
         }
 
@@ -265,7 +268,7 @@ impl ControlFlowHandler {
             Currency(c) => !c.is_empty(),
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
-            Table(table) => !table.rows.is_empty(),
+            Table(table) => !table.borrow().rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
             PathPattern(_) => true,

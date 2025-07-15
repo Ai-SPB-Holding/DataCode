@@ -1,6 +1,9 @@
-use crate::value::{Value, Table as TableStruct};
+use crate::value::{Value, Table as TableStruct, LazyTable};
 use crate::error::{DataCodeError, Result};
+
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 /// Table filtering functions
 pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
@@ -13,8 +16,8 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), String(condition)) => {
-                    filter_table_by_condition(table, condition, line)
+                (Value::Table(table_rc), String(condition)) => {
+                    filter_table_by_condition_optimized(table_rc.clone(), condition, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and String", "other", line)),
             }
@@ -26,8 +29,8 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1], &args[2], &args[3]) {
-                (Value::Table(table), String(column), String(operator), value) => {
-                    filter_table_where(table, column, operator, value, line)
+                (Value::Table(table_rc), String(column), String(operator), value) => {
+                    filter_table_where_optimized(table_rc.clone(), column, operator, value, line)
                 }
                 _ => Err(DataCodeError::type_error("Table, String, String, Value", "other", line)),
             }
@@ -39,8 +42,9 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), String(query)) => {
-                    filter_table_by_query(table, query, line)
+                (Value::Table(table_rc), String(query)) => {
+                    let table_borrowed = table_rc.borrow();
+                    filter_table_by_query(&*table_borrowed, query, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and String", "other", line)),
             }
@@ -52,8 +56,9 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), String(column)) => {
-                    get_distinct_values(table, column, line)
+                (Value::Table(table_rc), String(column)) => {
+                    let table_borrowed = table_rc.borrow();
+                    get_distinct_values(&*table_borrowed, column, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and String", "other", line)),
             }
@@ -65,8 +70,9 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), Number(n)) => {
-                    sample_table_rows(table, *n as usize, line)
+                (Value::Table(table_rc), Number(n)) => {
+                    let table_borrowed = table_rc.borrow();
+                    sample_table_rows(&*table_borrowed, *n as usize, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and Number", "other", line)),
             }
@@ -78,8 +84,9 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1], &args[2], &args[3]) {
-                (Value::Table(table), String(column), min_val, max_val) => {
-                    filter_table_between(table, column, min_val, max_val, line)
+                (Value::Table(table_rc), String(column), min_val, max_val) => {
+                    let table_borrowed = table_rc.borrow();
+                    filter_table_between(&*table_borrowed, column, min_val, max_val, line)
                 }
                 _ => Err(DataCodeError::type_error("Table, String, Value, Value", "other", line)),
             }
@@ -91,8 +98,9 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1], &args[2]) {
-                (Value::Table(table), String(column), Array(values)) => {
-                    filter_table_in(table, column, values, line)
+                (Value::Table(table_rc), String(column), Array(values)) => {
+                    let table_borrowed = table_rc.borrow();
+                    filter_table_in(&*table_borrowed, column, values, line)
                 }
                 _ => Err(DataCodeError::type_error("Table, String, Array", "other", line)),
             }
@@ -104,8 +112,8 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), String(column)) => {
-                    filter_table_null(table, column, true, line)
+                (Value::Table(table_rc), String(column)) => {
+                    filter_table_null_optimized(table_rc.clone(), column, true, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and String", "other", line)),
             }
@@ -117,8 +125,8 @@ pub fn call_filter_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
             
             match (&args[0], &args[1]) {
-                (Value::Table(table), String(column)) => {
-                    filter_table_null(table, column, false, line)
+                (Value::Table(table_rc), String(column)) => {
+                    filter_table_null_optimized(table_rc.clone(), column, false, line)
                 }
                 _ => Err(DataCodeError::type_error("Table and String", "other", line)),
             }
@@ -138,7 +146,19 @@ pub fn is_filter_function(name: &str) -> bool {
 
 // ========== IMPLEMENTATION FUNCTIONS ==========
 
-// Фильтрация таблицы по условию с парсингом выражения
+// Оптимизированная фильтрация таблицы по условию с использованием Rc<RefCell<T>>
+fn filter_table_by_condition_optimized(table_rc: Rc<RefCell<TableStruct>>, condition: &str, line: usize) -> Result<Value> {
+    // Создаем ленивую таблицу и добавляем операцию фильтрации
+    let lazy_table = LazyTable::new(table_rc).filter(condition.to_string(), line);
+
+    // Материализуем результат
+    match lazy_table.materialize() {
+        Ok(materialized_table) => Ok(Value::table(materialized_table)),
+        Err(e) => Err(e),
+    }
+}
+
+// Оригинальная фильтрация таблицы по условию с парсингом выражения (для совместимости)
 fn filter_table_by_condition(table: &TableStruct, condition: &str, line: usize) -> Result<Value> {
     let mut filtered_table = TableStruct::new(table.column_names.clone());
     
@@ -180,67 +200,22 @@ fn filter_table_by_condition(table: &TableStruct, condition: &str, line: usize) 
         }
     }
     
-    Ok(Value::Table(filtered_table))
+    Ok(Value::table(filtered_table))
 }
 
-// SQL-подобная фильтрация WHERE
-fn filter_table_where(table: &TableStruct, column: &str, operator: &str, value: &Value, line: usize) -> Result<Value> {
-    // Находим индекс колонки
-    let col_index = table.column_names.iter()
-        .position(|name| name == column)
-        .ok_or_else(|| DataCodeError::runtime_error(
-            &format!("Колонка '{}' не найдена в таблице", column),
-            line
-        ))?;
-    
-    let mut filtered_table = TableStruct::new(table.column_names.clone());
-    
-    for row in &table.rows {
-        if let Some(row_value) = row.get(col_index) {
-            let matches = match operator {
-                "=" | "==" => values_equal(row_value, value),
-                "!=" | "<>" => !values_equal(row_value, value),
-                "<" => compare_values_for_filter(row_value, value) == std::cmp::Ordering::Less,
-                ">" => compare_values_for_filter(row_value, value) == std::cmp::Ordering::Greater,
-                "<=" => {
-                    let cmp = compare_values_for_filter(row_value, value);
-                    cmp == std::cmp::Ordering::Less || cmp == std::cmp::Ordering::Equal
-                }
-                ">=" => {
-                    let cmp = compare_values_for_filter(row_value, value);
-                    cmp == std::cmp::Ordering::Greater || cmp == std::cmp::Ordering::Equal
-                }
-                "LIKE" => match (row_value, value) {
-                    (Value::String(s1), Value::String(s2)) => {
-                        // Простая реализация LIKE с поддержкой % и _
-                        let pattern = s2.replace('%', ".*").replace('_', ".");
-                        match regex::Regex::new(&pattern) {
-                            Ok(re) => re.is_match(s1),
-                            Err(_) => false,
-                        }
-                    }
-                    _ => false,
-                },
-                "IN" => match value {
-                    Value::Array(arr) => arr.iter().any(|v| values_equal(row_value, v)),
-                    _ => false,
-                },
-                _ => return Err(DataCodeError::runtime_error(
-                    &format!("Неподдерживаемый оператор: {}", operator),
-                    line
-                )),
-            };
-            
-            if matches {
-                if let Err(e) = filtered_table.add_row(row.clone()) {
-                    return Err(DataCodeError::runtime_error(&e, line));
-                }
-            }
-        }
+// Оптимизированная SQL-подобная фильтрация WHERE с использованием Rc<RefCell<T>>
+fn filter_table_where_optimized(table_rc: Rc<RefCell<TableStruct>>, column: &str, operator: &str, value: &Value, line: usize) -> Result<Value> {
+    // Создаем ленивую таблицу и добавляем операцию WHERE
+    let lazy_table = LazyTable::new(table_rc).where_op(column.to_string(), operator.to_string(), value.clone(), line);
+
+    // Материализуем результат
+    match lazy_table.materialize() {
+        Ok(materialized_table) => Ok(Value::table(materialized_table)),
+        Err(e) => Err(e),
     }
-    
-    Ok(Value::Table(filtered_table))
 }
+
+
 
 // Сложные запросы с парсингом выражений (алиас для filter_table_by_condition)
 fn filter_table_by_query(table: &TableStruct, query: &str, line: usize) -> Result<Value> {
@@ -279,7 +254,7 @@ fn sample_table_rows(table: &TableStruct, n: usize, line: usize) -> Result<Value
     
     if n >= table.rows.len() {
         // Если запрашиваем больше строк чем есть, возвращаем всю таблицу
-        return Ok(Value::Table(table.clone()));
+        return Ok(Value::table(table.clone()));
     }
     
     let mut rng = thread_rng();
@@ -298,7 +273,7 @@ fn sample_table_rows(table: &TableStruct, n: usize, line: usize) -> Result<Value
         }
     }
     
-    Ok(Value::Table(sampled_table))
+    Ok(Value::table(sampled_table))
 }
 
 // Фильтрация по диапазону значений (BETWEEN)
@@ -328,7 +303,7 @@ fn filter_table_between(table: &TableStruct, column: &str, min_val: &Value, max_
         }
     }
     
-    Ok(Value::Table(filtered_table))
+    Ok(Value::table(filtered_table))
 }
 
 // Фильтрация по списку значений (IN)
@@ -353,22 +328,26 @@ fn filter_table_in(table: &TableStruct, column: &str, values: &[Value], line: us
         }
     }
     
-    Ok(Value::Table(filtered_table))
+    Ok(Value::table(filtered_table))
 }
 
-// Фильтрация по null/not null значениям
-fn filter_table_null(table: &TableStruct, column: &str, is_null: bool, line: usize) -> Result<Value> {
+
+
+// Оптимизированная фильтрация по null/not null значениям с использованием Rc<RefCell<T>>
+fn filter_table_null_optimized(table_rc: Rc<RefCell<TableStruct>>, column: &str, is_null: bool, line: usize) -> Result<Value> {
+    let table_borrowed = table_rc.borrow();
+
     // Находим индекс колонки
-    let col_index = table.column_names.iter()
+    let col_index = table_borrowed.column_names.iter()
         .position(|name| name == column)
         .ok_or_else(|| DataCodeError::runtime_error(
             &format!("Колонка '{}' не найдена в таблице", column),
             line
         ))?;
-    
-    let mut filtered_table = TableStruct::new(table.column_names.clone());
-    
-    for row in &table.rows {
+
+    let mut filtered_table = TableStruct::new(table_borrowed.column_names.clone());
+
+    for row in &table_borrowed.rows {
         if let Some(row_value) = row.get(col_index) {
             let is_value_null = matches!(row_value, Value::Null);
             if is_value_null == is_null {
@@ -378,8 +357,8 @@ fn filter_table_null(table: &TableStruct, column: &str, is_null: bool, line: usi
             }
         }
     }
-    
-    Ok(Value::Table(filtered_table))
+
+    Ok(Value::table(filtered_table))
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -433,8 +412,13 @@ fn format_value_for_table(value: &Value) -> String {
         Value::Null => "null".to_string(),
         Value::Array(arr) => format!("[{}]", arr.len()),
         Value::Object(obj) => format!("{{{}}}", obj.len()),
-        Value::Table(table) => format!("Table({}x{})", table.rows.len(), table.columns.len()),
+        Value::Table(table) => {
+            let table_borrowed = table.borrow();
+            format!("Table({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
+        },
         Value::Path(p) => p.to_string_lossy().to_string(),
         Value::PathPattern(p) => format!("{}*", p.to_string_lossy()),
     }
 }
+
+

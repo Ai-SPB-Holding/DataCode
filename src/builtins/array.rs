@@ -14,7 +14,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                 Array(arr) => Ok(Number(arr.len() as f64)),
                 String(s) => Ok(Number(s.len() as f64)),
                 Currency(c) => Ok(Number(c.len() as f64)),
-                Table(table) => Ok(Number(table.rows.len() as f64)),
+                Table(table) => Ok(Number(table.borrow().rows.len() as f64)),
                 _ => Err(DataCodeError::type_error("Array, String, Currency, or Table", "other", line)),
             }
         }
@@ -160,7 +160,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             match &args[0] {
                 Array(arr) => Ok(Number(arr.len() as f64)),
                 String(s) => Ok(Number(s.len() as f64)),
-                Table(table) => Ok(Number(table.rows.len() as f64)),
+                Table(table) => Ok(Number(table.borrow().rows.len() as f64)),
                 _ => Err(DataCodeError::type_error("Array, String, or Table", "other", line)),
             }
         }

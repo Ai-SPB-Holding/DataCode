@@ -95,13 +95,13 @@ fn test_function_with_array_parameter() {
             forend
             return total
         endfunction
-        
+
         global numbers = [1, 2, 3, 4, 5]
         global result = sum_array(numbers)
     "#;
-    
+
     interp.exec(code).unwrap();
-    
+
     let result = interp.get_variable("result").unwrap();
     assert_eq!(*result, Value::Number(15.0)); // 1+2+3+4+5 = 15
 }

@@ -28,7 +28,8 @@ pub fn call_iteration_function(name: &str, args: Vec<Value>, line: usize) -> Res
                 }
                 Table(table) => {
                     // Enumerate table rows
-                    let enumerated: Vec<Value> = table.rows.iter()
+                    let table_borrowed = table.borrow();
+                    let enumerated: Vec<Value> = table_borrowed.rows.iter()
                         .enumerate()
                         .map(|(i, row)| Array(vec![Number(i as f64), Array(row.clone())]))
                         .collect();

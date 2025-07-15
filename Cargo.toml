@@ -1,6 +1,6 @@
 [package]
 name = "data_code"
-version = "1.4.1"
+version = "1.5.0"
 edition = "2021"
 description = "DataCode - Interactive Programming Language for fast data processing"
 license = "MIT"
@@ -25,3 +25,14 @@ rustyline = "14.0"
 glob = "0.3"
 regex = "1.10"
 rand = "0.8"
+
+# Фаза 3: Векторизация и параллелизм (упрощенная версия)
+rayon = "1.8"
+
+# Фаза 4: Оптимизация I/O и встроенных функций
+memmap2 = "0.9"    # Для memory-mapped файлов
+
+# Фаза 5: Профилирование и инструментирование
+lazy_static = "1.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

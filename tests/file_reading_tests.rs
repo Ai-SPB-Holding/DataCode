@@ -39,17 +39,18 @@ mod file_reading_tests {
         match interp.get_variable("csv_content") {
             Some(Value::Table(table)) => {
                 // Проверяем количество строк данных (без заголовка)
-                assert_eq!(table.rows.len(), 5);
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.rows.len(), 5);
 
                 // Проверяем заголовки
-                assert_eq!(table.column_names.len(), 4); // Name, Age, City, Salary
-                assert_eq!(table.column_names[0], "Name");
-                assert_eq!(table.column_names[1], "Age");
-                assert_eq!(table.column_names[2], "City");
-                assert_eq!(table.column_names[3], "Salary");
+                assert_eq!(table_borrowed.column_names.len(), 4); // Name, Age, City, Salary
+                assert_eq!(table_borrowed.column_names[0], "Name");
+                assert_eq!(table_borrowed.column_names[1], "Age");
+                assert_eq!(table_borrowed.column_names[2], "City");
+                assert_eq!(table_borrowed.column_names[3], "Salary");
 
                 // Проверяем первую строку данных
-                let first_data_row = &table.rows[0];
+                let first_data_row = &table_borrowed.rows[0];
                 assert_eq!(first_data_row.len(), 4);
                 if let Value::String(name) = &first_data_row[0] {
                     assert_eq!(name, "John Doe");
@@ -80,18 +81,19 @@ mod file_reading_tests {
         match interp.get_variable("xlsx_content") {
             Some(Value::Table(table)) => {
                 // Проверяем, что есть данные
-                assert!(table.rows.len() > 0);
+                let table_borrowed = table.borrow();
+                assert!(table_borrowed.rows.len() > 0);
 
                 // Проверяем заголовки
-                assert_eq!(table.column_names.len(), 4); // Product, Price, Quantity, Category
-                assert_eq!(table.column_names[0], "Product");
-                assert_eq!(table.column_names[1], "Price");
-                assert_eq!(table.column_names[2], "Quantity");
-                assert_eq!(table.column_names[3], "Category");
+                assert_eq!(table_borrowed.column_names.len(), 4); // Product, Price, Quantity, Category
+                assert_eq!(table_borrowed.column_names[0], "Product");
+                assert_eq!(table_borrowed.column_names[1], "Price");
+                assert_eq!(table_borrowed.column_names[2], "Quantity");
+                assert_eq!(table_borrowed.column_names[3], "Category");
 
                 // Проверяем первую строку данных
-                if table.rows.len() > 0 {
-                    let first_data_row = &table.rows[0];
+                if table_borrowed.rows.len() > 0 {
+                    let first_data_row = &table_borrowed.rows[0];
                     assert_eq!(first_data_row.len(), 4);
                     if let Value::String(product) = &first_data_row[0] {
                         assert_eq!(product, "Laptop");
@@ -163,11 +165,14 @@ mod file_reading_tests {
         let result = interp.exec("global content = read_file()");
         
         assert!(result.is_err());
-        match result.unwrap_err() {
-            DataCodeError::FunctionError { name, .. } => {
-                assert_eq!(name, "read_file");
+        let error = result.unwrap_err();
+        match error {
+            DataCodeError::RuntimeError { message, .. } => {
+                assert!(message.contains("read_file"));
+                assert!(message.contains("expects"));
+                assert!(message.contains("arguments"));
             }
-            _ => panic!("Expected FunctionError for wrong argument count"),
+            _ => panic!("Expected RuntimeError for wrong argument count, got: {:?}", error),
         }
     }
 

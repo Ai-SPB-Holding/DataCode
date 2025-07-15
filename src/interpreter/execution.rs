@@ -139,6 +139,33 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
         return Ok(());
     }
 
+    // Обработка присваивания без явного global/local префикса
+    if trimmed_code.contains('=') && !trimmed_code.contains("==") && !trimmed_code.contains("!=") && !trimmed_code.contains("<=") && !trimmed_code.contains(">=") {
+        let parts: Vec<_> = trimmed_code.splitn(2, '=').map(|s| s.trim()).collect();
+
+        if parts.len() == 2 {
+            let var_name = parts[0];
+            let expr = parts[1];
+
+            // Проверяем, что левая часть - это простой идентификатор (не выражение)
+            if var_name.chars().all(|c| c.is_alphanumeric() || c == '_') && !var_name.is_empty() {
+                let val = interpreter.eval_expr(expr)?;
+
+                // Определяем, нужно ли обновить существующую переменную или создать новую
+                // Сначала проверяем, существует ли переменная в текущих областях видимости
+                if interpreter.get_variable(var_name).is_some() {
+                    // Переменная существует, обновляем её с умным определением области видимости
+                    interpreter.set_variable_smart(var_name.to_string(), val);
+                } else {
+                    // Переменная не существует, создаем как локальную (если в функции) или глобальную
+                    let is_global = interpreter.variable_manager.call_stack.is_empty();
+                    interpreter.set_variable(var_name.to_string(), val, is_global);
+                }
+                return Ok(());
+            }
+        }
+    }
+
 
 
     // Обработка throw
@@ -189,7 +216,8 @@ fn format_value_for_print(value: &Value) -> String {
             format!("{{{}}}", items.join(", "))
         }
         Table(table) => {
-            format!("Table({} rows, {} columns)", table.rows.len(), table.column_names.len())
+            let table_borrowed = table.borrow();
+            format!("Table({} rows, {} columns)", table_borrowed.rows.len(), table_borrowed.column_names.len())
         }
         Null => "null".to_string(),
         Path(p) => p.display().to_string(),
@@ -207,7 +235,7 @@ fn to_bool(value: &Value) -> bool {
         Currency(c) => !c.is_empty(),
         Array(arr) => !arr.is_empty(),
         Object(obj) => !obj.is_empty(),
-        Table(table) => !table.rows.is_empty(),
+        Table(table) => !table.borrow().rows.is_empty(),
         Null => false,
         Path(p) => p.exists(),
         PathPattern(_) => true,
@@ -327,6 +355,8 @@ fn handle_try_statement(interpreter: &mut Interpreter, lines: &[&str], start: us
     // Выполняем try/catch блок
     execute_try_statement_directly(interpreter, &try_lines)?;
 
+    // Возвращаем индекс строки endtry, чтобы в основном цикле он увеличился на 1
+    // и следующая строка после endtry была выполнена
     Ok(i)
 }
 
@@ -615,6 +645,33 @@ fn execute_line_simple_safe(interpreter: &mut Interpreter, code: &str) -> Result
         return Ok(());
     }
 
+    // Обработка присваивания без явного global/local префикса
+    if trimmed_code.contains('=') && !trimmed_code.contains("==") && !trimmed_code.contains("!=") && !trimmed_code.contains("<=") && !trimmed_code.contains(">=") {
+        let parts: Vec<_> = trimmed_code.splitn(2, '=').map(|s| s.trim()).collect();
+
+        if parts.len() == 2 {
+            let var_name = parts[0];
+            let expr = parts[1];
+
+            // Проверяем, что левая часть - это простой идентификатор (не выражение)
+            if var_name.chars().all(|c| c.is_alphanumeric() || c == '_') && !var_name.is_empty() {
+                let val = eval_expr_safe(interpreter, expr)?;
+
+                // Определяем, нужно ли обновить существующую переменную или создать новую
+                // Сначала проверяем, существует ли переменная в текущих областях видимости
+                if interpreter.get_variable(var_name).is_some() {
+                    // Переменная существует, обновляем её с умным определением области видимости
+                    interpreter.set_variable_smart(var_name.to_string(), val);
+                } else {
+                    // Переменная не существует, создаем как локальную (если в функции) или глобальную
+                    let is_global = interpreter.variable_manager.call_stack.is_empty();
+                    interpreter.set_variable(var_name.to_string(), val, is_global);
+                }
+                return Ok(());
+            }
+        }
+    }
+
 
 
     // Обработка throw
@@ -647,8 +704,8 @@ fn eval_condition_safe(interpreter: &mut Interpreter, condition_str: &str) -> Re
 
             // Если это пользовательская функция, выполняем ее с ограниченной глубиной
             if interpreter.has_user_function(function_name) {
-                // Увеличиваем счетчик рекурсии перед вызовом
-                if interpreter.recursion_depth >= 5 {
+                // Увеличиваем счетчик рекурсии перед вызовом - увеличиваем лимит до 100
+                if interpreter.recursion_depth >= 100 {
                     return Err(DataCodeError::runtime_error(
                         &format!("Maximum recursion depth exceeded in condition evaluation for function '{}'", function_name),
                         interpreter.current_line
@@ -822,12 +879,23 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
     let iterable_value = interpreter.eval_expr(iterable_part)?;
 
     // Собираем тело цикла (все строки кроме первой и последней)
-    let mut body_lines = Vec::new();
+    // Нужно правильно обрабатывать вложенные циклы
+    let mut body_lines: Vec<&str> = Vec::new();
+    let mut depth = 0;
     for i in 1..for_lines.len() {
         let line = for_lines[i].trim();
-        if line == "forend" {
-            break;
+
+        if line.starts_with("for ") && line.ends_with(" do") {
+            depth += 1;
+        } else if line == "forend" {
+            if depth == 0 {
+                // Это forend для нашего цикла
+                break;
+            } else {
+                depth -= 1;
+            }
         }
+
         body_lines.push(for_lines[i]);
     }
 
@@ -890,7 +958,8 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
             Ok(())
         }
         Value::Table(ref table) => {
-            for row in &table.rows {
+            let table_borrowed = table.borrow();
+            for row in &table_borrowed.rows {
                 interpreter.set_loop_variable(variables[0].to_string(), Value::Array(row.clone()));
 
                 // Выполняем тело цикла
@@ -973,7 +1042,7 @@ fn parse_and_define_function_directly(interpreter: &mut Interpreter, function_li
         name: function_name.clone(),
         parameters,
         body: body_lines,
-        is_global,
+        _is_global: is_global,
     };
 
     interpreter.function_manager.add_function(function);

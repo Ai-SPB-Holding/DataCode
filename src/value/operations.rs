@@ -102,7 +102,8 @@ impl ValueOperations for Value {
                 format!("{{{}}}", items.join(", "))
             }
             Value::Table(table) => {
-                format!("Table({}x{})", table.rows.len(), table.columns.len())
+                let table_borrowed = table.borrow();
+                format!("Table({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
             }
             Value::Currency(s) => s.clone(),
             Value::Null => "null".to_string(),
@@ -273,7 +274,7 @@ pub fn to_boolean(value: &Value) -> bool {
         String(s) => !s.is_empty(),
         Array(arr) => !arr.is_empty(),
         Object(obj) => !obj.is_empty(),
-        Table(table) => !table.is_empty(),
+        Table(table) => !table.borrow().rows.is_empty(),
         Currency(s) => !s.is_empty(),
         Path(p) => p.as_os_str().len() > 0,
         PathPattern(p) => p.as_os_str().len() > 0,

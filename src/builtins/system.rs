@@ -27,7 +27,8 @@ fn format_value_for_print(value: &Value) -> String {
             format!("{{{}}}", items.join(", "))
         }
         Table(table) => {
-            format!("Table({} rows, {} columns)", table.rows.len(), table.column_names.len())
+            let table_borrowed = table.borrow();
+            format!("Table({} rows, {} columns)", table_borrowed.rows.len(), table_borrowed.column_names.len())
         }
         Null => "null".to_string(),
         Path(p) => p.display().to_string(),
@@ -101,7 +102,14 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
                     matches!(value, Table(_))
                 }
                 "currency" | "money" => {
-                    matches!(value, Currency(_))
+                    match value {
+                        Currency(_) => true,
+                        String(s) => {
+                            use crate::value::conversions::is_currency_string;
+                            is_currency_string(s)
+                        },
+                        _ => false,
+                    }
                 }
                 "null" | "none" => {
                     matches!(value, Null)
@@ -131,11 +139,18 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
         }
 
+        "str" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("str", 1, args.len(), line));
+            }
+            Ok(String(format_value_for_print(&args[0])))
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
 
 /// Check if a function name belongs to system functions
 pub fn is_system_function(name: &str) -> bool {
-    matches!(name, "now" | "print" | "getcwd" | "isinstance" | "isset")
+    matches!(name, "now" | "print" | "getcwd" | "isinstance" | "isset" | "str")
 }

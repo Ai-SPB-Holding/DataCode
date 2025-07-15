@@ -27,6 +27,8 @@ let result = call_builtin_function("table_where", args, line_number)?;
 // Module declarations
 pub mod system;
 pub mod file;
+pub mod file_io;
+pub mod registry;
 pub mod math;
 pub mod array;
 pub mod string;
@@ -40,11 +42,18 @@ pub mod iteration;
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
 
+
 /// Main entry point for all built-in function calls
-/// 
+///
 /// This function routes function calls to the appropriate module based on the function name.
 /// It provides a unified interface for all built-in functions while maintaining modular organization.
+///
+/// OPTIMIZED: Uses hash table registry for O(1) function lookup
 pub fn call_builtin_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
+    // Try optimized registry first (O(1) lookup)
+    if registry::function_exists(name) {
+        return registry::call_builtin_function_fast(name, args, line);
+    }
     // Route to appropriate module based on function name
     if system::is_system_function(name) {
         system::call_system_function(name, args, line)
@@ -67,22 +76,7 @@ pub fn call_builtin_function(name: &str, args: Vec<Value>, line: usize) -> Resul
     }
 }
 
-/// Get a list of all available built-in functions
-/// 
-/// Returns a vector of function names organized by category.
-/// Useful for documentation, auto-completion, and debugging.
-pub fn get_all_builtin_functions() -> Vec<(&'static str, Vec<&'static str>)> {
-    vec![
-        ("System", vec!["now", "print", "getcwd", "isinstance"]),
-        ("File", vec!["path", "list_files", "read_file", "analyze_csv", "read_csv_safe"]),
-        ("Math", vec!["abs", "sqrt", "pow", "min", "max", "round", "div"]),
-        ("Array", vec!["length", "len", "push", "pop", "append", "sort", "unique", "array", "sum", "average", "count"]),
-        ("String", vec!["split", "join", "trim", "upper", "lower", "contains"]),
-        ("Table", vec!["table", "table_create", "show_table", "table_info", "table_head", "table_tail", "table_headers", "table_select", "table_sort"]),
-        ("Filter", vec!["table_filter", "table_where", "table_query", "table_distinct", "table_sample", "table_between", "table_in", "table_is_null", "table_not_null"]),
-        ("Iteration", vec!["enum"]),
-    ]
-}
+
 
 /// Check if a function name is a valid built-in function
 pub fn is_builtin_function(name: &str) -> bool {
@@ -96,46 +90,11 @@ pub fn is_builtin_function(name: &str) -> bool {
     iteration::is_iteration_function(name)
 }
 
-/// Get function category for a given function name
-pub fn get_function_category(name: &str) -> Option<&'static str> {
-    if system::is_system_function(name) {
-        Some("System")
-    } else if file::is_file_function(name) {
-        Some("File")
-    } else if math::is_math_function(name) {
-        Some("Math")
-    } else if array::is_array_function(name) {
-        Some("Array")
-    } else if string::is_string_function(name) {
-        Some("String")
-    } else if table::is_table_function(name) {
-        Some("Table")
-    } else if filter::is_filter_function(name) {
-        Some("Filter")
-    } else if iteration::is_iteration_function(name) {
-        Some("Iteration")
-    } else {
-        None
-    }
-}
 
-/// Print all available functions organized by category
-pub fn print_function_help() {
-    println!("📚 DataCode Built-in Functions");
-    println!("==============================");
-    
-    for (category, functions) in get_all_builtin_functions() {
-        println!("\n🔧 {} Functions:", category);
-        for func in functions {
-            println!("  • {}", func);
-        }
-    }
-    
-    println!("\n💡 Total: {} functions across {} categories", 
-        get_all_builtin_functions().iter().map(|(_, funcs)| funcs.len()).sum::<usize>(),
-        get_all_builtin_functions().len()
-    );
-}
+
+
+
+
 
 #[cfg(test)]
 mod tests {
@@ -153,17 +112,7 @@ mod tests {
         assert!(iteration::is_iteration_function("enum"));
     }
 
-    #[test]
-    fn test_function_categories() {
-        assert_eq!(get_function_category("print"), Some("System"));
-        assert_eq!(get_function_category("abs"), Some("Math"));
-        assert_eq!(get_function_category("push"), Some("Array"));
-        assert_eq!(get_function_category("split"), Some("String"));
-        assert_eq!(get_function_category("table"), Some("Table"));
-        assert_eq!(get_function_category("table_where"), Some("Filter"));
-        assert_eq!(get_function_category("enum"), Some("Iteration"));
-        assert_eq!(get_function_category("nonexistent"), None);
-    }
+
 
     #[test]
     fn test_builtin_function_check() {
