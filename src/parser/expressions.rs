@@ -93,6 +93,7 @@ impl<'a> ExpressionParser<'a> {
                 _ => unreachable!(),
             };
             self.parser.advance();
+            self.parser.skip_newlines(); // skip newlines after operator
             let right = self.parse_addition()?;
             left = Expr::Binary {
                 left: Box::new(left),
@@ -115,6 +116,7 @@ impl<'a> ExpressionParser<'a> {
                 _ => unreachable!(),
             };
             self.parser.advance();
+            self.parser.skip_newlines(); // skip newlines after operator
             let right = self.parse_multiplication()?;
             left = Expr::Binary {
                 left: Box::new(left),
@@ -138,6 +140,7 @@ impl<'a> ExpressionParser<'a> {
                 _ => unreachable!(),
             };
             self.parser.advance();
+            self.parser.skip_newlines(); // skip newlines after operator
             let right = self.parse_unary()?;
             left = Expr::Binary {
                 left: Box::new(left),
@@ -226,16 +229,27 @@ impl<'a> ExpressionParser<'a> {
     /// Парсить аргументы функции
     fn parse_function_args(&mut self) -> Result<Vec<Expr>> {
         let mut args = Vec::new();
-        
+
+        self.parser.skip_newlines(); // skip newlines after '('
+
         if !matches!(self.parser.current_token(), Token::RightParen) {
             args.push(self.parse_expression()?);
-            
+            self.parser.skip_newlines(); // skip newlines after first argument
+
             while matches!(self.parser.current_token(), Token::Comma) {
                 self.parser.advance(); // consume ','
+                self.parser.skip_newlines(); // skip newlines after ','
+
+                // Check for trailing comma (comma followed by closing paren)
+                if matches!(self.parser.current_token(), Token::RightParen) {
+                    break;
+                }
+
                 args.push(self.parse_expression()?);
+                self.parser.skip_newlines(); // skip newlines after argument
             }
         }
-        
+
         Ok(args)
     }
 
@@ -268,21 +282,33 @@ impl<'a> ExpressionParser<'a> {
             }
             Token::LeftParen => {
                 self.parser.advance(); // consume '('
+                self.parser.skip_newlines(); // skip newlines after '('
                 let expr = self.parse_expression()?;
+                self.parser.skip_newlines(); // skip newlines before ')'
                 self.parser.expect(Token::RightParen)?;
                 Ok(expr)
             }
             Token::LeftBracket => {
                 // Массив
                 self.parser.advance(); // consume '['
+                self.parser.skip_newlines(); // skip newlines after '['
                 let mut elements = Vec::new();
 
                 if !matches!(self.parser.current_token(), Token::RightBracket) {
                     elements.push(self.parse_expression()?);
+                    self.parser.skip_newlines(); // skip newlines after first element
 
                     while matches!(self.parser.current_token(), Token::Comma) {
                         self.parser.advance(); // consume ','
+                        self.parser.skip_newlines(); // skip newlines after ','
+
+                        // Check for trailing comma (comma followed by closing bracket)
+                        if matches!(self.parser.current_token(), Token::RightBracket) {
+                            break;
+                        }
+
                         elements.push(self.parse_expression()?);
+                        self.parser.skip_newlines(); // skip newlines after element
                     }
                 }
 

@@ -54,6 +54,13 @@ impl Parser {
             ))
         }
     }
+
+    /// Пропустить все токены новой строки
+    pub fn skip_newlines(&mut self) {
+        while matches!(self.current_token, Token::Newline) {
+            self.advance();
+        }
+    }
     
     /// Парсить выражение
     pub fn parse_expression(&mut self) -> Result<Expr> {

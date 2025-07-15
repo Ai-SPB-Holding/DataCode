@@ -80,6 +80,9 @@ pub fn execute_multiline(interpreter: &mut Interpreter, code: &str) -> Result<()
             i = handle_if_statement(interpreter, &lines, i)?;
         } else if line == "try" {
             i = handle_try_statement(interpreter, &lines, i)?;
+        } else if is_incomplete_assignment(line) {
+            // Обрабатываем многострочные присваивания
+            i = handle_multiline_assignment(interpreter, &lines, i)?;
         } else {
             // Обычная строка - используем execute_line_simple чтобы избежать рекурсии
             execute_line_simple(interpreter, lines[i])?;
@@ -1288,4 +1291,66 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
         i += 1;
     }
     Ok(())
+}
+
+/// Проверить, является ли строка неполным присваиванием (содержит незакрытые скобки)
+fn is_incomplete_assignment(line: &str) -> bool {
+    // Проверяем, что это присваивание
+    if !(line.starts_with("global ") || line.starts_with("local ")) || !line.contains('=') {
+        return false;
+    }
+
+    // Подсчитываем открытые и закрытые скобки
+    let mut bracket_count = 0;
+    let mut paren_count = 0;
+    let mut brace_count = 0;
+    let mut in_string = false;
+    let mut escape_next = false;
+
+    for ch in line.chars() {
+        if escape_next {
+            escape_next = false;
+            continue;
+        }
+
+        match ch {
+            '\\' if in_string => escape_next = true,
+            '"' | '\'' => in_string = !in_string,
+            '[' if !in_string => bracket_count += 1,
+            ']' if !in_string => bracket_count -= 1,
+            '(' if !in_string => paren_count += 1,
+            ')' if !in_string => paren_count -= 1,
+            '{' if !in_string => brace_count += 1,
+            '}' if !in_string => brace_count -= 1,
+            _ => {}
+        }
+    }
+
+    // Если есть незакрытые скобки, это неполное присваивание
+    bracket_count > 0 || paren_count > 0 || brace_count > 0
+}
+
+/// Обработать многострочное присваивание
+fn handle_multiline_assignment(interpreter: &mut Interpreter, lines: &[&str], start_index: usize) -> Result<usize> {
+    let mut assignment_lines = vec![lines[start_index]];
+    let mut i = start_index + 1;
+
+    // Собираем строки до тех пор, пока присваивание не станет полным
+    while i < lines.len() {
+        assignment_lines.push(lines[i]);
+
+        // Объединяем все строки и проверяем, полное ли присваивание
+        let combined = assignment_lines.join("\n");
+        if !is_incomplete_assignment(&combined) {
+            break;
+        }
+
+        i += 1;
+    }
+
+    // Выполняем полное многострочное присваивание
+    let combined_assignment = assignment_lines.join("\n");
+    execute_line_simple(interpreter, &combined_assignment)?;
+
+    Ok(i)
 }
