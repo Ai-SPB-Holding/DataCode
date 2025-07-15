@@ -1,5 +1,7 @@
 # 🧠 DataCode - Interactive Programming Language
 
+<img width="935" height="451" alt="Screenshot 2025-07-15 at 16 32 23" src="https://github.com/user-attachments/assets/5f2d3745-dcf2-47cf-9caa-881c7d10ae71" />
+
 **DataCode** is a simple, interactive programming language designed for fast data processing and easy learning. It features an intuitive syntax, powerful array support, built-in functions, and user-defined functions with local scope.
 
 ## 🚀 Features
