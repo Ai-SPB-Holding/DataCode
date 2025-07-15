@@ -117,15 +117,18 @@ DataCode использует интеллектуальную типизаци�
 
 ```bash
 # Базовый пример
-datacode examples/table_demo.dc
+cargo run examples/04-обработка-данных/table_demo.dc
 
-# Продвинутый пример
-datacode examples/advanced_table_demo.dc
+# Фильтрация данных
+cargo run examples/04-обработка-данных/data_filtering_demo.dc
+
+# Перечисление данных
+cargo run examples/04-обработка-данных/enum_demo.dc
 
 # Интерактивный режим
-datacode
-> global data = read_file(getcwd() / "examples" / "sample_data.csv")
-> show_table(data)
+cargo run
+DataCode> global data = read_file(getcwd() / "examples" / "04-обработка-данных" / "sample_data.csv")
+DataCode> show_table(data)
 ```
 
 ## 💡 Советы по использованию

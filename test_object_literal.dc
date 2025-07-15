@@ -1,0 +1,13 @@
+try
+local f = {
+    name: ['Igor', 'Ivan'],
+    age: [25, 30]
+}
+
+for key, data in f do
+    print(key, data)
+forend
+
+catch e
+    print(e)
+endtry

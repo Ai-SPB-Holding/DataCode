@@ -1,0 +1,146 @@
+# Пример циклов for...in в DataCode
+print('🔄 Демонстрация циклов for...in')
+print('===============================')
+
+# Простой цикл по массиву чисел
+print('1. Простой цикл по числам:')
+global numbers = [1, 2, 3, 4, 5]
+print('Исходный массив:', numbers)
+
+for num in numbers do
+    global squared = num * num
+    print('  ', num, '² =', squared)
+forend
+
+print()
+
+# Цикл по строкам
+print('2. Цикл по строкам:')
+global languages = ['DataCode', 'Python', 'Rust', 'JavaScript']
+print('Языки программирования:')
+
+for lang in languages do
+    global message = 'Изучаю ' + lang
+    print('  -', message)
+forend
+
+print()
+
+# Цикл по смешанному массиву
+print('3. Цикл по смешанному массиву:')
+global mixed = [42, 'hello', true, 3.14, false]
+print('Смешанный массив:', mixed)
+
+for item in mixed do
+    if isinstance(item, integer) do
+        print('  Число:', item)
+    else
+        if isinstance(item, string) do
+            print('  Строка:', item)
+        else
+            if isinstance(item, boolean) do
+                print('  Булево:', item)
+            else
+                print('  Другой тип:', item)
+            endif
+        endif
+    endif
+forend
+
+print()
+
+# Цикл по литералу массива
+print('4. Цикл по литералу массива:')
+print('Таблица умножения на 3:')
+
+for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
+    global result = i * 3
+    print('  3 ×', i, '=', result)
+forend
+
+print()
+
+# Вложенные циклы с массивами
+print('5. Вложенные циклы:')
+global matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+print('Матрица 3×3:')
+
+global row_num = 0
+for row in matrix do
+    global row_num = row_num + 1
+    print('  Строка', row_num, ':')
+
+    for element in row do
+        print('    Элемент:', element)
+    forend
+forend
+
+print()
+
+# Цикл с условиями
+print('6. Цикл с условиями:')
+global grades = [85, 92, 78, 96, 88, 74, 91]
+print('Оценки студентов:', grades)
+
+global excellent_count = 0
+global good_count = 0
+global satisfactory_count = 0
+
+for grade in grades do
+    if grade >= 90 do
+        print('  ', grade, '- Отлично!')
+        global excellent_count = excellent_count + 1
+    else
+        if grade >= 80 do
+            print('  ', grade, '- Хорошо')
+            global good_count = good_count + 1
+        else
+            print('  ', grade, '- Удовлетворительно')
+            global satisfactory_count = satisfactory_count + 1
+        endif
+    endif
+forend
+
+print()
+print('Статистика:')
+print('  Отличных оценок:', excellent_count)
+print('  Хороших оценок:', good_count)
+print('  Удовлетворительных оценок:', satisfactory_count)
+
+print()
+
+# Цикл с вычислениями
+print('7. Цикл с накоплением:')
+global prices = [100, 250, 75, 320, 180]
+print('Цены товаров:', prices)
+
+global total = 0
+global count = 0
+global max_price = 0
+global min_price = 999999
+
+for price in prices do
+    global total = total + price
+    global count = count + 1
+
+    if price > max_price do
+        global max_price = price
+    endif
+
+    if price < min_price do
+        global min_price = price
+    endif
+forend
+
+global average = total / count
+
+print('Результаты анализа:')
+print('  Общая сумма:', total)
+print('  Количество товаров:', count)
+print('  Средняя цена:', average)
+print('  Максимальная цена:', max_price)
+print('  Минимальная цена:', min_price)
+
+print()
+print('✅ Все примеры циклов выполнены успешно!')
+print('💡 Циклы for...in - мощный инструмент для обработки данных в DataCode!')

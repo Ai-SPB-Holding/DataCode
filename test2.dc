@@ -1,0 +1,78 @@
+global success = false
+
+try
+local f = {
+    name: ['Igor', 'Ivan'],
+    age: [25, 30]
+}
+
+    for key, data in f do
+        print(key, data)
+    forend
+
+    success = true
+
+catch e
+    print("Error caught:", e)
+endtry
+
+print('success:', success)
+
+global success = false
+
+try
+    local f = {name: ['Igor', 'Ivan'],
+        age: [25, 30]
+    }
+
+    for key, data in f do
+        print(key, data)
+    forend
+
+    success = true
+
+catch e
+    print("Error caught:", e)
+endtry
+
+print('success:', success)
+
+global success = false
+
+try
+    local f = {
+        name: ['Igor', 'Ivan'],
+        age: [25, 30]
+    }
+
+    for key, data in f do
+        print(key, data)
+    forend
+
+    success = true
+
+catch e
+    print("Error caught:", e)
+endtry
+
+print('success:', success)
+
+global csv_path = getcwd() / 'test_data' / 'sample.csv'
+global csv_data = read_file(csv_path)
+
+# Подсчитываем количество строк
+global row_count = len(csv_data)
+
+# Получаем заголовки таблицы
+global headers = table_headers(csv_data)
+try
+# Получаем первую строку данных
+local collumn_name = csv_data['Name']
+global first_row = csv_data[0]
+print('first row:', first_row)
+catch e
+    print("Error caught:", e)
+endtry
+for data in csv_data do
+    print(data)
+forend

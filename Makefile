@@ -45,6 +45,36 @@ test:
 	@echo "🧪 Running tests..."
 	cargo test
 
+# Run tests with quiet output
+test-quiet:
+	@echo "🧪 Running tests (quiet mode)..."
+	cargo test --quiet
+
+# Run tests by category
+test-language:
+	@echo "🧪 Running language feature tests..."
+	cargo test language_features
+
+test-data:
+	@echo "🧪 Running data type tests..."
+	cargo test data_types
+
+test-builtins:
+	@echo "🧪 Running builtin function tests..."
+	cargo test builtins
+
+test-errors:
+	@echo "🧪 Running error handling tests..."
+	cargo test error_handling
+
+test-performance:
+	@echo "🧪 Running performance tests..."
+	cargo test performance
+
+test-integration:
+	@echo "🧪 Running integration tests..."
+	cargo test integration
+
 # Start REPL
 run:
 	@echo "🚀 Starting DataCode REPL..."
