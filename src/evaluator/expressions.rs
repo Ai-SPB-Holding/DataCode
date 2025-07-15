@@ -29,6 +29,7 @@ impl<'a> ExpressionEvaluator<'a> {
             Expr::Member { object, member } => self.evaluate_member(object, member),
             Expr::ArrayLiteral { elements } => self.evaluate_array_literal(elements),
             Expr::ObjectLiteral { pairs } => self.evaluate_object_literal(pairs),
+            Expr::Spread { expression } => self.evaluate_spread(expression),
             Expr::TryBlock { .. } => self.evaluate_try_block(),
             Expr::ThrowStatement { message } => self.evaluate_throw_statement(message),
         }
@@ -92,6 +93,16 @@ impl<'a> ExpressionEvaluator<'a> {
             object_map.insert(key.clone(), value);
         }
         Ok(Value::Object(object_map))
+    }
+
+    /// Вычислить spread выражение
+    fn evaluate_spread(&self, expression: &Expr) -> Result<Value> {
+        // Spread выражения не должны вычисляться напрямую
+        // Они обрабатываются специально в контексте вызова функций
+        Err(DataCodeError::runtime_error(
+            "Spread operator can only be used in function calls",
+            self.evaluator.line()
+        ))
     }
 
     /// Обработать try блок (не поддерживается в выражениях)

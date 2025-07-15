@@ -975,6 +975,43 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
             }
             Ok(())
         }
+        Value::Object(ref obj) => {
+            // Сортируем ключи для предсказуемого порядка итерации
+            let mut keys: Vec<_> = obj.keys().collect();
+            keys.sort();
+
+            for key in keys {
+                if let Some(value) = obj.get(key) {
+                    if variables.len() == 1 {
+                        // Простое присваивание - создаем массив [ключ, значение]
+                        let key_value_pair = Value::Array(vec![
+                            Value::String(key.clone()),
+                            value.clone(),
+                        ]);
+                        interpreter.set_loop_variable(variables[0].to_string(), key_value_pair);
+                    } else if variables.len() == 2 {
+                        // Деструктуризация на ключ и значение
+                        interpreter.set_loop_variable(variables[0].to_string(), Value::String(key.clone()));
+                        interpreter.set_loop_variable(variables[1].to_string(), value.clone());
+                    } else {
+                        interpreter.exit_loop_scope();
+                        return Err(DataCodeError::runtime_error(
+                            &format!("Object iteration supports 1 or 2 variables, got {}", variables.len()),
+                            interpreter.current_line
+                        ));
+                    }
+
+                    // Выполняем тело цикла
+                    execute_block_directly(interpreter, &body_lines)?;
+
+                    // Проверяем return
+                    if interpreter.return_value.is_some() {
+                        break;
+                    }
+                }
+            }
+            Ok(())
+        }
         _ => Err(DataCodeError::runtime_error(
             &format!("Cannot iterate over {:?}", iterable_value),
             interpreter.current_line,
@@ -1286,8 +1323,42 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
             continue;
         }
 
-        // Выполняем обычную строку кода
-        execute_line_simple(interpreter, line)?;
+        // Обрабатываем циклы for
+        if line.starts_with("for ") && line.ends_with(" do") {
+            // Находим соответствующий forend
+            let mut for_lines = Vec::new();
+            let mut j = i;
+            let mut for_count = 0;
+
+            while j < lines.len() {
+                let current_line = lines[j].trim();
+                for_lines.push(current_line);
+
+                if current_line.starts_with("for ") && current_line.ends_with(" do") {
+                    for_count += 1;
+                } else if current_line == "forend" {
+                    for_count -= 1;
+                    if for_count == 0 {
+                        break;
+                    }
+                }
+                j += 1;
+            }
+
+            // Выполняем for цикл
+            execute_for_loop_iteratively(interpreter, &for_lines)?;
+            i = j + 1;
+            continue;
+        }
+
+        // Проверяем на многострочные присваивания
+        if is_incomplete_assignment(line) {
+            // Обрабатываем многострочные присваивания
+            i = handle_multiline_assignment_in_try_block(interpreter, lines, i)?;
+        } else {
+            // Выполняем обычную строку кода
+            execute_line_simple(interpreter, line)?;
+        }
         i += 1;
     }
     Ok(())
@@ -1332,6 +1403,31 @@ fn is_incomplete_assignment(line: &str) -> bool {
 
 /// Обработать многострочное присваивание
 fn handle_multiline_assignment(interpreter: &mut Interpreter, lines: &[&str], start_index: usize) -> Result<usize> {
+    let mut assignment_lines = vec![lines[start_index]];
+    let mut i = start_index + 1;
+
+    // Собираем строки до тех пор, пока присваивание не станет полным
+    while i < lines.len() {
+        assignment_lines.push(lines[i]);
+
+        // Объединяем все строки и проверяем, полное ли присваивание
+        let combined = assignment_lines.join("\n");
+        if !is_incomplete_assignment(&combined) {
+            break;
+        }
+
+        i += 1;
+    }
+
+    // Выполняем полное многострочное присваивание
+    let combined_assignment = assignment_lines.join("\n");
+    execute_line_simple(interpreter, &combined_assignment)?;
+
+    Ok(i)
+}
+
+/// Обработать многострочное присваивание в try блоке
+fn handle_multiline_assignment_in_try_block(interpreter: &mut Interpreter, lines: &[&str], start_index: usize) -> Result<usize> {
     let mut assignment_lines = vec![lines[start_index]];
     let mut i = start_index + 1;
 

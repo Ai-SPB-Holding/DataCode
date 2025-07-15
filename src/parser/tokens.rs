@@ -99,6 +99,9 @@ pub enum Expr {
     ObjectLiteral {
         pairs: Vec<(String, Expr)>,
     },
+    Spread {
+        expression: Box<Expr>,
+    },
     TryBlock {
         try_body: Vec<String>,
         catch_var: Option<String>,

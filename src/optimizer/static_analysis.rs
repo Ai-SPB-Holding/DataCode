@@ -139,6 +139,11 @@ impl StaticAnalyzer {
                 }
                 Ok(DataType::Mixed) // Объекты представляем как смешанный тип
             }
+            Expr::Spread { expression } => {
+                // Анализируем выражение внутри spread оператора
+                self.analyze_expression(expression, context)?;
+                Ok(DataType::Mixed) // Spread может возвращать различные типы
+            }
             Expr::TryBlock { .. } => {
                 // Try блоки не возвращают значения в выражениях
                 Ok(DataType::Null)

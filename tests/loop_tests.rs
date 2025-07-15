@@ -119,7 +119,7 @@ forend"#;
     }
 
     #[test]
-    #[ignore = "Not implemented yet"]
+    //#[ignore = "Not implemented yet"]
     fn test_for_loop_with_user_functions() {
         let mut interp = Interpreter::new();
         
@@ -199,25 +199,17 @@ forend"#;
     }
 
     #[test]
-    #[ignore = "Not implemented yet"]
-    fn test_for_loop_non_array_error() {
+    fn test_for_loop_string() {
         let mut interp = Interpreter::new();
         
-        interp.exec("global not_array = 'string'").unwrap();
+        interp.exec("global result = ''").unwrap();
         
-        let loop_code = r#"for item in not_array do
-    print(item)
+        let loop_code = r#"for item in 'string' do
+    result = result + item
 forend"#;
-        
-        let result = interp.exec(loop_code);
-        assert!(result.is_err());
-        
-        match result.unwrap_err() {
-            DataCodeError::TypeError { expected, .. } => {
-                assert_eq!(expected, "Array");
-            }
-            _ => panic!("Expected TypeError"),
-        }
+
+        interp.exec(loop_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("string".to_string())));
     }
 
     #[test]

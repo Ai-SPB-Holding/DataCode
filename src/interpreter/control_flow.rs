@@ -45,6 +45,7 @@ impl ControlFlowHandler {
                 Self::iterate_over_table(interpreter, variable, &*table_borrowed, body)
             },
             Value::String(s) => Self::iterate_over_string(interpreter, variable, &s, body),
+            Value::Object(obj) => Self::iterate_over_object(interpreter, variable, &obj, body),
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot iterate over {:?}", iterable_value),
                 interpreter.current_line,
@@ -184,12 +185,44 @@ impl ControlFlowHandler {
                 variable.to_string(),
                 Value::String(ch.to_string()),
             );
-            
+
             Self::execute_block(interpreter, body)?;
-            
+
             // Если был return, выходим из цикла
             if interpreter.return_value.is_some() {
                 break;
+            }
+        }
+        Ok(())
+    }
+
+    /// Итерация по объекту (по парам ключ-значение)
+    fn iterate_over_object(
+        interpreter: &mut Interpreter,
+        variable: &str,
+        object: &std::collections::HashMap<String, Value>,
+        body: &[String],
+    ) -> Result<()> {
+        // Сортируем ключи для предсказуемого порядка итерации
+        let mut keys: Vec<_> = object.keys().collect();
+        keys.sort();
+
+        for key in keys {
+            if let Some(value) = object.get(key) {
+                // Создаем массив [ключ, значение] для итерации
+                let key_value_pair = Value::Array(vec![
+                    Value::String(key.clone()),
+                    value.clone(),
+                ]);
+
+                interpreter.set_loop_variable(variable.to_string(), key_value_pair);
+
+                Self::execute_block(interpreter, body)?;
+
+                // Если был return, выходим из цикла
+                if interpreter.return_value.is_some() {
+                    break;
+                }
             }
         }
         Ok(())

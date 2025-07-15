@@ -20,17 +20,56 @@ impl<'a> FunctionCallHandler<'a> {
     
     /// Вычислить вызов функции
     pub fn evaluate(&self, name: &str, args: &[Expr]) -> Result<Value> {
-        // Вычисляем аргументы
+        // Вычисляем аргументы с поддержкой spread оператора
         let mut arg_values = Vec::new();
         for arg in args {
-            let arg_value = self.evaluator.evaluate(arg)?;
-            arg_values.push(arg_value);
+            match arg {
+                Expr::Spread { expression } => {
+                    // Обрабатываем spread оператор
+                    let spread_value = self.evaluator.evaluate(expression)?;
+                    self.expand_spread_argument(spread_value, &mut arg_values)?;
+                }
+                _ => {
+                    let arg_value = self.evaluator.evaluate(arg)?;
+                    arg_values.push(arg_value);
+                }
+            }
         }
-        
+
         // Вызываем функцию
         self.call_function(name, arg_values)
     }
     
+    /// Развернуть spread аргумент в список значений
+    fn expand_spread_argument(&self, spread_value: Value, arg_values: &mut Vec<Value>) -> Result<()> {
+        match spread_value {
+            Value::Object(obj) => {
+                // Для объектов добавляем значения в порядке ключей
+                // Сначала собираем ключи и сортируем их для предсказуемого порядка
+                let mut keys: Vec<_> = obj.keys().collect();
+                keys.sort();
+
+                for key in keys {
+                    if let Some(value) = obj.get(key) {
+                        arg_values.push(value.clone());
+                    }
+                }
+                Ok(())
+            }
+            Value::Array(arr) => {
+                // Для массивов добавляем все элементы
+                for item in arr {
+                    arg_values.push(item);
+                }
+                Ok(())
+            }
+            _ => Err(DataCodeError::runtime_error(
+                "Spread operator can only be used with objects or arrays",
+                self.evaluator.line()
+            ))
+        }
+    }
+
     /// Вызвать функцию с готовыми значениями аргументов
     pub fn call_function(&self, name: &str, args: Vec<Value>) -> Result<Value> {
         // Сначала проверяем встроенные функции

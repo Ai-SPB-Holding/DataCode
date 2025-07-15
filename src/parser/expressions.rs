@@ -233,7 +233,7 @@ impl<'a> ExpressionParser<'a> {
         self.parser.skip_newlines(); // skip newlines after '('
 
         if !matches!(self.parser.current_token(), Token::RightParen) {
-            args.push(self.parse_expression()?);
+            args.push(self.parse_function_arg()?);
             self.parser.skip_newlines(); // skip newlines after first argument
 
             while matches!(self.parser.current_token(), Token::Comma) {
@@ -245,12 +245,27 @@ impl<'a> ExpressionParser<'a> {
                     break;
                 }
 
-                args.push(self.parse_expression()?);
+                args.push(self.parse_function_arg()?);
                 self.parser.skip_newlines(); // skip newlines after argument
             }
         }
 
         Ok(args)
+    }
+
+    /// Парсить один аргумент функции (может быть обычным выражением или spread)
+    fn parse_function_arg(&mut self) -> Result<Expr> {
+        if matches!(self.parser.current_token(), Token::Multiply) {
+            // Spread operator
+            self.parser.advance(); // consume '*'
+            let expression = self.parse_expression()?;
+            Ok(Expr::Spread {
+                expression: Box::new(expression),
+            })
+        } else {
+            // Обычное выражение
+            self.parse_expression()
+        }
     }
 
     /// Парсить первичные выражения (литералы, переменные, скобки)
@@ -318,6 +333,7 @@ impl<'a> ExpressionParser<'a> {
             Token::LeftBrace => {
                 // Объект
                 self.parser.advance(); // consume '{'
+                self.parser.skip_newlines(); // skip newlines after '{'
                 let mut pairs = Vec::new();
 
                 if !matches!(self.parser.current_token(), Token::RightBrace) {
@@ -342,10 +358,12 @@ impl<'a> ExpressionParser<'a> {
                     self.parser.expect(Token::Colon)?;
                     let value = self.parse_expression()?;
                     pairs.push((key, value));
+                    self.parser.skip_newlines(); // skip newlines after first pair
 
                     // Парсим остальные пары
                     while matches!(self.parser.current_token(), Token::Comma) {
                         self.parser.advance(); // consume ','
+                        self.parser.skip_newlines(); // skip newlines after ','
 
                         // Проверяем, не закрывающая ли это скобка (trailing comma)
                         if matches!(self.parser.current_token(), Token::RightBrace) {
@@ -372,6 +390,7 @@ impl<'a> ExpressionParser<'a> {
                         self.parser.expect(Token::Colon)?;
                         let value = self.parse_expression()?;
                         pairs.push((key, value));
+                        self.parser.skip_newlines(); // skip newlines after pair
                     }
                 }
 

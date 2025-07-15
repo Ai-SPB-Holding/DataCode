@@ -141,6 +141,11 @@ impl<'a> ExpressionEvaluator<'a> {
                 self.evaluate_member_access(&obj_val, member)
             }
 
+            Expr::Spread { .. } => Err(DataCodeError::runtime_error(
+                "Spread operator can only be used in function calls",
+                self.current_line,
+            )),
+
             _ => Err(DataCodeError::runtime_error(
                 "Unsupported expression type",
                 self.current_line,

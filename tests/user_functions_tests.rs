@@ -89,7 +89,7 @@ endfunction"#;
     }
 
     #[test]
-    #[ignore = "Not implemented yet"]
+    //#[ignore = "Not implemented yet"]
     fn test_recursive_function() {
         let mut interp = Interpreter::new();
 
