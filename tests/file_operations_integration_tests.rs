@@ -30,7 +30,7 @@ mod file_operations_integration_tests {
                 print('Reading file:', full_path)
                 local content = read_file(full_path)
                 global file_contents = append(file_contents, content)
-            forend
+            next file
         "#;
         
         let result = interp.exec(workflow_code);
@@ -239,7 +239,7 @@ mod file_operations_integration_tests {
                 local file_path = test_dir / filename
                 local content = read_file(file_path)
                 # Упрощенная классификация без функций type() и contains()
-            forend
+            next filename
         "#;
         
         let result = interp.exec(mixed_processing_code);

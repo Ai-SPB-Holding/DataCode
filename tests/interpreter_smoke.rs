@@ -58,7 +58,7 @@ fn test_for_loop_accumulation() {
     let code = "\
         for item in items do
             global last = item
-        forend";
+        next item";
 
     interp.exec(code).unwrap();
 

@@ -13,9 +13,9 @@ for i in range(100) do
     for j in range(500) do
         global current_array = push(current_array, i * 500 + j)
         global total_elements = total_elements + 1
-    forend
+    next j
     global large_arrays = push(large_arrays, current_array)
-forend
+next i
 
 print("Created", len(large_arrays), "arrays with", total_elements, "total elements")
 
@@ -28,7 +28,7 @@ for i in range(1000) do
     global part = "DataCode_Performance_Test_String_Part_" + i + "_"
     global string_parts = push(string_parts, part)
     global large_string = large_string + part
-forend
+next i
 
 print("String operations completed. Final string length:", len(large_string))
 
@@ -42,11 +42,11 @@ for i in range(50) do
         global level2 = []
         for k in range(20) do
             global level2 = push(level2, [i, j, k, i*j*k])
-        forend
+        next k
         global level1 = push(level1, level2)
-    forend
+    next j
     global nested_structure = push(nested_structure, level1)
-forend
+next i
 
 print("Nested structure created with dimensions: 50x50x20")
 
@@ -58,7 +58,7 @@ global table_headers = ['id', 'data1', 'data2', 'data3', 'data4', 'data5']
 for i in range(2000) do
     global row = [i, i*2, i*3, i*4, i*5, i*6]
     global table_data = push(table_data, row)
-forend
+next i
 
 global performance_table = table_create(table_data, table_headers)
 
@@ -77,10 +77,10 @@ for i in range(100) do
     global temp_array = []
     for j in range(100) do
         global temp_array = push(temp_array, j)
-    forend
+    next j
     # Reassign to simulate memory cleanup
     global temp_array = []
-forend
+next i
 
 print("Memory cleanup simulation completed")
 

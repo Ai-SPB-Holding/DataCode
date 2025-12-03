@@ -11,7 +11,7 @@ fn test_simple_range_loop() {
         for i in range(3) do
             global counter = counter + 1
             print("Loop iteration, i =", i, "counter =", counter)
-        forend
+        next i
     "#;
 
     let result = interp.exec(code);
@@ -62,7 +62,7 @@ fn test_manual_array_loop() {
         global counter = 0
         for i in test_array do
             global counter = counter + 1
-        forend
+        next i
     "#;
     
     let result = interp.exec(code);

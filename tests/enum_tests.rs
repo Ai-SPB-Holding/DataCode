@@ -197,7 +197,7 @@ mod enum_tests {
                 global value = pair[1]
                 global indices = push(indices, index)
                 global values = push(values, value)
-            forend
+            next pair
         "#;
         
         interp.exec(loop_code).unwrap();

@@ -150,7 +150,7 @@ global trailing = [1, 2, 3,]
 # Использование в циклах
 for item in [1, 2, 3] do
     print('Item:', item)
-forend
+next item
 ```
 
 ### 🔹 Операторы сравнения
@@ -195,24 +195,24 @@ for file in files do
     local path = basePath / 'data' / file
     local text = read_file(path)
     print('>>', file, 'length:', text)
-forend
+next file
 
 # Цикл по литералу массива
 for number in [1, 2, 3, 4, 5] do
     print('Number:', number, 'Squared:', number * number)
-forend
+next number
 
 # Цикл по смешанному массиву
 for item in ['hello', 42, true] do
     print('Item:', item)
-forend
+next item
 
 # Цикл по вложенному массиву
 for row in [[1, 2], [3, 4], [5, 6]] do
     print('Row:', row, 'Sum:', sum(row))
-forend
+next row
 ```
-- `for x in array do ... forend` - итерация по массиву
+- `for x in array do ... next x` - итерация по массиву
 - `x` — переменная, доступная внутри тела цикла
 - Поддерживаются как переменные-массивы, так и литералы массивов
 
@@ -322,14 +322,14 @@ for file in files do
         print('📊 Содержимое таблицы:')
         table_head(table, 3)
     endif
-forend
+next file
 
 print('')
 print('🔢 Работа с вложенными массивами')
 for row in matrix do
     local row_sum = sum(row)
     print('Строка:', row, 'Сумма:', row_sum)
-forend
+next row
 
 print('✅ Анализ завершен!')
 ```
@@ -440,7 +440,7 @@ REPL поддерживает многострочный ввод для цик�
 ...     print('Number:', i)
 ...     global doubled = i * 2
 ...     print('Doubled:', doubled)
-... forend
+... next i
 Number: 1
 Doubled: 2
 Number: 2

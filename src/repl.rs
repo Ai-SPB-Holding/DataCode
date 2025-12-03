@@ -9,6 +9,7 @@ pub struct Repl {
     multiline_buffer: Vec<String>,
     in_multiline: bool,
     multiline_type: Option<MultilineType>,
+    for_loop_vars: Vec<String>, // Стек переменных для отслеживания вложенных циклов
     editor: DefaultEditor,
 }
 
@@ -32,6 +33,7 @@ impl Repl {
             multiline_buffer: Vec::new(),
             in_multiline: false,
             multiline_type: None,
+            for_loop_vars: Vec::new(),
             editor,
         })
     }
@@ -118,6 +120,7 @@ impl Repl {
                 self.multiline_buffer.clear();
                 self.in_multiline = false;
                 self.multiline_type = None;
+                self.for_loop_vars.clear();
                 println!("Interpreter reset! 🔄");
                 true
             }
@@ -152,15 +155,40 @@ impl Repl {
 
         // Если мы в многострочном режиме
         if self.in_multiline {
-            // Проверяем окончание многострочных конструкций
             let trimmed = line.trim();
             let should_end = match self.multiline_type {
-                Some(MultilineType::ForLoop) => trimmed == "forend",
+                Some(MultilineType::ForLoop) => {
+                    // Проверяем next <variable>
+                    if trimmed.starts_with("next ") {
+                        let next_var = trimmed.strip_prefix("next ").unwrap().trim();
+                        if let Some(last_var) = self.for_loop_vars.last() {
+                            next_var == *last_var
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                },
                 Some(MultilineType::IfStatement) => trimmed == "endif",
                 Some(MultilineType::Function) => trimmed == "endfunction",
                 Some(MultilineType::Comment) => trimmed.ends_with("\"\"\""),
                 None => false,
             };
+
+            // Если это новый вложенный цикл for, добавляем его переменную в стек
+            if matches!(self.multiline_type, Some(MultilineType::ForLoop)) {
+                if trimmed.starts_with("for ") && trimmed.ends_with(" do") {
+                    if let Some(var_name) = self.parse_for_variable(&trimmed) {
+                        self.for_loop_vars.push(var_name);
+                    }
+                } else if trimmed.starts_with("next ") {
+                    if should_end {
+                        // Удаляем переменную из стека
+                        self.for_loop_vars.pop();
+                    }
+                }
+            }
 
             if should_end {
                 if matches!(self.multiline_type, Some(MultilineType::Comment)) {
@@ -179,11 +207,35 @@ impl Repl {
         }
     }
 
+    fn parse_for_variable(&self, line: &str) -> Option<String> {
+        let trimmed = line.trim();
+        if trimmed.starts_with("for ") && trimmed.ends_with(" do") {
+            let for_part = trimmed.strip_prefix("for ").unwrap().strip_suffix(" do").unwrap();
+            let parts: Vec<&str> = for_part.split(" in ").collect();
+            if parts.len() == 2 {
+                // Берем первую переменную (для деструктуризации типа "i, j" берем "i")
+                let var_part = parts[0].trim();
+                let first_var = var_part.split(',').next().unwrap_or(var_part).trim();
+                if !first_var.is_empty() {
+                    return Some(first_var.to_string());
+                }
+            }
+        }
+        None
+    }
+
     fn start_multiline(&mut self, line: String, multiline_type: MultilineType) {
         self.in_multiline = true;
-        self.multiline_type = Some(multiline_type);
+        self.multiline_type = Some(multiline_type.clone());
         self.multiline_buffer.clear();
-        self.multiline_buffer.push(line);
+        self.multiline_buffer.push(line.clone());
+        
+        // Если это цикл for, добавляем переменную в стек
+        if matches!(multiline_type, MultilineType::ForLoop) {
+            if let Some(var_name) = self.parse_for_variable(&line) {
+                self.for_loop_vars.push(var_name);
+            }
+        }
     }
 
     fn execute_multiline(&mut self) {
@@ -194,6 +246,7 @@ impl Repl {
         self.in_multiline = false;
         self.multiline_type = None;
         self.multiline_buffer.clear();
+        self.for_loop_vars.clear();
     }
 
     fn end_multiline(&mut self) {
@@ -201,6 +254,7 @@ impl Repl {
         self.in_multiline = false;
         self.multiline_type = None;
         self.multiline_buffer.clear();
+        self.for_loop_vars.clear();
     }
 
     fn execute_single_line(&mut self, line: String) {
@@ -279,7 +333,7 @@ impl Repl {
         println!("🔄 For Loops:");
         println!("  for item in array do");
         println!("      print(item)");
-        println!("  forend");
+        println!("  next item");
         println!();
         println!("🔧 User Functions:");
         println!("  global function add(a, b) do");

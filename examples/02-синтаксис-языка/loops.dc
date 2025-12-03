@@ -10,7 +10,7 @@ print('Исходный массив:', numbers)
 for num in numbers do
     global squared = num * num
     print('  ', num, '² =', squared)
-forend
+next num
 
 print()
 
@@ -22,7 +22,7 @@ print('Языки программирования:')
 for lang in languages do
     global message = 'Изучаю ' + lang
     print('  -', message)
-forend
+next lang
 
 print()
 
@@ -45,7 +45,7 @@ for item in mixed do
             endif
         endif
     endif
-forend
+next item
 
 print()
 
@@ -56,7 +56,7 @@ print('Таблица умножения на 3:')
 for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
     global result = i * 3
     print('  3 ×', i, '=', result)
-forend
+next i
 
 print()
 
@@ -72,8 +72,8 @@ for row in matrix do
 
     for element in row do
         print('    Элемент:', element)
-    forend
-forend
+    next element
+next row
 
 print()
 
@@ -99,7 +99,7 @@ for grade in grades do
             global satisfactory_count = satisfactory_count + 1
         endif
     endif
-forend
+next grade
 
 print()
 print('Статистика:')
@@ -130,7 +130,7 @@ for price in prices do
     if price < min_price do
         global min_price = price
     endif
-forend
+next price
 
 global average = total / count
 

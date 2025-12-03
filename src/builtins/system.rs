@@ -52,7 +52,13 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
             let parts: Vec<std::string::String> = args.into_iter()
                 .map(|v| format_value_for_print(&v))
                 .collect();
-            println!("{}", parts.join(" "));
+            let output = parts.join(" ");
+            
+            // Используем OutputCapture, который сам решает, куда писать
+            // Если перехват активен - пишет в буфер, иначе в stdout
+            use crate::websocket::output_capture::OutputCapture;
+            OutputCapture::write_output(&output);
+            
             Ok(Value::Null)
         }
         

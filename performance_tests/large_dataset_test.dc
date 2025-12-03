@@ -28,7 +28,7 @@ for i in range(10000) do
         'Location_' + loc_mod
     ]
     global large_data = push(large_data, row)
-forend
+next i
 
 print("Dataset created. Creating table...")
 global employees = table_create(large_data, headers)
@@ -64,7 +64,7 @@ for i in range(len(performance_scores)) do
     if performance_scores[i] > 0.8 do
         global high_performers = push(high_performers, employee_names[i])
     endif
-forend
+next i
 
 print("Complex processing completed.")
 

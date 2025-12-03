@@ -138,7 +138,7 @@ DataCode> print(square(5))
 - **Операторы сравнения**: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - **Условные конструкции**: `if condition do ... else ... endif`
 - **Пользовательские функции**: `global/local function name(params) do ... endfunction`
-- **Циклы**: `for item in array do ... forend`
+- **Циклы**: `for item in array do ... next item`
 - **Рекурсия**: функции могут вызывать сами себя
 - **Комментарии**: `# Это комментарий`
 

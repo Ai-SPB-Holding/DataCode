@@ -151,7 +151,7 @@ mod comprehensive_performance_tests {
             global loop_result = 0
             for i in range(100) do
                 global loop_result = loop_result + i
-            forend
+            next i
             "#;
             interp.exec(code)
                 .map_err(|e| format!("Loop operation failed: {:?}", e))
@@ -208,7 +208,7 @@ mod comprehensive_performance_tests {
                 global category = i - (i / 100) * 100
                 global row = [i, 'Item_' + i, i * 1.5, category]
                 global large_data = push(large_data, row)
-            forend
+            next i
             global headers = ['id', 'name', 'value', 'category']
             global large_table = table_create(large_data, headers)
             "#;

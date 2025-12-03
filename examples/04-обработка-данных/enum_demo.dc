@@ -21,7 +21,7 @@ for pair in enumerated_fruits do
     global index = pair[0]
     global value = pair[1]
     print('  Индекс:', index, '-> Значение:', value)
-forend
+next pair
 print()
 
 # 2. Использование enum() в циклах для обработки данных
@@ -37,7 +37,7 @@ for pair in enum(numbers) do
     global num = pair[1]
     global doubled = num * 2
     print('  [', i, ']', num, '* 2 =', doubled)
-forend
+next pair
 print()
 
 # 3. Фильтрация по индексам
@@ -56,7 +56,7 @@ for pair in enum(data) do
     if is_even do
         print('  Индекс', idx, ':', val)
     endif
-forend
+next pair
 print()
 
 # 4. Использование с строками
@@ -74,7 +74,7 @@ for pair in enumerated_chars do
     global pos = pair[0]
     global char = pair[1]
     print('  Позиция', pos, ':', char)
-forend
+next pair
 print()
 
 # 5. Поиск элементов с их позициями
@@ -94,7 +94,7 @@ for pair in enum(colors) do
     if color == search_color do
         print('  Найден на позиции:', position)
     endif
-forend
+next pair
 print()
 
 # 6. Создание индексированного словаря
@@ -109,7 +109,7 @@ for pair in enum(items) do
     global num = pair[0] + 1  # Начинаем с 1 вместо 0
     global task = pair[1]
     print('  ', num, '.', task)
-forend
+next pair
 print()
 
 # 7. Сравнение соседних элементов
@@ -141,7 +141,7 @@ for pair in enum(prices) do
             endif
         endif
     endif
-forend
+next pair
 print()
 
 # 8. Работа с вложенными структурами
@@ -162,8 +162,8 @@ for pair in enum(matrix) do
         global col_idx = inner_pair[0]
         global value = inner_pair[1]
         print('    [', row_idx, ',', col_idx, '] =', value)
-    forend
-forend
+    next inner_pair
+next pair
 print()
 
 # 9. Практический пример: обработка данных клиентов
@@ -194,7 +194,7 @@ for pair in enum(customers) do
             print('    -> Новый клиент')
         endif
     endif
-forend
+next pair
 print()
 
 # 10. Функция для работы с enum
@@ -220,7 +220,7 @@ global function find_max_with_index(arr) do
                 endif
             endif
         endif
-    forend
+    next pair
 
     return [max_index, max_value]
 endfunction

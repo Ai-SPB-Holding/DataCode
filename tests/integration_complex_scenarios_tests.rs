@@ -27,7 +27,7 @@ mod integration_complex_scenarios_tests {
         for item in test_array do
             global doubled = item * 2
             global result_array = append(result_array, doubled)
-        forend
+        next item
 
         global operations_count = len(test_array)
         "#;
@@ -84,7 +84,7 @@ mod integration_complex_scenarios_tests {
             if revenue > 1000 do
                 global high_revenue_count = high_revenue_count + 1
             endif
-        forend
+        next i
         "#;
         
         let result = interp.exec(code);

@@ -112,7 +112,7 @@ global start_time = now()
 # Ваш код для тестирования
 for i in [1, 2, 3, 4, 5] do
     # некоторые операции
-forend
+next i
 
 global end_time = now()
 print('Время выполнения:', end_time - start_time)
@@ -124,7 +124,7 @@ print('Время выполнения:', end_time - start_time)
 global large_array = []
 for i in range(1000) do
     push(large_array, i)
-forend
+next i
 
 # Тестирование производительности операций
 global sum_result = sum(large_array)

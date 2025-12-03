@@ -92,7 +92,7 @@ fn test_function_with_array_parameter() {
             local total = 0
             for item in arr do
                 total = total + item
-            forend
+            next item
             return total
         endfunction
 

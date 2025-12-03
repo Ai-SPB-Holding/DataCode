@@ -21,7 +21,7 @@ mod loop_tests {
         
         let loop_code = r#"for num in numbers do
     global sum = sum + num
-forend"#;
+next num"#;
         
         interp.exec(loop_code).unwrap();
         assert_eq!(interp.get_variable("sum"), Some(&Value::Number(6.0)));
@@ -42,7 +42,7 @@ forend"#;
         
         let loop_code = r#"for word in words do
     global result = result + word
-forend"#;
+next word"#;
         
         interp.exec(loop_code).unwrap();
         assert_eq!(interp.get_variable("result"), Some(&Value::String("Hello World".to_string())));
@@ -62,7 +62,7 @@ forend"#;
         
         let loop_code = r#"for item in items do
     global last_item = item
-forend"#;
+next item"#;
         
         interp.exec(loop_code).unwrap();
         
@@ -82,7 +82,7 @@ forend"#;
         
         let loop_code = r#"for item in empty do
     global counter = counter + 1
-forend"#;
+next item"#;
         
         interp.exec(loop_code).unwrap();
         
@@ -112,7 +112,7 @@ forend"#;
     if num == 4 do
         global even_sum = even_sum + num
     endif
-forend"#;
+next num"#;
         
         interp.exec(simple_loop_code).unwrap();
         assert_eq!(interp.get_variable("even_sum"), Some(&Value::Number(6.0))); // 2 + 4
@@ -140,7 +140,7 @@ endfunction"#;
         
         let loop_code = r#"for num in numbers do
     global doubled_sum = doubled_sum + double(num)
-forend"#;
+next num"#;
         
         interp.exec(loop_code).unwrap();
         assert_eq!(interp.get_variable("doubled_sum"), Some(&Value::Number(12.0))); // (1*2) + (2*2) + (3*2)
@@ -165,8 +165,8 @@ forend"#;
         let nested_loop_code = r#"for i in outer do
     for j in inner do
         global product_sum = product_sum + (i * j)
-    forend
-forend"#;
+    next j
+next i"#;
         
         interp.exec(nested_loop_code).unwrap();
         // (1*10) + (1*20) + (2*10) + (2*20) = 10 + 20 + 20 + 40 = 90
@@ -177,7 +177,7 @@ forend"#;
     fn test_for_loop_syntax_errors() {
         let mut interp = Interpreter::new();
         
-        // Отсутствует forend
+        // Отсутствует next
         let bad_loop1 = r#"for item in items do
     print(item)"#;
         let result = interp.exec(bad_loop1);
@@ -186,14 +186,14 @@ forend"#;
         // Неправильный синтаксис for
         let bad_loop2 = r#"for item items do
     print(item)
-forend"#;
+next item"#;
         let result = interp.exec(bad_loop2);
         assert!(result.is_err());
         
         // Отсутствует 'in'
         let bad_loop3 = r#"for item do
     print(item)
-forend"#;
+next item"#;
         let result = interp.exec(bad_loop3);
         assert!(result.is_err());
     }
@@ -206,7 +206,7 @@ forend"#;
         
         let loop_code = r#"for item in 'string' do
     result = result + item
-forend"#;
+next item"#;
 
         interp.exec(loop_code).unwrap();
         assert_eq!(interp.get_variable("result"), Some(&Value::String("string".to_string())));
@@ -218,7 +218,7 @@ forend"#;
         
         let loop_code = r#"for item in undefined_array do
     print(item)
-forend"#;
+next item"#;
         
         let result = interp.exec(loop_code);
         assert!(result.is_err());
@@ -244,7 +244,7 @@ forend"#;
         if num == 4 do
             return num
         endif
-    forend
+    next num
     return -1
 endfunction"#;
         
@@ -277,7 +277,7 @@ endfunction"#;
         let loop_code = r#"for item in items do
     global collected = collected + item
     global count = count + 1
-forend"#;
+next item"#;
         
         interp.exec(loop_code).unwrap();
         
@@ -299,7 +299,7 @@ forend"#;
         
         let loop_code = r#"for val in values do
     global result = result + (val * val + 1)
-forend"#;
+next val"#;
         
         interp.exec(loop_code).unwrap();
         // (1*1+1) + (2*2+1) + (3*3+1) = 2 + 5 + 10 = 17

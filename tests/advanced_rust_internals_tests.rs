@@ -323,7 +323,7 @@ mod advanced_rust_internals_tests {
                 global errors_caught = push(errors_caught, error)
                 global execution_steps = push(execution_steps, 'caught_' + step)
             endtry
-        forend
+        next step
         "#;
 
         let result = interp.exec(code);
@@ -376,7 +376,7 @@ mod advanced_rust_internals_tests {
         # Создаем большой массив
         for i in range(100) do
             global large_array = push(large_array, i * 2)
-        forend
+        next i
 
         # Создаем вложенные массивы
         for i in range(10) do
@@ -384,10 +384,10 @@ mod advanced_rust_internals_tests {
 
             for j in range(10) do
                 global data_array = push(data_array, 'item_' + str(i) + '_' + str(j))
-            forend
+            next j
 
             global nested_arrays = push(nested_arrays, data_array)
-        forend
+        next i
 
         # Проверяем размеры
         global array_size = length(large_array)

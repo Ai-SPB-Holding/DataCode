@@ -19,7 +19,7 @@ mod multiple_variables_for_tests {
             for i, value in enum(data) do
                 global collected_indices = push(collected_indices, i)
                 global collected_values = push(collected_values, value)
-            forend
+            next pair
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -59,7 +59,7 @@ mod multiple_variables_for_tests {
             for num, word in pairs do
                 global numbers = push(numbers, num)
                 global words = push(words, word)
-            forend
+            next num, word
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -103,7 +103,7 @@ mod multiple_variables_for_tests {
                 if flag do
                     global true_count = true_count + 1
                 endif
-            forend
+            next num, letter, flag
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -133,7 +133,7 @@ mod multiple_variables_for_tests {
             global total = 0
             for num in numbers do
                 global total = total + num
-            forend
+            next num
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -151,7 +151,7 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             for a, b in wrong_pairs do
                 print(a, b)
-            forend
+            next a, b
         "#;
         
         let result = interp.exec(loop_code);
@@ -174,7 +174,7 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             for a, b in non_arrays do
                 print(a, b)
-            forend
+            next a, b
         "#;
         
         let result = interp.exec(loop_code);
@@ -200,7 +200,7 @@ mod multiple_variables_for_tests {
                 if isinstance(value, 'string') do
                     global string_positions = push(string_positions, i)
                 endif
-            forend
+            next i, value
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -229,9 +229,9 @@ mod multiple_variables_for_tests {
                     for num, letter in [pair] do
                         global combined = [row_idx, col_idx, num, letter]
                         global result = push(result, combined)
-                    forend
-                forend
-            forend
+                    next num, letter
+                next col_idx
+            next row_idx
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -266,7 +266,7 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             for , b in data do
                 print(b)
-            forend
+            next b
         "#;
         
         let result = interp.exec(loop_code);
@@ -291,7 +291,7 @@ mod multiple_variables_for_tests {
             for  a  ,  b  in pairs do
                 global sum1 = sum1 + a
                 global sum2 = sum2 + b
-            forend
+            next a, b
         "#;
         
         interp.exec(loop_code).unwrap();

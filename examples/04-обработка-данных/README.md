@@ -146,7 +146,7 @@ global table = table(manual_data, headers)
 # Простое перечисление
 for i, data in enum(table['CustomerNo']) do
     print('Индекс:', i, 'Значение:', data)
-forend
+next i
 ```
 
 ## ⚠️ Важные особенности

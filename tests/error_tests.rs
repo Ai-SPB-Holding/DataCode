@@ -232,7 +232,7 @@ mod error_tests {
         let mut interp = Interpreter::new();
         
         // Неправильный синтаксис for loop
-        let result = interp.exec("for x y do\nprint(x)\nforend");
+        let result = interp.exec("for x y do\nprint(x)\nnext x");
         assert!(result.is_err());
         
         match result.unwrap_err() {
@@ -242,13 +242,13 @@ mod error_tests {
             _ => panic!("Expected SyntaxError"),
         }
         
-        // Отсутствующий forend
+        // Отсутствующий next
         let result = interp.exec("for x in arr do\nprint(x)");
         assert!(result.is_err());
         
         match result.unwrap_err() {
             DataCodeError::SyntaxError { message, .. } => {
-                assert!(message.contains("Missing forend"));
+                assert!(message.contains("Missing next"));
             }
             _ => panic!("Expected SyntaxError"),
         }

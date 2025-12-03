@@ -123,7 +123,7 @@ fn test_range_in_for_loop() {
         global sum = 0
         for i in range(5) do
             sum = sum + i
-        forend
+        next i
     "#;
     
     interp.exec(code).unwrap();

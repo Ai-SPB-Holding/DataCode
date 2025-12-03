@@ -18,7 +18,7 @@ for i in range(1, 16) do
     global result = factorial(i)
     global fact_results = push(fact_results, result)
     print("factorial(" + i + ") =", result)
-forend
+next i
 
 # Test 2: Fibonacci function (exponential recursion)
 print("Test 2: Fibonacci function performance...")
@@ -35,7 +35,7 @@ for i in range(1, 21) do
     global result = fibonacci(i)
     global fib_results = push(fib_results, result)
     print("fibonacci(" + i + ") =", result)
-forend
+next i
 
 # Test 3: Ackermann function (highly recursive)
 print("Test 3: Ackermann function performance (limited values)...")
@@ -56,8 +56,8 @@ for m in range(0, 4) do
         global result = ackermann(m, n)
         global ack_results = push(ack_results, result)
         print("ackermann(" + m + ", " + n + ") =", result)
-    forend
-forend
+    next n
+next m
 
 # Test 4: Mutual recursion
 print("Test 4: Mutual recursion performance...")
@@ -82,7 +82,7 @@ for i in range(0, 21) do
     global odd_result = is_odd(i)
     global mutual_results = push(mutual_results, [i, even_result, odd_result])
     print(i, "is even:", even_result, "is odd:", odd_result)
-forend
+next i
 
 # Test 5: Tree traversal simulation
 print("Test 5: Tree traversal recursion...")
@@ -101,7 +101,7 @@ for depth in range(1, 8) do
     global result = tree_sum(depth, 1)
     global tree_results = push(tree_results, result)
     print("tree_sum(depth=" + depth + ") =", result)
-forend
+next depth
 
 # Results summary
 print("=== RECURSIVE PERFORMANCE RESULTS ===")

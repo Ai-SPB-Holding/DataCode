@@ -179,7 +179,7 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
     // Проверяем на блочные конструкции, которые не должны обрабатываться как выражения
     if trimmed_code == "try" || trimmed_code == "catch" || trimmed_code == "finally" ||
        trimmed_code == "endtry" || trimmed_code == "else" || trimmed_code == "endif" ||
-       trimmed_code == "forend" || trimmed_code == "endfunction" {
+       trimmed_code == "endfunction" || trimmed_code.starts_with("next ") {
         return Err(DataCodeError::syntax_error(
             &format!("Unexpected keyword '{}' outside of block context", trimmed_code),
             interpreter.current_line, 0
@@ -266,32 +266,92 @@ fn handle_function_definition(interpreter: &mut Interpreter, lines: &[&str], sta
     Ok(i)
 }
 
+/// Извлечь имя переменной из строки "next variable"
+fn parse_next_variable(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.starts_with("next ") {
+        let var_part = trimmed.strip_prefix("next ").unwrap().trim();
+        if !var_part.is_empty() {
+            return Some(var_part.to_string());
+        }
+    }
+    None
+}
+
+/// Извлечь имя переменной из строки "for variable in ... do"
+fn parse_for_variable(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.starts_with("for ") && trimmed.ends_with(" do") {
+        let for_part = trimmed.strip_prefix("for ").unwrap().strip_suffix(" do").unwrap();
+        let parts: Vec<&str> = for_part.split(" in ").collect();
+        if parts.len() == 2 {
+            // Берем первую переменную (для деструктуризации типа "i, j" берем "i")
+            let var_part = parts[0].trim();
+            let first_var = var_part.split(',').next().unwrap_or(var_part).trim();
+            if !first_var.is_empty() {
+                return Some(first_var.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// Обработать цикл for
 fn handle_for_loop(interpreter: &mut Interpreter, lines: &[&str], start: usize) -> Result<usize> {
     let mut loop_lines = vec![lines[start]];
-    let mut for_depth = 1;
+    
+    // Извлекаем имя переменной текущего цикла
+    let current_var = parse_for_variable(lines[start])
+        .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+    
+    // Стек переменных для отслеживания вложенных циклов
+    let mut var_stack: Vec<String> = vec![current_var.clone()];
     let mut i = start + 1;
 
-    while i < lines.len() && for_depth > 0 {
+    while i < lines.len() && !var_stack.is_empty() {
         let current_line = lines[i].trim();
 
         if current_line.starts_with("for ") && current_line.ends_with(" do") {
-            for_depth += 1;
-        } else if current_line == "forend" {
-            for_depth -= 1;
+            // Новый вложенный цикл
+            if let Some(var_name) = parse_for_variable(current_line) {
+                var_stack.push(var_name);
+            }
+        } else if let Some(next_var) = parse_next_variable(current_line) {
+            // Проверяем что next соответствует последнему циклу
+            if let Some(last_var) = var_stack.last() {
+                if next_var == *last_var {
+                    var_stack.pop();
+                } else {
+                    return Err(DataCodeError::syntax_error(
+                        &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
+                        interpreter.current_line,
+                        0
+                    ));
+                }
+            } else {
+                return Err(DataCodeError::syntax_error(
+                    "Unexpected next statement outside of for loop",
+                    interpreter.current_line,
+                    0
+                ));
+            }
         }
 
         loop_lines.push(lines[i]);
 
-        if for_depth == 0 {
+        if var_stack.is_empty() {
             break;
         }
 
         i += 1;
     }
 
-    if for_depth > 0 {
-        return Err(DataCodeError::syntax_error("Missing forend in for loop", interpreter.current_line, 0));
+    if !var_stack.is_empty() {
+        return Err(DataCodeError::syntax_error(
+            &format!("Missing 'next {}' in for loop", var_stack[0]),
+            interpreter.current_line,
+            0
+        ));
     }
 
     // Выполняем цикл напрямую без рекурсии
@@ -472,24 +532,58 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
         } else if line.starts_with("for ") && line.ends_with(" do") {
             // Обрабатываем циклы for
             let mut for_lines = vec![lines[i]];
-            let mut for_depth = 1;
+            
+            // Извлекаем имя переменной текущего цикла
+            let current_var = parse_for_variable(lines[i])
+                .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+            
+            // Стек переменных для отслеживания вложенных циклов
+            let mut var_stack: Vec<String> = vec![current_var.clone()];
             let mut j = i + 1;
 
-            while j < lines.len() && for_depth > 0 {
+            while j < lines.len() && !var_stack.is_empty() {
                 let current_line = lines[j].trim();
 
                 if current_line.starts_with("for ") && current_line.ends_with(" do") {
-                    for_depth += 1;
-                } else if current_line == "forend" {
-                    for_depth -= 1;
+                    // Новый вложенный цикл
+                    if let Some(var_name) = parse_for_variable(current_line) {
+                        var_stack.push(var_name);
+                    }
+                } else if let Some(next_var) = parse_next_variable(current_line) {
+                    // Проверяем что next соответствует последнему циклу
+                    if let Some(last_var) = var_stack.last() {
+                        if next_var == *last_var {
+                            var_stack.pop();
+                        } else {
+                            return Err(DataCodeError::syntax_error(
+                                &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
+                                interpreter.current_line,
+                                0
+                            ));
+                        }
+                    } else {
+                        return Err(DataCodeError::syntax_error(
+                            "Unexpected next statement outside of for loop",
+                            interpreter.current_line,
+                            0
+                        ));
+                    }
                 }
 
                 for_lines.push(lines[j]);
 
-                if for_depth == 0 {
+                if var_stack.is_empty() {
                     break;
                 }
                 j += 1;
+            }
+
+            if !var_stack.is_empty() {
+                return Err(DataCodeError::syntax_error(
+                    &format!("Missing 'next {}' in for loop", var_stack[0]),
+                    interpreter.current_line,
+                    0
+                ));
             }
 
             // Выполняем цикл for итеративно
@@ -884,22 +978,45 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
     // Собираем тело цикла (все строки кроме первой и последней)
     // Нужно правильно обрабатывать вложенные циклы
     let mut body_lines: Vec<&str> = Vec::new();
-    let mut depth = 0;
+    let mut var_stack: Vec<String> = Vec::new();
+    
     for i in 1..for_lines.len() {
         let line = for_lines[i].trim();
 
         if line.starts_with("for ") && line.ends_with(" do") {
-            depth += 1;
-        } else if line == "forend" {
-            if depth == 0 {
-                // Это forend для нашего цикла
-                break;
-            } else {
-                depth -= 1;
+            // Новый вложенный цикл
+            if let Some(var_name) = parse_for_variable(line) {
+                var_stack.push(var_name);
             }
+            body_lines.push(for_lines[i]);
+        } else if let Some(next_var) = parse_next_variable(line) {
+            if var_stack.is_empty() {
+                // Нет вложенных циклов, проверяем что это next для нашего цикла
+                if next_var == variables[0] {
+                    // Это next для нашего цикла - заканчиваем сбор тела
+                    break;
+                } else {
+                    // Неправильный next - это ошибка, но мы уже собрали тело
+                    break;
+                }
+            } else {
+                // Есть вложенные циклы
+                if let Some(last_var) = var_stack.last() {
+                    if next_var == *last_var {
+                        // Это next для вложенного цикла
+                        var_stack.pop();
+                        body_lines.push(for_lines[i]);
+                    } else {
+                        // Неправильный next
+                        body_lines.push(for_lines[i]);
+                    }
+                } else {
+                    body_lines.push(for_lines[i]);
+                }
+            }
+        } else {
+            body_lines.push(for_lines[i]);
         }
-
-        body_lines.push(for_lines[i]);
     }
 
     // Входим в область видимости цикла
@@ -1325,29 +1442,60 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
 
         // Обрабатываем циклы for
         if line.starts_with("for ") && line.ends_with(" do") {
-            // Находим соответствующий forend
+            // Находим соответствующий next
             let mut for_lines = Vec::new();
+            
+            // Извлекаем имя переменной текущего цикла
+            let current_var = parse_for_variable(line)
+                .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+            
+            // Стек переменных для отслеживания вложенных циклов
+            let mut var_stack: Vec<String> = vec![current_var.clone()];
             let mut j = i;
-            let mut for_count = 0;
 
-            while j < lines.len() {
+            while j < lines.len() && !var_stack.is_empty() {
                 let current_line = lines[j].trim();
                 for_lines.push(current_line);
 
                 if current_line.starts_with("for ") && current_line.ends_with(" do") {
-                    for_count += 1;
-                } else if current_line == "forend" {
-                    for_count -= 1;
-                    if for_count == 0 {
-                        break;
+                    // Новый вложенный цикл
+                    if let Some(var_name) = parse_for_variable(current_line) {
+                        var_stack.push(var_name);
+                    }
+                } else if let Some(next_var) = parse_next_variable(current_line) {
+                    // Проверяем что next соответствует последнему циклу
+                    if let Some(last_var) = var_stack.last() {
+                        if next_var == *last_var {
+                            var_stack.pop();
+                        } else {
+                            return Err(DataCodeError::syntax_error(
+                                &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
+                                interpreter.current_line,
+                                0
+                            ));
+                        }
+                    } else {
+                        return Err(DataCodeError::syntax_error(
+                            "Unexpected next statement outside of for loop",
+                            interpreter.current_line,
+                            0
+                        ));
                     }
                 }
                 j += 1;
             }
 
+            if !var_stack.is_empty() {
+                return Err(DataCodeError::syntax_error(
+                    &format!("Missing 'next {}' in for loop", var_stack[0]),
+                    interpreter.current_line,
+                    0
+                ));
+            }
+
             // Выполняем for цикл
             execute_for_loop_iteratively(interpreter, &for_lines)?;
-            i = j + 1;
+            i = j;
             continue;
         }
 

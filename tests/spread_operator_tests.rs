@@ -79,7 +79,7 @@ mod spread_operator_tests {
         let result = interp.exec(r#"
             for key, value in obj do
                 global values_in_order = push(values_in_order, value)
-            forend
+            next key, value
         "#);
         assert!(result.is_ok());
 
@@ -109,7 +109,7 @@ mod spread_operator_tests {
         let result = interp.exec(r#"
             for item in arr do
                 global items_in_order = push(items_in_order, item)
-            forend
+            next item
         "#);
         assert!(result.is_ok());
 

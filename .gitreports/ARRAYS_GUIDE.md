@@ -75,13 +75,13 @@ print(matrix[1][2])  # 6 (третий элемент второй строки)
 # Цикл по литералу массива
 for num in [1, 2, 3, 4, 5] do
     print('Number:', num)
-forend
+next num
 
 # Цикл по переменной-массиву
 global colors = ['red', 'green', 'blue']
 for color in colors do
     print('Color:', color)
-forend
+next color
 ```
 
 ### Циклы с вложенными массивами
@@ -92,8 +92,8 @@ for row in matrix do
     print('Row:', row)
     for item in row do
         print('  Item:', item)
-    forend
-forend
+    next item
+next row
 ```
 
 ## 🛠️ Встроенные функции для массивов
@@ -159,7 +159,7 @@ for grade in grades do
     if grade >= 90 do
         global excellent_count = excellent_count + 1
     endif
-forend
+next grade
 print('Отличных оценок:', excellent_count)
 ```
 
@@ -173,7 +173,7 @@ for row in matrix do
     local row_sum = sum(row)
     print('Сумма строки:', row_sum)
     global total_sum = total_sum + row_sum
-forend
+next row
 
 print('Общая сумма матрицы:', total_sum)
 ```
@@ -188,7 +188,7 @@ for num in numbers do
     if num % 2 == 0 do
         push(evens, num)
     endif
-forend
+next num
 
 print('Четные числа:', evens)  # [2, 4, 6, 8, 10]
 ```
@@ -211,7 +211,7 @@ global arr = [
 global squares = []
 for i in [1, 2, 3, 4, 5] do
     push(squares, i * i)
-forend
+next i
 print('Квадраты:', squares)  # [1, 4, 9, 16, 25]
 ```
 
@@ -221,7 +221,7 @@ global function process_array(arr) do
     local result = []
     for item in arr do
         push(result, item * 2)
-    forend
+    next item
     return result
 endfunction
 

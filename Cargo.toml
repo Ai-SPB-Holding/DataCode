@@ -36,3 +36,7 @@ memmap2 = "0.9"    # Для memory-mapped файлов
 lazy_static = "1.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# WebSocket сервер для удаленного выполнения кода
+tokio-tungstenite = "0.21"
+tungstenite = "0.21"

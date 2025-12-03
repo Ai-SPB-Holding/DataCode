@@ -6,7 +6,7 @@ print("Test 1: Arithmetic operations...")
 global result = 0
 for i in range(1000) do
     global result = result + i * 2 - 1
-forend
+next i
 print("Arithmetic result:", result)
 
 # Test 2: Array operations
@@ -14,7 +14,7 @@ print("Test 2: Array operations...")
 global arr = []
 for i in range(500) do
     global arr = push(arr, i)
-forend
+next i
 print("Array length:", len(arr))
 
 # Test 3: String operations
@@ -22,7 +22,7 @@ print("Test 3: String operations...")
 global str_result = ""
 for i in range(100) do
     global str_result = str_result + "item" + i + "_"
-forend
+next i
 print("String length:", len(str_result))
 
 # Test 4: Table operations
@@ -31,7 +31,7 @@ global data = []
 for i in range(100) do
     global row = [i, "Item_" + i, i * 2]
     global data = push(data, row)
-forend
+next i
 
 global headers = ["id", "name", "value"]
 global test_table = table_create(data, headers)

@@ -210,7 +210,7 @@ for i in [1, 2, 3] do
     catch e
         global error_count = error_count + 1
     endtry
-forend
+next i
 "#;
 
     let result = interpreter.exec(code);

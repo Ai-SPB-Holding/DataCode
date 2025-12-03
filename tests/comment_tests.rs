@@ -106,7 +106,7 @@ if x > 0 do
 endif
 for i in [1, 2, 3] do
     global also_should_not_exist = i
-forend
+next i
 """
 if x > 0 do
     global should_exist = x * 2

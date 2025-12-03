@@ -20,7 +20,7 @@ for i, data in enum(customer_numbers) do
     else
         print('Строка', i, ': Корректный CustomerNo =', data)
     endif
-forend
+next i
 print()
 
 # 2. Работа с парами данных
@@ -33,7 +33,7 @@ print('Пары чисел и слов:', pairs)
 print('Распаковка пар:')
 for number, word in pairs do
     print('Число:', number, '-> Слово:', word)
-forend
+next number
 print()
 
 # 3. Работа с тройками данных
@@ -45,7 +45,7 @@ global students = [['Alice', 85, 'A'], ['Bob', 92, 'A+'], ['Charlie', 78, 'B+']]
 print('Данные студентов: [имя, балл, оценка]')
 for name, score, grade in students do
     print('Студент:', name, '| Балл:', score, '| Оценка:', grade)
-forend
+next name
 print()
 
 # 4. Комбинирование enum с isinstance
@@ -74,7 +74,7 @@ for position, value in enum(mixed_data) do
             endif
         endif
     endif
-forend
+next position
 print()
 
 # 5. Сбор статистики
@@ -92,7 +92,7 @@ for month, sales, customers in sales_data do
     
     global total_sales = total_sales + sales
     global total_customers = total_customers + customers
-forend
+next month
 
 print()
 print('Итоговая статистика:')
@@ -111,7 +111,7 @@ print('Расчет расстояний от начала координат:')
 for x, y in points do
     global distance_squared = x * x + y * y
     print('Точка (', x, ',', y, ') -> Расстояние^2:', distance_squared)
-forend
+next x
 print()
 
 # 7. Проверка старого синтаксиса
@@ -125,7 +125,7 @@ print('Старый синтаксис (одна переменная):')
 for num in numbers do
     print('Число:', num)
     global sum_old = sum_old + num
-forend
+next num
 
 print('Сумма:', sum_old)
 print()

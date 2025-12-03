@@ -28,7 +28,7 @@ mod performance_stress_tests {
         
         for i in range(10000) do
             global result = result + i * 2 - 1
-        forend
+        next i
         
         global end_time = now()
         global final_result = result
@@ -66,7 +66,7 @@ mod performance_stress_tests {
         
         for i in range(1000) do
             global result = result + 'item' + i + separator
-        forend
+        next i
         
         global final_length = len(result)
         "#;
@@ -102,13 +102,13 @@ mod performance_stress_tests {
         # Создаем большой массив
         for i in range(5000) do
             global large_array = push(large_array, i)
-        forend
+        next i
         
         # Выполняем операции с массивом
         global sum = 0
         for item in large_array do
             global sum = sum + item
-        forend
+        next item
         
         global array_size = len(large_array)
         "#;
@@ -179,9 +179,9 @@ mod performance_stress_tests {
                 global value = i * j
                 global row = push(row, value)
                 global total_iterations = total_iterations + 1
-            forend
+            next j
             global result_matrix = push(result_matrix, row)
-        forend
+        next i
         
         global matrix_size = len(result_matrix)
         global first_row_size = len(result_matrix[0])
@@ -227,7 +227,7 @@ mod performance_stress_tests {
             catch error
                 global exceptions_caught = exceptions_caught + 1
             endtry
-        forend
+        next i
         
         global total_processed = exceptions_caught + successful_operations
         "#;
@@ -269,7 +269,7 @@ mod performance_stress_tests {
         for i in range(10) do
             global large_structures = append(large_structures, i)
             global counter = counter + 1
-        forend
+        next i
 
         global structures_count = len(large_structures)
         global total_items = counter
@@ -319,7 +319,7 @@ mod performance_stress_tests {
         for i in range(10000) do
             global row = [i, 'Employee_' + i, 'Dept_' + (i % 10), 50000 + (i % 50000), 25 + (i % 40), (i % 100) / 100.0]
             global large_data = push(large_data, row)
-        forend
+        next i
 
         global employees = table_create(large_data, headers)
         "#;
@@ -372,11 +372,11 @@ mod performance_stress_tests {
                 for k in range(10) do
                     global cell_value = cell_value + (i * j * k) / (k + 1)
                     global computation_count = computation_count + 1
-                forend
+                next k
                 global row = push(row, cell_value)
-            forend
+            next j
             global result_matrix = push(result_matrix, row)
-        forend
+        next i
 
         global matrix_rows = len(result_matrix)
         global matrix_cols = len(result_matrix[0])
@@ -416,17 +416,17 @@ mod performance_stress_tests {
             for j in range(1000) do
                 global large_array = push(large_array, i * 1000 + j)
                 global total_elements = total_elements + 1
-            forend
+            next j
             global arrays_collection = push(arrays_collection, large_array)
-        forend
+        next i
 
         # Process arrays - sum all elements
         global grand_total = 0
         for array in arrays_collection do
             for element in array do
                 global grand_total = grand_total + element
-            forend
-        forend
+            next element
+        next array
 
         global collection_size = len(arrays_collection)
         global first_array_size = len(arrays_collection[0])
@@ -461,14 +461,14 @@ mod performance_stress_tests {
         global emp_data = []
         for i in range(5000) do
             global emp_data = push(emp_data, [i, 'Emp_' + i, 'Dept_' + (i % 20), 40000 + (i % 60000)])
-        forend
+        next i
         global employees = table_create(emp_data, ['id', 'name', 'dept', 'salary'])
 
         # Create departments table
         global dept_data = []
         for i in range(20) do
             global dept_data = push(dept_data, ['Dept_' + i, 'Manager_' + i, 'Location_' + (i % 5)])
-        forend
+        next i
         global departments = table_create(dept_data, ['dept', 'manager', 'location'])
         "#;
 
@@ -593,7 +593,7 @@ mod performance_stress_tests {
         global computation_result = 0
         for i in range(10000) do
             global computation_result = computation_result + (i * i) / (i + 1)
-        forend
+        next i
         "#;
 
         let start = Instant::now();

@@ -24,7 +24,7 @@ impl<'a> StatementParser<'a> {
         // TODO: Реализовать парсинг операторов:
         // - Присваивание (x = value)
         // - Условные конструкции (if/else/endif)
-        // - Циклы (for/forend)
+        // - Циклы (for/next)
         // - Определение функций (function/endfunction)
         // - Try/catch блоки
         // - Return операторы

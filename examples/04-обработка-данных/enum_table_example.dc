@@ -24,7 +24,7 @@ for pair in enum(customer_numbers) do
     else
         print('Строка', i, ': Корректный CustomerNo =', data)
     endif
-forend
+next pair
 print()
 
 # Дополнительные примеры с enum()
@@ -43,7 +43,7 @@ for pair in enum(customer_numbers) do
         global problem_indices = push(problem_indices, idx)
         global problem_values = push(problem_values, val)
     endif
-forend
+next pair
 
 print('Найдено проблемных записей:', length(problem_indices))
 print('Индексы проблемных записей:', problem_indices)
@@ -61,7 +61,7 @@ for pair in enum(customer_numbers) do
     if isinstance(value, 'number') do
         global valid_records = valid_records + 1
     endif
-forend
+next pair
 
 print('Статистика:')
 print('  Всего записей:', total_records)
