@@ -6,6 +6,7 @@ mod error;
 mod parser;
 mod evaluator;
 mod repl;
+mod websocket;
 
 use std::env;
 use std::fs;
@@ -15,6 +16,13 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 1 {
+        // Сначала проверяем наличие команды websocket (она должна обрабатываться отдельно)
+        if args.iter().any(|a| a == "--websocket" || a == "--ws" || a == "websocket" || a == "ws") {
+            let (host, port) = parse_websocket_args(&args);
+            start_websocket_server(host, port);
+            return;
+        }
+
         // Проверяем наличие флага --debug или --verbose
         let debug_mode = args.contains(&"--debug".to_string()) || args.contains(&"--verbose".to_string());
 
@@ -38,6 +46,10 @@ fn main() {
                     }
                     "demo" => {
                         run_demo();
+                    }
+                    "websocket" | "ws" => {
+                        let (host, port) = parse_websocket_args(&args);
+                        start_websocket_server(host, port);
                     }
                     "help" | "-h" => {
                         show_help();
@@ -181,7 +193,7 @@ fn run_demo() {
 
     let for_loop = "for i in [1, 2, 3] do
     print('Number:', i)
-forend";
+next i";
 
     println!("Code:\n{}", for_loop);
     // match interp.exec(for_loop) {
@@ -203,6 +215,84 @@ fn extract_variable_name(code: &str) -> Option<String> {
     None
 }
 
+/// Парсить аргументы командной строки для WebSocket сервера
+fn parse_websocket_args(args: &[String]) -> (String, u16) {
+    use std::env;
+    
+    let mut host = None;
+    let mut port = None;
+    
+    // Сначала проверяем переменные окружения
+    if let Ok(addr) = env::var("DATACODE_WS_ADDRESS") {
+        if let Some((h, p)) = parse_address(&addr) {
+            host = Some(h);
+            port = Some(p);
+        }
+    }
+    
+    // Затем парсим аргументы командной строки (они имеют приоритет)
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--host" => {
+                if i + 1 < args.len() {
+                    host = Some(args[i + 1].clone());
+                    i += 2;
+                    continue;
+                }
+            }
+            "--port" => {
+                if i + 1 < args.len() {
+                    if let Ok(p) = args[i + 1].parse::<u16>() {
+                        port = Some(p);
+                    } else {
+                        eprintln!("⚠️  Неверный порт: {}, используем значение по умолчанию", args[i + 1]);
+                    }
+                    i += 2;
+                    continue;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    
+    // Используем значения по умолчанию, если не указаны
+    let final_host = host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let final_port = port.unwrap_or(8080);
+    
+    (final_host, final_port)
+}
+
+/// Парсить адрес в формате "host:port"
+fn parse_address(addr: &str) -> Option<(String, u16)> {
+    if let Some(colon_pos) = addr.rfind(':') {
+        let h = addr[..colon_pos].to_string();
+        if let Ok(p) = addr[colon_pos + 1..].parse::<u16>() {
+            return Some((h, p));
+        }
+    }
+    None
+}
+
+fn start_websocket_server(host: String, port: u16) {
+    let address = format!("{}:{}", host, port);
+    
+    println!("🚀 Запуск WebSocket сервера DataCode...");
+    println!("📡 Адрес: ws://{}", address);
+    println!("💡 Используйте --host и --port для изменения адреса");
+    println!("💡 Или переменную окружения DATACODE_WS_ADDRESS");
+    println!();
+    
+    // Создаем tokio runtime для асинхронного выполнения
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    
+    if let Err(e) = rt.block_on(websocket::start_server(&address)) {
+        eprintln!("❌ Ошибка запуска WebSocket сервера: {}", e);
+        std::process::exit(1);
+    }
+}
+
 fn show_help() {
     println!("🧠 DataCode - Interactive Programming Language");
     println!();
@@ -212,6 +302,7 @@ fn show_help() {
     println!("  datacode main.dc --debug   # Execute with debug info (shows variable types)");
     println!("  datacode --repl            # Start interactive REPL");
     println!("  datacode --demo            # Run demonstration");
+    println!("  datacode --websocket       # Start WebSocket server for remote code execution");
     println!("  datacode --help            # Show this help");
     println!();
     println!("File Execution:");
@@ -226,6 +317,14 @@ fn show_help() {
     println!("  • Useful for development and debugging");
     println!("  • Flags: --debug or --verbose");
     println!();
+    println!("WebSocket Server:");
+    println!("  • Start server: datacode --websocket");
+    println!("  • Default address: ws://127.0.0.1:8080");
+    println!("  • Custom host/port: datacode --websocket --host 0.0.0.0 --port 8899");
+    println!("  • Or use env var: DATACODE_WS_ADDRESS=0.0.0.0:3000 datacode --websocket");
+    println!("  • Send JSON: {{\"code\": \"print('Hello World')\"}}");
+    println!("  • Receive JSON: {{\"success\": true, \"output\": \"Hello World\\n\", \"error\": null}}");
+    println!();
     println!("Features:");
     println!("  • Interactive REPL with multiline support");
     println!("  • User-defined functions with local scope");
@@ -235,6 +334,7 @@ fn show_help() {
     println!("  • Improved error messages with line numbers");
     println!("  • Path manipulation");
     println!("  • Functional programming methods (map, filter, reduce)");
+    println!("  • WebSocket server for remote code execution");
     println!();
     println!("Example DataCode file (example.dc):");
     println!("  # Simple DataCode program");

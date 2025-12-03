@@ -9,3 +9,4 @@ pub mod cache;
 pub mod parser;
 pub mod evaluator;
 pub mod repl;
+pub mod websocket;
