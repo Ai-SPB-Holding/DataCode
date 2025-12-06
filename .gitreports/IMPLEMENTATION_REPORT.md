@@ -100,7 +100,7 @@ print('Уникальных элементов:', count(unique_items))
 - `now()` - текущее время
 - `getcwd()` - текущая директория
 - `list_files(path)` - список файлов
-- `read_file(path)` - чтение файлов
+- `read_file(path, header_row, sheet_name)` - чтение файлов
 - `path(string)` - создание пути
 
 **Новые функции (20)**:

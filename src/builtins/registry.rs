@@ -269,8 +269,8 @@ impl FunctionRegistry {
         self.register(FunctionInfo::new(
             "read_file",
             read_file_wrapper,
-            1, Some(1),
-            "Read file contents",
+            1, Some(3),
+            "Read file contents. Supports: read_file(path), read_file(path, sheet_name), read_file(path, header_row), read_file(path, header_row, sheet_name)",
             "file"
         ));
 

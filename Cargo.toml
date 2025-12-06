@@ -1,6 +1,6 @@
 [package]
 name = "data_code"
-version = "1.5.2"
+version = "1.6.0"
 edition = "2021"
 description = "DataCode - Interactive Programming Language for fast data processing"
 license = "MIT"
@@ -40,3 +40,4 @@ serde_json = "1.0"
 # WebSocket сервер для удаленного выполнения кода
 tokio-tungstenite = "0.21"
 tungstenite = "0.21"
+base64 = "0.22"

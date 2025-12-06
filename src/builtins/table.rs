@@ -1,6 +1,12 @@
 use crate::value::{Value, Table as TableStruct, DataType, LazyTable};
 use crate::error::{DataCodeError, Result};
 
+/// Вспомогательная функция для вывода с перехватом через WebSocket
+fn output_line(line: &str) {
+    use crate::websocket::output_capture::OutputCapture;
+    OutputCapture::write_output(line);
+}
+
 
 /// Table core operations functions
 pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
@@ -111,7 +117,11 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                     // Используем ленивую обработку для head операции
                     let lazy_table = LazyTable::new(table_rc.clone()).head(n, line);
                     match lazy_table.materialize() {
-                        Ok(materialized_table) => Ok(Value::table(materialized_table)),
+                        Ok(materialized_table) => {
+                            // Выводим таблицу
+                            print_table(&materialized_table);
+                            Ok(Value::table(materialized_table))
+                        }
                         Err(e) => Err(e),
                     }
                 }
@@ -241,7 +251,7 @@ pub fn is_table_function(name: &str) -> bool {
 // Helper functions
 fn print_table(table: &TableStruct) {
     if table.rows.is_empty() {
-        println!("Empty table");
+        output_line("Empty table");
         return;
     }
 
@@ -260,66 +270,84 @@ fn print_table(table: &TableStruct) {
         }
     }
     
-    print!("┌");
+    // Формируем строки таблицы
+    let mut lines = Vec::new();
+    
+    // Верхняя граница
+    let mut line = String::from("┌");
     for (i, &width) in max_widths.iter().enumerate() {
-        print!("{}", "─".repeat(width + 2));
+        line.push_str(&"─".repeat(width + 2));
         if i < max_widths.len() - 1 {
-            print!("┬");
+            line.push('┬');
         }
     }
-    println!("┐");
+    line.push('┐');
+    lines.push(line);
     
-    print!("│");
+    // Заголовки
+    let mut line = String::from("│");
     for (i, header) in table.column_names.iter().enumerate() {
-        print!(" {:width$} ", header, width = max_widths[i]);
+        line.push_str(&format!(" {:width$} ", header, width = max_widths[i]));
         if i < table.column_names.len() - 1 {
-            print!("│");
+            line.push('│');
         }
     }
-    println!("│");
+    line.push('│');
+    lines.push(line);
     
-    print!("├");
+    // Разделитель
+    let mut line = String::from("├");
     for (i, &width) in max_widths.iter().enumerate() {
-        print!("{}", "─".repeat(width + 2));
+        line.push_str(&"─".repeat(width + 2));
         if i < max_widths.len() - 1 {
-            print!("┼");
+            line.push('┼');
         }
     }
-    println!("┤");
+    line.push('┤');
+    lines.push(line);
     
+    // Строки данных
     for row in &table.rows {
-        print!("│");
+        let mut line = String::from("│");
         for (i, value) in row.iter().enumerate() {
             let formatted = format_value_for_table(value);
-            print!(" {:width$} ", formatted, width = max_widths[i]);
+            line.push_str(&format!(" {:width$} ", formatted, width = max_widths[i]));
             if i < row.len() - 1 {
-                print!("│");
+                line.push('│');
             }
         }
-        println!("│");
+        line.push('│');
+        lines.push(line);
     }
     
-    print!("└");
+    // Нижняя граница
+    let mut line = String::from("└");
     for (i, &width) in max_widths.iter().enumerate() {
-        print!("{}", "─".repeat(width + 2));
+        line.push_str(&"─".repeat(width + 2));
         if i < max_widths.len() - 1 {
-            print!("┴");
+            line.push('┴');
         }
     }
-    println!("┘");
+    line.push('┘');
+    lines.push(line);
+    
+    // Выводим все строки
+    for line in lines {
+        output_line(&line);
+    }
 }
 
 fn print_table_info(table: &TableStruct) {
-    println!("📊 Информация о таблице:");
-    println!("   Строк: {}", table.rows.len());
-    println!("   Колонок: {}", table.column_names.len());
-    println!();
-    println!("📋 Колонки:");
+    output_line(&format!("📊 Информация о таблице:"));
+    output_line(&format!("   Строк: {}", table.rows.len()));
+    output_line(&format!("   Колонок: {}", table.column_names.len()));
+    output_line("");
+    output_line("📋 Колонки:");
     
     for (i, column_name) in table.column_names.iter().enumerate() {
         let data_type = infer_column_type(table, i);
         let non_null_count = count_non_null_values(table, i);
-        println!("   • {} ({:?}) - {} значений", column_name, data_type, non_null_count);
+        output_line(&format!("   • {} ({:?}) - {} значений", column_name, data_type, non_null_count));
     }
 }
 
@@ -499,3 +527,4 @@ fn filter_table_with_expression(table_rc: &std::rc::Rc<std::cell::RefCell<TableS
 
     filter_table_where(table_rc, column, operator, &value, line)
 }
+

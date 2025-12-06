@@ -1,0 +1,13 @@
+local path = path("lib://Stream/my_dir")
+
+for path_dir in list_files(path) do
+    for file in list_files(path / path_dir) do
+        if contains(file, 'data') do
+            print(file)
+            global data = read_file(path / path_dir / file, 11, ' data')
+            # table_head(data)
+            print(len(data))
+            table_info(data)
+        endif
+    next file
+next path_dir

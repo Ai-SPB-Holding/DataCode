@@ -27,11 +27,55 @@ DATACODE_WS_ADDRESS=127.0.0.1:8080 datacode --websocket --host 0.0.0.0 --port 88
 
 ### Формат запроса
 
-Отправьте JSON сообщение с полем `code`:
+WebSocket сервер поддерживает несколько типов запросов. Все запросы должны содержать поле `type` для указания типа операции.
+
+#### Выполнение кода
+
+Отправьте JSON сообщение с типом `execute` и полем `code`:
+
+```json
+{
+  "type": "execute",
+  "code": "print('Hello, World!')"
+}
+```
+
+**Обратная совместимость:** Старый формат без поля `type` также поддерживается:
 
 ```json
 {
   "code": "print('Hello, World!')"
+}
+```
+
+#### Подключение к SMB шаре
+
+Для подключения к SMB (Samba/CIFS) шаре используйте тип `smb_connect`:
+
+```json
+{
+  "type": "smb_connect",
+  "ip": "192.168.1.100",
+  "login": "username",
+  "password": "password",
+  "domain": "WORKGROUP",
+  "share_name": "share_name"
+}
+```
+
+**Параметры:**
+- `ip` - IP адрес или имя SMB сервера
+- `login` - имя пользователя
+- `password` - пароль пользователя
+- `domain` - домен (обычно `WORKGROUP` или имя домена, может быть пустой строкой)
+- `share_name` - имя SMB шары
+
+**Ответ:**
+```json
+{
+  "success": true,
+  "message": "Успешно подключено к SMB шаре 'share_name'",
+  "error": null
 }
 ```
 
@@ -68,6 +112,7 @@ const ws = new WebSocket('ws://127.0.0.1:8080');
 
 ws.on('open', function open() {
     const request = {
+        type: "execute",
         code: "print('Hello from WebSocket!')"
     };
     ws.send(JSON.stringify(request));
@@ -93,6 +138,7 @@ async def execute_code():
     uri = "ws://127.0.0.1:8080"
     async with websockets.connect(uri) as websocket:
         request = {
+            "type": "execute",
             "code": "print('Hello from Python!')"
         }
         await websocket.send(json.dumps(request))
@@ -110,8 +156,83 @@ asyncio.run(execute_code())
 # Установите wscat: npm install -g wscat
 wscat -c ws://127.0.0.1:8080
 # Затем отправьте:
-{"code": "print('Hello!')"}
+{"type": "execute", "code": "print('Hello!')"}
 ```
+
+## SMB Connection (Подключение к SMB шаре)
+
+WebSocket сервер поддерживает подключение к SMB (Samba/CIFS) шаре для работы с файлами на удаленных серверах.
+
+### Требования
+
+**Для Linux/Mac:**
+```bash
+brew install samba  # macOS
+# или
+sudo apt-get install samba-client  # Ubuntu/Debian
+```
+
+**Для Windows:** SMB клиент встроен в систему.
+
+### Использование lib:// протокола
+
+После успешного подключения к SMB шаре через запрос `smb_connect`, вы можете использовать специальный протокол `lib://` в DataCode скриптах:
+
+```
+lib://share_name/path/to/file
+```
+
+Где `share_name` - имя подключенной SMB шары, а `path/to/file` - путь к файлу на шаре.
+
+### Пример работы с SMB
+
+```python
+import asyncio
+import websockets
+import json
+
+async def smb_example():
+    async with websockets.connect("ws://localhost:8899") as websocket:
+        # 1. Подключение к SMB
+        connect_request = {
+            "type": "smb_connect",
+            "ip": "192.168.1.100",
+            "login": "user",
+            "password": "pass",
+            "domain": "WORKGROUP",
+            "share_name": "data"
+        }
+        await websocket.send(json.dumps(connect_request))
+        response = json.loads(await websocket.recv())
+        print("SMB Connect:", response)
+        
+        # 2. Выполнение DataCode скрипта с использованием SMB
+        code = """
+        local files = list_files(path("lib://data/reports"))
+        for file in files do
+            print("File:", file)
+        next file
+        """
+        
+        execute_request = {
+            "type": "execute",
+            "code": code
+        }
+        await websocket.send(json.dumps(execute_request))
+        response = json.loads(await websocket.recv())
+        print("Execute:", response)
+
+asyncio.run(smb_example())
+```
+
+### Поддерживаемые операции
+
+После подключения к SMB шаре доступны следующие операции в DataCode:
+
+- **list_files(path("lib://share_name/dir"))** - получить список файлов
+- **read_file(path("lib://share_name/file.csv"))** - прочитать файл (поддерживаются CSV, XLSX, TXT)
+
+Подробнее см. `examples/08-websocket/README.md`.
 
 ## Особенности
 
@@ -125,9 +246,12 @@ wscat -c ws://127.0.0.1:8080
 
 ```json
 {
+  "type": "execute",
   "code": "global x = 10\nglobal y = 20\nprint('Sum:', x + y)"
 }
 ```
+
+5. **SMB подключения**: Каждый клиент имеет свой набор SMB подключений, которые автоматически закрываются при отключении клиента.
 
 ## Веб-клиент
 
