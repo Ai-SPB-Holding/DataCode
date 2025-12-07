@@ -41,6 +41,7 @@ pub mod iteration;
 
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
+use std::collections::HashMap;
 
 
 /// Main entry point for all built-in function calls
@@ -88,6 +89,113 @@ pub fn is_builtin_function(name: &str) -> bool {
     table::is_table_function(name) ||
     filter::is_filter_function(name) ||
     iteration::is_iteration_function(name)
+}
+
+/// Call built-in function with named arguments support
+/// This function converts named arguments to positional arguments for functions that support them
+pub fn call_builtin_function_with_named_args(
+    name: &str,
+    args: Vec<Value>,
+    named_args: HashMap<String, Value>,
+    line: usize
+) -> Result<Value> {
+    // If no named arguments, use the regular function
+    if named_args.is_empty() {
+        return call_builtin_function(name, args, line);
+    }
+
+    // Handle functions that support named arguments
+    match name {
+        "read_file" => {
+            // Convert named arguments to positional arguments for read_file
+            let mut final_args = args;
+            
+            // Handle sheet_name named argument
+            if let Some(sheet_name) = named_args.get("sheet_name") {
+                if final_args.len() == 1 {
+                    // read_file(path, sheet_name=...)
+                    final_args.push(sheet_name.clone());
+                } else if final_args.len() == 2 {
+                    // Check if second arg is a number (header_row) or string (sheet_name)
+                    // If it's a number, we have read_file(path, header_row, sheet_name=...)
+                    // If it's a string, we replace it with the named argument
+                    match &final_args[1] {
+                        Value::Number(_) => {
+                            // It's a header_row, add sheet_name as third argument
+                            final_args.push(sheet_name.clone());
+                        }
+                        Value::String(_) => {
+                            // It's already a sheet_name, replace it with named argument
+                            final_args[1] = sheet_name.clone();
+                        }
+                        _ => {
+                            return Err(DataCodeError::runtime_error(
+                                "Invalid argument type for read_file",
+                                line
+                            ));
+                        }
+                    }
+                } else if final_args.len() == 3 {
+                    // read_file(path, header_row, sheet_name) - replace third arg
+                    final_args[2] = sheet_name.clone();
+                }
+            }
+            
+            // Handle header_row named argument
+            if let Some(header_row) = named_args.get("header_row") {
+                match header_row {
+                    Value::Number(n) => {
+                        if final_args.len() == 1 {
+                            // read_file(path, header_row=...)
+                            final_args.push(header_row.clone());
+                        } else if final_args.len() == 2 {
+                            // Check if second arg is a string (sheet_name)
+                            if let Value::String(_) = &final_args[1] {
+                                // We have sheet_name, insert header_row before it
+                                let sheet_name = final_args.remove(1);
+                                final_args.push(header_row.clone());
+                                final_args.push(sheet_name);
+                            } else {
+                                // Replace second arg
+                                final_args[1] = header_row.clone();
+                            }
+                        } else if final_args.len() == 3 {
+                            // Replace second arg (header_row)
+                            final_args[1] = header_row.clone();
+                        }
+                    }
+                    _ => {
+                        return Err(DataCodeError::runtime_error(
+                            "header_row must be a number",
+                            line
+                        ));
+                    }
+                }
+            }
+            
+            // Check for unknown named arguments
+            for (key, _) in &named_args {
+                if key != "sheet_name" && key != "header_row" {
+                    return Err(DataCodeError::runtime_error(
+                        &format!("Unknown named argument '{}' for read_file", key),
+                        line
+                    ));
+                }
+            }
+            
+            call_builtin_function(name, final_args, line)
+        }
+        _ => {
+            // For other functions, check if they have named arguments (not supported yet)
+            if !named_args.is_empty() {
+                return Err(DataCodeError::runtime_error(
+                    &format!("Function '{}' does not support named arguments", name),
+                    line
+                ));
+            }
+            call_builtin_function(name, args, line)
+        }
+    }
 }
 
 

@@ -309,4 +309,300 @@ endif"#;
         interp.exec(complex_if).unwrap();
         assert_eq!(interp.get_variable("grade"), Some(&Value::String("B".to_string())));
     }
+
+    #[test]
+    fn test_else_if_simple() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 5").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+else
+    global result = 'not_greater_than_5'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("not_greater_than_5".to_string())));
+    }
+
+    #[test]
+    fn test_else_if_second_condition_true() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 7").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+else
+    global result = 'not_greater_than_5'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("greater_than_5".to_string())));
+    }
+
+    #[test]
+    fn test_else_if_first_condition_true() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 15").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+else
+    global result = 'not_greater_than_5'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("greater_than_10".to_string())));
+    }
+
+    #[test]
+    fn test_multiple_else_if() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global score = 75").unwrap();
+        
+        let if_code = r#"if score >= 90 do
+    global grade = 'A'
+else if score >= 80 do
+    global grade = 'B'
+else if score >= 70 do
+    global grade = 'C'
+else if score >= 60 do
+    global grade = 'D'
+else
+    global grade = 'F'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("grade"), Some(&Value::String("C".to_string())));
+    }
+
+    #[test]
+    fn test_multiple_else_if_grade_a() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global score = 95").unwrap();
+        
+        let if_code = r#"if score >= 90 do
+    global grade = 'A'
+else if score >= 80 do
+    global grade = 'B'
+else if score >= 70 do
+    global grade = 'C'
+else if score >= 60 do
+    global grade = 'D'
+else
+    global grade = 'F'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("grade"), Some(&Value::String("A".to_string())));
+    }
+
+    #[test]
+    fn test_multiple_else_if_grade_f() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global score = 45").unwrap();
+        
+        let if_code = r#"if score >= 90 do
+    global grade = 'A'
+else if score >= 80 do
+    global grade = 'B'
+else if score >= 70 do
+    global grade = 'C'
+else if score >= 60 do
+    global grade = 'D'
+else
+    global grade = 'F'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("grade"), Some(&Value::String("F".to_string())));
+    }
+
+    #[test]
+    fn test_else_if_without_else() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 7").unwrap();
+        interp.exec("global result = 'default'").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("greater_than_5".to_string())));
+    }
+
+    #[test]
+    fn test_else_if_without_else_no_match() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 3").unwrap();
+        interp.exec("global result = 'default'").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("default".to_string())));
+    }
+
+    #[test]
+    fn test_nested_else_if() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 15").unwrap();
+        interp.exec("global y = 20").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    if y > 15 do
+        global result = 'both_greater'
+    else if y > 10 do
+        global result = 'x_greater_y_medium'
+    else
+        global result = 'x_greater_y_small'
+    endif
+else if x > 5 do
+    global result = 'x_medium'
+else
+    global result = 'x_small'
+endif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("both_greater".to_string())));
+    }
+
+    #[test]
+    fn test_endeif_simple() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 10").unwrap();
+        interp.exec("global result = 'default'").unwrap();
+        
+        let if_code = r#"if x > 5 do
+    global result = 'greater'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("greater".to_string())));
+    }
+
+    #[test]
+    fn test_endeif_with_else() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 3").unwrap();
+        
+        let if_code = r#"if x > 5 do
+    global result = 'greater'
+else
+    global result = 'not_greater'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("not_greater".to_string())));
+    }
+
+    #[test]
+    fn test_endeif_with_else_if() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 7").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    global result = 'greater_than_10'
+else if x > 5 do
+    global result = 'greater_than_5'
+else
+    global result = 'not_greater_than_5'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("greater_than_5".to_string())));
+    }
+
+    #[test]
+    fn test_endeif_multiple_else_if() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global score = 75").unwrap();
+        
+        let if_code = r#"if score >= 90 do
+    global grade = 'A'
+else if score >= 80 do
+    global grade = 'B'
+else if score >= 70 do
+    global grade = 'C'
+else if score >= 60 do
+    global grade = 'D'
+else
+    global grade = 'F'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("grade"), Some(&Value::String("C".to_string())));
+    }
+
+    #[test]
+    fn test_endeif_nested() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 15").unwrap();
+        interp.exec("global y = 20").unwrap();
+        
+        let if_code = r#"if x > 10 do
+    if y > 15 do
+        global result = 'both_greater'
+    else if y > 10 do
+        global result = 'x_greater_y_medium'
+    else
+        global result = 'x_greater_y_small'
+    endeif
+else if x > 5 do
+    global result = 'x_medium'
+else
+    global result = 'x_small'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("both_greater".to_string())));
+    }
+
+    #[test]
+    fn test_mixed_endif_endeif() {
+        let mut interp = Interpreter::new();
+        
+        interp.exec("global x = 5").unwrap();
+        
+        // Внешний if использует endeif, внутренний - endif
+        let if_code = r#"if x > 0 do
+    if x > 10 do
+        global result = 'big_positive'
+    else
+        global result = 'small_positive'
+    endif
+else
+    global result = 'negative'
+endeif"#;
+        
+        interp.exec(if_code).unwrap();
+        assert_eq!(interp.get_variable("result"), Some(&Value::String("small_positive".to_string())));
+    }
 }

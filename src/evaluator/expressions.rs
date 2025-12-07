@@ -24,12 +24,25 @@ impl<'a> ExpressionEvaluator<'a> {
             Expr::Variable(name) => self.evaluate_variable(name),
             Expr::Binary { left, operator, right } => self.evaluate_binary(left, operator, right),
             Expr::Unary { operator, operand } => self.evaluate_unary(operator, operand),
-            Expr::FunctionCall { name, args } => self.evaluate_function_call(name, args),
+            Expr::FunctionCall { name, args, named_args } => {
+                // Вычисляем именованные аргументы
+                let mut named_arg_values = std::collections::HashMap::new();
+                for (arg_name, arg_expr) in named_args {
+                    let value = self.evaluate(&arg_expr)?;
+                    named_arg_values.insert(arg_name.clone(), value);
+                }
+                self.evaluate_function_call_with_named_args(name, args, named_arg_values)
+            },
             Expr::Index { object, index } => self.evaluate_index(object, index),
             Expr::Member { object, member } => self.evaluate_member(object, member),
             Expr::ArrayLiteral { elements } => self.evaluate_array_literal(elements),
             Expr::ObjectLiteral { pairs } => self.evaluate_object_literal(pairs),
             Expr::Spread { expression } => self.evaluate_spread(expression),
+            Expr::NamedArg { name: _, value } => {
+                // NamedArg should only appear in function call arguments
+                // Evaluate the value expression
+                self.evaluate(value)
+            },
             Expr::TryBlock { .. } => self.evaluate_try_block(),
             Expr::ThrowStatement { message } => self.evaluate_throw_statement(message),
         }
@@ -61,6 +74,38 @@ impl<'a> ExpressionEvaluator<'a> {
     /// Вычислить вызов функции
     fn evaluate_function_call(&self, name: &str, args: &[Expr]) -> Result<Value> {
         self.evaluator.evaluate_function_call(name, args)
+    }
+    
+    /// Вычислить вызов функции с именованными аргументами
+    fn evaluate_function_call_with_named_args(
+        &self,
+        name: &str,
+        args: &[Expr],
+        named_args: std::collections::HashMap<String, Value>
+    ) -> Result<Value> {
+        // Вычисляем позиционные аргументы
+        let mut arg_values = Vec::new();
+        for arg in args {
+            match arg {
+                Expr::Spread { expression } => {
+                    // Обрабатываем spread оператор
+                    let spread_value = self.evaluate(expression)?;
+                    // TODO: expand spread
+                    arg_values.push(spread_value);
+                }
+                _ => {
+                    arg_values.push(self.evaluate(arg)?);
+                }
+            }
+        }
+        
+        // Вызываем функцию с именованными аргументами
+        crate::builtins::call_builtin_function_with_named_args(
+            name,
+            arg_values,
+            named_args,
+            self.evaluator.line()
+        )
     }
     
     /// Вычислить индексацию

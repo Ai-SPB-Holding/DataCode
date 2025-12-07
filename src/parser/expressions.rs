@@ -185,9 +185,9 @@ impl<'a> ExpressionParser<'a> {
                     // Вызов функции
                     if let Expr::Variable(name) = expr {
                         self.parser.advance(); // consume '('
-                        let args = self.parse_function_args()?;
+                        let (args, named_args) = self.parse_function_args()?;
                         self.parser.expect(Token::RightParen)?;
-                        expr = Expr::FunctionCall { name, args };
+                        expr = Expr::FunctionCall { name, args, named_args };
                     } else {
                         break;
                     }
@@ -226,14 +226,22 @@ impl<'a> ExpressionParser<'a> {
         Ok(expr)
     }
     
-    /// Парсить аргументы функции
-    fn parse_function_args(&mut self) -> Result<Vec<Expr>> {
+    /// Парсить аргументы функции (возвращает позиционные и именованные аргументы)
+    fn parse_function_args(&mut self) -> Result<(Vec<Expr>, Vec<(String, Expr)>)> {
         let mut args = Vec::new();
+        let mut named_args = Vec::new();
 
         self.parser.skip_newlines(); // skip newlines after '('
 
         if !matches!(self.parser.current_token(), Token::RightParen) {
-            args.push(self.parse_function_arg()?);
+            match self.parse_function_arg()? {
+                Expr::NamedArg { name, value } => {
+                    named_args.push((name, *value));
+                }
+                arg => {
+                    args.push(arg);
+                }
+            }
             self.parser.skip_newlines(); // skip newlines after first argument
 
             while matches!(self.parser.current_token(), Token::Comma) {
@@ -245,27 +253,475 @@ impl<'a> ExpressionParser<'a> {
                     break;
                 }
 
-                args.push(self.parse_function_arg()?);
+                match self.parse_function_arg()? {
+                    Expr::NamedArg { name, value } => {
+                        named_args.push((name, *value));
+                    }
+                    arg => {
+                        // После первого именованного аргумента все последующие должны быть именованными
+                        if !named_args.is_empty() {
+                            return Err(DataCodeError::syntax_error(
+                                "Positional arguments cannot follow named arguments",
+                                1, 0
+                            ));
+                        }
+                        args.push(arg);
+                    }
+                }
                 self.parser.skip_newlines(); // skip newlines after argument
             }
         }
 
-        Ok(args)
+        Ok((args, named_args))
     }
 
-    /// Парсить один аргумент функции (может быть обычным выражением или spread)
+    /// Парсить один аргумент функции (может быть обычным выражением, spread или именованным аргументом)
     fn parse_function_arg(&mut self) -> Result<Expr> {
         if matches!(self.parser.current_token(), Token::Multiply) {
             // Spread operator
             self.parser.advance(); // consume '*'
-            let expression = self.parse_expression()?;
+            let expression = self.parse_expression_until_comma()?;
             Ok(Expr::Spread {
                 expression: Box::new(expression),
             })
         } else {
-            // Обычное выражение
-            self.parse_expression()
+            // Парсим выражение, но проверяем, является ли оно именованным аргументом
+            // Именованный аргумент имеет форму: identifier = expression
+            // Проверяем это в parse_primary_until_comma_with_named_arg
+            self.parse_expression_until_comma_with_named_arg()
         }
+    }
+    
+    /// Парсить выражение до запятой или закрывающей скобки с поддержкой именованных аргументов
+    fn parse_expression_until_comma_with_named_arg(&mut self) -> Result<Expr> {
+        // Проверяем, является ли это именованным аргументом (identifier = expression)
+        if let Token::Identifier(name) = self.parser.current_token() {
+            let name = name.clone();
+            self.parser.advance(); // consume identifier
+            self.parser.skip_newlines();
+            
+            // Проверяем, есть ли после идентификатора оператор присваивания
+            if matches!(self.parser.current_token(), Token::Assign) {
+                // Это именованный аргумент
+                self.parser.advance(); // consume '='
+                self.parser.skip_newlines();
+                let value = self.parse_expression_until_comma()?;
+                return Ok(Expr::NamedArg {
+                    name,
+                    value: Box::new(value),
+                });
+            } else {
+                // Это не именованный аргумент, парсим как обычное выражение
+                // Но мы уже продвинулись, поэтому нужно парсить оставшуюся часть
+                // Начинаем с переменной и продолжаем парсинг
+                let mut expr = Expr::Variable(name);
+                
+                // Продолжаем парсинг постфиксных операторов и бинарных выражений
+                // Используем parse_postfix_until_comma, но начинаем с уже созданной переменной
+                // Для этого нужно парсить с текущей позиции
+                return self.parse_expression_continuation_until_comma(expr);
+            }
+        }
+        
+        // Для всех остальных случаев парсим как обычное выражение
+        self.parse_expression_until_comma()
+    }
+    
+    /// Продолжить парсинг выражения, начиная с уже созданного выражения
+    /// Используется когда мы уже распарсили часть выражения (например, переменную)
+    fn parse_expression_continuation_until_comma(&mut self, mut expr: Expr) -> Result<Expr> {
+        // Парсим постфиксные операторы (вызовы функций, индексация, доступ к членам)
+        loop {
+            match self.parser.current_token() {
+                Token::LeftParen => {
+                    if let Expr::Variable(name) = expr {
+                        self.parser.advance(); // consume '('
+                        let (args, named_args) = self.parse_function_args()?;
+                        self.parser.expect(Token::RightParen)?;
+                        expr = Expr::FunctionCall { name, args, named_args };
+                    } else {
+                        break;
+                    }
+                }
+                Token::LeftBracket => {
+                    self.parser.advance(); // consume '['
+                    let index = self.parse_expression_until_comma()?;
+                    self.parser.expect(Token::RightBracket)?;
+                    expr = Expr::Index {
+                        object: Box::new(expr),
+                        index: Box::new(index),
+                    };
+                }
+                Token::Dot => {
+                    self.parser.advance(); // consume '.'
+                    if let Token::Identifier(member) = self.parser.current_token() {
+                        let member = member.clone();
+                        self.parser.advance();
+                        expr = Expr::Member {
+                            object: Box::new(expr),
+                            member,
+                        };
+                    } else {
+                        return Err(DataCodeError::syntax_error(
+                            "Expected identifier after '.'",
+                            1, 0
+                        ));
+                    }
+                }
+                _ => break,
+            }
+            
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                break;
+            }
+        }
+        
+        // Теперь парсим бинарные операторы, начиная с текущего выражения
+        // Парсим умножение/деление
+        while matches!(self.parser.current_token(), Token::Multiply | Token::Divide | Token::Modulo) {
+            let op = match self.parser.current_token() {
+                Token::Multiply => BinaryOp::Multiply,
+                Token::Divide => BinaryOp::Divide,
+                Token::Modulo => BinaryOp::Modulo,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            self.parser.skip_newlines();
+            let right = self.parse_unary_until_comma()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator: op,
+                right: Box::new(right),
+            };
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(expr);
+            }
+        }
+        
+        // Парсим сложение/вычитание
+        while matches!(self.parser.current_token(), Token::Plus | Token::Minus) {
+            let op = match self.parser.current_token() {
+                Token::Plus => BinaryOp::Add,
+                Token::Minus => BinaryOp::Subtract,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            self.parser.skip_newlines();
+            let right = self.parse_multiplication_until_comma()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator: op,
+                right: Box::new(right),
+            };
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(expr);
+            }
+        }
+        
+        Ok(expr)
+    }
+    
+    /// Парсить выражение до запятой или закрывающей скобки
+    /// Это нужно для правильного парсинга аргументов функций
+    fn parse_expression_until_comma(&mut self) -> Result<Expr> {
+        self.parse_or_until_comma()
+    }
+    
+    /// Парсить логическое ИЛИ до запятой или закрывающей скобки
+    fn parse_or_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_and_until_comma()?;
+        
+        while matches!(self.parser.current_token(), Token::Or) {
+            self.parser.advance();
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                // Откатываемся назад, так как мы уже продвинулись
+                return Ok(left);
+            }
+            let right = self.parse_and_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: BinaryOp::Or,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: BinaryOp::Or,
+                right: Box::new(right),
+            };
+        }
+        
+        Ok(left)
+    }
+    
+    /// Парсить логическое И до запятой или закрывающей скобки
+    fn parse_and_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_equality_until_comma()?;
+        
+        while matches!(self.parser.current_token(), Token::And) {
+            self.parser.advance();
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(left);
+            }
+            let right = self.parse_equality_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: BinaryOp::And,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: BinaryOp::And,
+                right: Box::new(right),
+            };
+        }
+        
+        Ok(left)
+    }
+    
+    /// Парсить операторы равенства до запятой или закрывающей скобки
+    fn parse_equality_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_comparison_until_comma()?;
+        
+        while matches!(self.parser.current_token(), Token::Equal | Token::NotEqual) {
+            let op = match self.parser.current_token() {
+                Token::Equal => BinaryOp::Equal,
+                Token::NotEqual => BinaryOp::NotEqual,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(left);
+            }
+            let right = self.parse_comparison_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+        }
+        
+        Ok(left)
+    }
+    
+    /// Парсить операторы сравнения до запятой или закрывающей скобки
+    fn parse_comparison_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_addition_until_comma()?;
+        
+        while matches!(self.parser.current_token(), 
+            Token::Less | Token::Greater | Token::LessEqual | Token::GreaterEqual) {
+            let op = match self.parser.current_token() {
+                Token::Less => BinaryOp::Less,
+                Token::Greater => BinaryOp::Greater,
+                Token::LessEqual => BinaryOp::LessEqual,
+                Token::GreaterEqual => BinaryOp::GreaterEqual,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            self.parser.skip_newlines();
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(left);
+            }
+            let right = self.parse_addition_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+        }
+        
+        Ok(left)
+    }
+    
+    /// Парсить сложение и вычитание до запятой или закрывающей скобки
+    fn parse_addition_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_multiplication_until_comma()?;
+        
+        while matches!(self.parser.current_token(), Token::Plus | Token::Minus) {
+            let op = match self.parser.current_token() {
+                Token::Plus => BinaryOp::Add,
+                Token::Minus => BinaryOp::Subtract,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            self.parser.skip_newlines();
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                return Ok(left);
+            }
+            let right = self.parse_multiplication_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+        }
+        
+        Ok(left)
+    }
+    
+    /// Парсить умножение, деление и остаток от деления до запятой или закрывающей скобки
+    fn parse_multiplication_until_comma(&mut self) -> Result<Expr> {
+        let mut left = self.parse_unary_until_comma()?;
+        
+        // Проверяем сразу после парсинга левой части
+        if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+            return Ok(left);
+        }
+
+        while matches!(self.parser.current_token(), Token::Multiply | Token::Divide | Token::Modulo) {
+            let op = match self.parser.current_token() {
+                Token::Multiply => BinaryOp::Multiply,
+                Token::Divide => BinaryOp::Divide,
+                Token::Modulo => BinaryOp::Modulo,
+                _ => unreachable!(),
+            };
+            self.parser.advance();
+            self.parser.skip_newlines();
+            // После оператора должна быть правая часть - проверка на Comma/RightParen здесь не нужна
+            // Если правая часть отсутствует, parse_unary_until_comma выдаст ошибку
+            let right = self.parse_unary_until_comma()?;
+            // Проверяем после парсинга правой части
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                // Если следующий токен - запятая или закрывающая скобка, возвращаем бинарное выражение
+                left = Expr::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                };
+                return Ok(left);
+            }
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+    
+    /// Парсить унарные операторы до запятой или закрывающей скобки
+    fn parse_unary_until_comma(&mut self) -> Result<Expr> {
+        match self.parser.current_token() {
+            Token::Not => {
+                self.parser.advance();
+                let operand = self.parse_unary_until_comma()?;
+                Ok(Expr::Unary {
+                    operator: UnaryOp::Not,
+                    operand: Box::new(operand),
+                })
+            }
+            Token::Minus => {
+                self.parser.advance();
+                let operand = self.parse_unary_until_comma()?;
+                Ok(Expr::Unary {
+                    operator: UnaryOp::Minus,
+                    operand: Box::new(operand),
+                })
+            }
+            _ => self.parse_postfix_until_comma(),
+        }
+    }
+    
+    /// Парсить постфиксные операторы до запятой или закрывающей скобки
+    fn parse_postfix_until_comma(&mut self) -> Result<Expr> {
+        let mut expr = self.parse_primary()?;
+        
+        // Проверяем сразу после парсинга первичного выражения
+        // Если следующий токен - запятая или закрывающая скобка, возвращаем выражение
+        if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+            return Ok(expr);
+        }
+        
+        loop {
+            match self.parser.current_token() {
+                Token::LeftParen => {
+                    // Вызов функции
+                    if let Expr::Variable(name) = expr {
+                        self.parser.advance(); // consume '('
+                        let (args, named_args) = self.parse_function_args()?;
+                        self.parser.expect(Token::RightParen)?;
+                        expr = Expr::FunctionCall { name, args, named_args };
+                    } else {
+                        break;
+                    }
+                }
+                Token::LeftBracket => {
+                    // Индексация
+                    self.parser.advance(); // consume '['
+                    let index = self.parse_expression_until_comma()?;
+                    self.parser.expect(Token::RightBracket)?;
+                    expr = Expr::Index {
+                        object: Box::new(expr),
+                        index: Box::new(index),
+                    };
+                }
+                Token::Dot => {
+                    // Доступ к члену
+                    self.parser.advance(); // consume '.'
+                    if let Token::Identifier(member) = self.parser.current_token() {
+                        let member = member.clone();
+                        self.parser.advance();
+                        expr = Expr::Member {
+                            object: Box::new(expr),
+                            member,
+                        };
+                    } else {
+                        return Err(DataCodeError::syntax_error(
+                            "Expected identifier after '.'",
+                            1, 0
+                        ));
+                    }
+                }
+                _ => break,
+            }
+            
+            // Проверяем, не является ли следующий токен запятой или закрывающей скобкой
+            if matches!(self.parser.current_token(), Token::Comma | Token::RightParen) {
+                break;
+            }
+        }
+        
+        Ok(expr)
     }
 
     /// Парсить первичные выражения (литералы, переменные, скобки)
@@ -458,9 +914,10 @@ mod tests {
         let expr = expr_parser.parse_expression().unwrap();
 
         match expr {
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 assert_eq!(name, "func");
                 assert_eq!(args.len(), 2);
+                assert_eq!(named_args.len(), 0);
             }
             _ => panic!("Expected function call"),
         }

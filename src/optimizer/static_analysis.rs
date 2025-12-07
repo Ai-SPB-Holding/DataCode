@@ -93,13 +93,19 @@ impl StaticAnalyzer {
                 let operand_type = self.analyze_expression(operand, context)?;
                 self.analyze_unary_operation(operator, &operand_type, context)
             }
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 context.functions_called.insert(name.clone());
                 
-                // Анализируем аргументы
+                // Анализируем позиционные аргументы
                 let mut arg_types = Vec::new();
                 for arg in args {
                     let arg_type = self.analyze_expression(arg, context)?;
+                    arg_types.push(arg_type);
+                }
+                
+                // Анализируем именованные аргументы (пока просто добавляем их типы)
+                for (_, arg_expr) in named_args {
+                    let arg_type = self.analyze_expression(&arg_expr, context)?;
                     arg_types.push(arg_type);
                 }
                 
@@ -151,6 +157,11 @@ impl StaticAnalyzer {
             Expr::ThrowStatement { message } => {
                 self.analyze_expression(message, context)?;
                 Ok(DataType::Null) // throw не возвращает значение
+            }
+            Expr::NamedArg { name: _, value } => {
+                // NamedArg should only appear in function call arguments
+                // Analyze the value expression
+                self.analyze_expression(value, context)
             }
         }
     }

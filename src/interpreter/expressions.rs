@@ -1,7 +1,7 @@
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
 use crate::parser::{Expr, BinaryOp, UnaryOp};
-use crate::builtins::call_builtin_function;
+use crate::builtins::call_builtin_function_with_named_args;
 use super::variables::VariableManager;
 use super::user_functions::UserFunctionManager;
 
@@ -37,7 +37,7 @@ impl<'a> ExpressionEvaluator<'a> {
                     .ok_or_else(|| DataCodeError::variable_not_found(name, self.current_line))
             }
 
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 // Проверяем, является ли это пользовательской функцией
                 if self.function_manager.contains_function(name) {
                     // Для пользовательских функций возвращаем специальную ошибку,
@@ -47,13 +47,19 @@ impl<'a> ExpressionEvaluator<'a> {
                         self.current_line,
                     ))
                 } else {
-                    // Сначала вычисляем аргументы для встроенных функций
+                    // Сначала вычисляем позиционные аргументы для встроенных функций
                     let mut arg_values = Vec::new();
                     for arg in args {
                         arg_values.push(self.evaluate(arg)?);
                     }
+                    // Вычисляем именованные аргументы
+                    let mut named_arg_values = std::collections::HashMap::new();
+                    for (arg_name, arg_expr) in named_args {
+                        let value = self.evaluate(&arg_expr)?;
+                        named_arg_values.insert(arg_name.clone(), value);
+                    }
                     // Встроенная функция
-                    call_builtin_function(name, arg_values, self.current_line)
+                    call_builtin_function_with_named_args(name, arg_values, named_arg_values, self.current_line)
                 }
             }
 

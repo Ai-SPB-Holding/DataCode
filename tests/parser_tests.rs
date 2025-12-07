@@ -147,7 +147,7 @@ mod parser_tests {
         let expr = parser.parse_expression().unwrap();
         
         match expr {
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args: _ } => {
                 assert_eq!(name, "func");
                 assert_eq!(args.len(), 3);
                 

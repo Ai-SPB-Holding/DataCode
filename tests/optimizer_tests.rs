@@ -67,6 +67,7 @@ mod optimizer_tests {
                     right: Box::new(Expr::Literal(Value::Number(5.0))),
                 },
             ],
+            named_args: vec![],
         };
         
         let outer_filter = Expr::FunctionCall {
@@ -79,13 +80,14 @@ mod optimizer_tests {
                     right: Box::new(Expr::Literal(Value::Number(10.0))),
                 },
             ],
+            named_args: vec![],
         };
         
         let optimized = optimizer.optimize(outer_filter).unwrap();
         
         // Проверяем, что фильтры объединились
         match optimized {
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args: _ } => {
                 assert_eq!(name, "table_filter");
                 assert_eq!(args.len(), 2);
                 
@@ -187,6 +189,7 @@ mod optimizer_tests {
                     right: Box::new(Expr::Literal(Value::Number(18.0))),
                 },
             ],
+            named_args: vec![],
         };
         
         let result = analyzer.analyze(&expr).unwrap();

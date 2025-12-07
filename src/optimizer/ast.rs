@@ -75,14 +75,19 @@ impl ASTOptimizer {
                     operand: Box::new(operand_opt),
                 })
             }
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 let optimized_args: Result<Vec<Expr>> = args.into_iter()
                     .map(|arg| self.fold_constants(arg))
+                    .collect();
+                
+                let optimized_named_args: Result<Vec<(String, Expr)>> = named_args.into_iter()
+                    .map(|(key, value)| Ok((key, self.fold_constants(value)?)))
                     .collect();
                 
                 Ok(Expr::FunctionCall {
                     name,
                     args: optimized_args?,
+                    named_args: optimized_named_args?,
                 })
             }
             Expr::ArrayLiteral { elements } => {
@@ -123,11 +128,11 @@ impl ASTOptimizer {
     /// Объединение фильтров: filter(filter(data, x > 5), x < 10) → combined_filter(data, x > 5 && x < 10)
     fn combine_filters(&mut self, expr: Expr) -> Result<Expr> {
         match expr {
-            Expr::FunctionCall { name, args } => {
-                if name == "table_filter" && args.len() == 2 {
+            Expr::FunctionCall { name, args, named_args } => {
+                if name == "table_filter" && args.len() == 2 && named_args.is_empty() {
                     // Проверяем, является ли первый аргумент тоже table_filter
-                    if let Expr::FunctionCall { name: inner_name, args: inner_args } = &args[0] {
-                        if inner_name == "table_filter" && inner_args.len() == 2 {
+                    if let Expr::FunctionCall { name: inner_name, args: inner_args, named_args: inner_named_args } = &args[0] {
+                        if inner_name == "table_filter" && inner_args.len() == 2 && inner_named_args.is_empty() {
                             // Объединяем условия фильтрации
                             let combined_condition = Expr::Binary {
                                 left: Box::new(inner_args[1].clone()),
@@ -139,6 +144,7 @@ impl ASTOptimizer {
                             return Ok(Expr::FunctionCall {
                                 name: "table_filter".to_string(),
                                 args: vec![inner_args[0].clone(), combined_condition],
+                                named_args: vec![],
                             });
                         }
                     }
@@ -149,9 +155,14 @@ impl ASTOptimizer {
                     .map(|arg| self.combine_filters(arg))
                     .collect();
                 
+                let optimized_named_args: Result<Vec<(String, Expr)>> = named_args.into_iter()
+                    .map(|(key, value)| Ok((key, self.combine_filters(value)?)))
+                    .collect();
+                
                 Ok(Expr::FunctionCall {
                     name,
                     args: optimized_args?,
+                    named_args: optimized_named_args?,
                 })
             }
             Expr::Binary { left, operator, right } => {
@@ -206,9 +217,9 @@ impl ASTOptimizer {
     fn remove_dead_code(&mut self, expr: Expr) -> Result<Expr> {
         match expr {
             // Удаляем недостижимый код после return/throw
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 // Если это select с неиспользуемыми колонками, можем оптимизировать
-                if name == "table_select" && args.len() == 2 {
+                if name == "table_select" && args.len() == 2 && named_args.is_empty() {
                     // Здесь можно добавить логику для определения используемых колонок
                     // Пока просто рекурсивно обрабатываем аргументы
                 }
@@ -217,9 +228,14 @@ impl ASTOptimizer {
                     .map(|arg| self.remove_dead_code(arg))
                     .collect();
                 
+                let optimized_named_args: Result<Vec<(String, Expr)>> = named_args.into_iter()
+                    .map(|(key, value)| Ok((key, self.remove_dead_code(value)?)))
+                    .collect();
+                
                 Ok(Expr::FunctionCall {
                     name,
                     args: optimized_args?,
+                    named_args: optimized_named_args?,
                 })
             }
             Expr::Binary { left, operator, right } => {
@@ -326,11 +342,11 @@ impl ASTOptimizer {
     /// Оптимизация вызовов функций
     fn optimize_function_calls(&mut self, expr: Expr) -> Result<Expr> {
         match expr {
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 // Оптимизация для table_head(table_head(data, n), m) → table_head(data, min(n, m))
-                if name == "table_head" && args.len() == 2 {
-                    if let Expr::FunctionCall { name: inner_name, args: inner_args } = &args[0] {
-                        if inner_name == "table_head" && inner_args.len() == 2 {
+                if name == "table_head" && args.len() == 2 && named_args.is_empty() {
+                    if let Expr::FunctionCall { name: inner_name, args: inner_args, named_args: inner_named_args } = &args[0] {
+                        if inner_name == "table_head" && inner_args.len() == 2 && inner_named_args.is_empty() {
                             // Берем минимальное значение из двух head операций
                             if let (Expr::Literal(Value::Number(n)), Expr::Literal(Value::Number(m))) = (&inner_args[1], &args[1]) {
                                 let min_val = n.min(*m);
@@ -338,6 +354,7 @@ impl ASTOptimizer {
                                 return Ok(Expr::FunctionCall {
                                     name: "table_head".to_string(),
                                     args: vec![inner_args[0].clone(), Expr::Literal(Value::Number(min_val))],
+                                    named_args: vec![],
                                 });
                             }
                         }
@@ -349,9 +366,14 @@ impl ASTOptimizer {
                     .map(|arg| self.optimize_function_calls(arg))
                     .collect();
                 
+                let optimized_named_args: Result<Vec<(String, Expr)>> = named_args.into_iter()
+                    .map(|(key, value)| Ok((key, self.optimize_function_calls(value)?)))
+                    .collect();
+                
                 Ok(Expr::FunctionCall {
                     name,
                     args: optimized_args?,
+                    named_args: optimized_named_args?,
                 })
             }
             // Рекурсивно обрабатываем остальные выражения

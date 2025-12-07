@@ -170,7 +170,7 @@ impl Repl {
                         false
                     }
                 },
-                Some(MultilineType::IfStatement) => trimmed == "endif",
+                Some(MultilineType::IfStatement) => trimmed == "endif" || trimmed == "endeif",
                 Some(MultilineType::Function) => trimmed == "endfunction",
                 Some(MultilineType::Comment) => trimmed.ends_with("\"\"\""),
                 None => false,

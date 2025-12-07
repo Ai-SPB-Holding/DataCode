@@ -1,5 +1,4 @@
 use data_code::parser::{Parser, Token, Expr};
-use data_code::value::Value;
 
 #[test]
 fn test_multiline_array_parsing() {
@@ -30,7 +29,7 @@ fn test_multiline_function_call_parsing() {
     let expr = parser.parse_expression().unwrap();
     
     match expr {
-        Expr::FunctionCall { name, args } => {
+        Expr::FunctionCall { name, args, named_args: _ } => {
             assert_eq!(name, "table_create");
             assert_eq!(args.len(), 2);
         }
@@ -153,7 +152,7 @@ fn test_complex_multiline_structure() {
     let expr = parser.parse_expression().unwrap();
     
     match expr {
-        Expr::FunctionCall { name, args } => {
+        Expr::FunctionCall { name, args, named_args: _ } => {
             assert_eq!(name, "table_create");
             assert_eq!(args.len(), 2);
         }

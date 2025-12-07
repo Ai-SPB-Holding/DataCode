@@ -1,6 +1,6 @@
 use crate::value::Value;
 use crate::error::{DataCodeError, Result};
-use crate::builtins::call_builtin_function;
+use crate::builtins::call_builtin_function_with_named_args;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -124,8 +124,8 @@ impl Interpreter {
                     .ok_or_else(|| DataCodeError::variable_not_found(name, self.current_line))
             }
 
-            Expr::FunctionCall { name, args } => {
-                // Вычисляем аргументы с поддержкой spread оператора
+            Expr::FunctionCall { name, args, named_args } => {
+                // Вычисляем позиционные аргументы с поддержкой spread оператора
                 let mut arg_values = Vec::new();
                 for arg in args {
                     match arg {
@@ -140,12 +140,26 @@ impl Interpreter {
                     }
                 }
 
+                // Вычисляем именованные аргументы
+                let mut named_arg_values = std::collections::HashMap::new();
+                for (arg_name, arg_expr) in named_args {
+                    let value = self.evaluate_expression(&arg_expr)?;
+                    named_arg_values.insert(arg_name.clone(), value);
+                }
+
                 // Проверяем, является ли это пользовательской функцией
                 if self.function_manager.contains_function(name) {
+                    // Пока пользовательские функции не поддерживают именованные аргументы
+                    if !named_arg_values.is_empty() {
+                        return Err(DataCodeError::runtime_error(
+                            &format!("User functions do not support named arguments yet"),
+                            self.current_line
+                        ));
+                    }
                     self.call_user_function(name, arg_values)
                 } else {
                     // Встроенная функция
-                    call_builtin_function(name, arg_values, self.current_line)
+                    call_builtin_function_with_named_args(name, arg_values, named_arg_values, self.current_line)
                 }
             }
 
@@ -363,13 +377,28 @@ impl Interpreter {
         use crate::parser::tokens::Expr;
 
         match expr {
-            Expr::FunctionCall { name, args } => {
+            Expr::FunctionCall { name, args, named_args } => {
                 if self.function_manager.contains_function(name) {
-                    // Вычисляем аргументы в контексте интерпретатора
+                    // Вычисляем позиционные аргументы в контексте интерпретатора
                     let mut arg_values = Vec::new();
                     for arg in args {
                         let arg_value = self.evaluate_expression(arg)?;
                         arg_values.push(arg_value);
+                    }
+                    
+                    // Вычисляем именованные аргументы
+                    let mut named_arg_values = std::collections::HashMap::new();
+                    for (arg_name, arg_expr) in named_args {
+                        let value = self.evaluate_expression(&arg_expr)?;
+                        named_arg_values.insert(arg_name.clone(), value);
+                    }
+                    
+                    // Пока пользовательские функции не поддерживают именованные аргументы
+                    if !named_arg_values.is_empty() {
+                        return Err(DataCodeError::runtime_error(
+                            &format!("User functions do not support named arguments yet"),
+                            self.current_line
+                        ));
                     }
 
                     self.call_user_function(name, arg_values)

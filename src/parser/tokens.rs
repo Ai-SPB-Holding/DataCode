@@ -84,6 +84,11 @@ pub enum Expr {
     FunctionCall {
         name: String,
         args: Vec<Expr>,
+        named_args: Vec<(String, Expr)>,
+    },
+    NamedArg {
+        name: String,
+        value: Box<Expr>,
     },
     Index {
         object: Box<Expr>,

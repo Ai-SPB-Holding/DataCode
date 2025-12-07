@@ -178,7 +178,7 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
 
     // Проверяем на блочные конструкции, которые не должны обрабатываться как выражения
     if trimmed_code == "try" || trimmed_code == "catch" || trimmed_code == "finally" ||
-       trimmed_code == "endtry" || trimmed_code == "else" || trimmed_code == "endif" ||
+       trimmed_code == "endtry" || trimmed_code == "else" || trimmed_code == "endif" || trimmed_code == "endeif" ||
        trimmed_code == "endfunction" || trimmed_code.starts_with("next ") {
         return Err(DataCodeError::syntax_error(
             &format!("Unexpected keyword '{}' outside of block context", trimmed_code),
@@ -371,7 +371,7 @@ fn handle_if_statement(interpreter: &mut Interpreter, lines: &[&str], start: usi
 
         if current_line.starts_with("if ") && (current_line.ends_with(" do") || current_line.ends_with(" then")) {
             if_depth += 1;
-        } else if current_line == "endif" {
+        } else if current_line == "endif" || current_line == "endeif" {
             if_depth -= 1;
         }
 
@@ -424,74 +424,159 @@ fn handle_try_statement(interpreter: &mut Interpreter, lines: &[&str], start: us
 }
 
 /// Выполнить условную конструкцию напрямую без рекурсии
+/// Поддерживает: if ... do ... else if ... do ... else ... endif
 fn execute_if_statement_directly(interpreter: &mut Interpreter, if_lines: &[&str]) -> Result<()> {
     if if_lines.is_empty() {
         return Ok(());
     }
 
-    // Первая строка должна быть "if condition do" или "if condition then"
-    let first_line = &if_lines[0];
-    let trimmed_first = first_line.trim();
-    if !trimmed_first.starts_with("if ") || (!trimmed_first.ends_with(" do") && !trimmed_first.ends_with(" then")) {
-        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+    // Используем ту же логику, что и в execute_if_statement_iteratively
+    // Парсим все блоки: if, else if (может быть несколько), else (опционально)
+    struct ConditionalBlock<'a> {
+        condition: String,
+        body: Vec<&'a str>,
     }
 
-    // Извлекаем условие
-    let condition_str = if let Some(stripped) = trimmed_first.strip_prefix("if ") {
-        if let Some(condition) = stripped.strip_suffix(" do") {
-            condition.trim()
-        } else if let Some(condition) = stripped.strip_suffix(" then") {
-            condition.trim()
-        } else {
-            return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
-        }
-    } else {
-        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
-    };
-
-    // Вычисляем условие с защитой от рекурсии
-    let condition_value = eval_condition_safe(interpreter, condition_str)?;
-    let condition_result = to_bool(&condition_value);
-
-    // Находим блоки if, else, endif с учетом вложенности
-    let mut if_body = Vec::new();
-    let mut else_body = Vec::new();
+    let mut blocks: Vec<ConditionalBlock> = Vec::new();
+    let mut else_body: Option<Vec<&str>> = None;
+    
+    let mut i = 0;
+    let mut depth = 0;
+    let mut current_block_body: Vec<&str> = Vec::new();
+    let mut current_condition: Option<String> = None;
     let mut in_else = false;
-    let mut i = 1; // Пропускаем первую строку "if ... do"
-    let mut nested_depth = 0;
 
     while i < if_lines.len() {
-        let line = &if_lines[i];
+        let line = if_lines[i];
         let trimmed = line.trim();
 
-        // Проверяем на вложенные if
-        if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
-            nested_depth += 1;
-        } else if trimmed == "endif" {
-            if nested_depth == 0 {
-                break; // Это наш endif
-            } else {
-                nested_depth -= 1; // Это endif для вложенного if
+        // Сначала проверяем else if (должно быть до проверки if)
+        if trimmed.starts_with("else if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) && depth == 1 {
+            // Сохраняем предыдущий блок перед переходом к else if
+            if let Some(condition) = current_condition.take() {
+                blocks.push(ConditionalBlock {
+                    condition,
+                    body: current_block_body.clone(),
+                });
+                current_block_body.clear();
             }
-        } else if trimmed == "else" && nested_depth == 0 {
-            in_else = true;
+
+            // Извлекаем условие из else if
+            let condition_str = if let Some(stripped) = trimmed.strip_prefix("else if ") {
+                if let Some(condition) = stripped.strip_suffix(" do") {
+                    condition.trim().to_string()
+                } else if let Some(condition) = stripped.strip_suffix(" then") {
+                    condition.trim().to_string()
+                } else {
+                    return Err(DataCodeError::syntax_error("Invalid else if statement", interpreter.current_line, 0));
+                }
+            } else {
+                return Err(DataCodeError::syntax_error("Invalid else if statement", interpreter.current_line, 0));
+            };
+
+            current_condition = Some(condition_str);
             i += 1;
             continue;
         }
+        // Проверяем на вложенные if
+        else if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
+            if depth == 0 {
+                // Это начало нового блока if (первый if)
+                // Сохраняем предыдущий блок, если он был
+                if let Some(condition) = current_condition.take() {
+                    blocks.push(ConditionalBlock {
+                        condition,
+                        body: current_block_body.clone(),
+                    });
+                    current_block_body.clear();
+                }
 
-        if in_else {
-            else_body.push(*line);
+                // Извлекаем условие
+                let condition_str = if let Some(stripped) = trimmed.strip_prefix("if ") {
+                    if let Some(condition) = stripped.strip_suffix(" do") {
+                        condition.trim().to_string()
+                    } else if let Some(condition) = stripped.strip_suffix(" then") {
+                        condition.trim().to_string()
+                    } else {
+                        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+                    }
+                } else {
+                    return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+                };
+
+                current_condition = Some(condition_str);
+            } else {
+                // Вложенный if - добавляем в текущий блок
+                current_block_body.push(line);
+            }
+            depth += 1;
+        } else if trimmed == "endif" || trimmed == "endeif" {
+            if depth == 0 {
+                // Конец всей конструкции
+                if let Some(condition) = current_condition.take() {
+                    blocks.push(ConditionalBlock {
+                        condition,
+                        body: current_block_body.clone(),
+                    });
+                } else if in_else {
+                    // Сохраняем else блок
+                    else_body = Some(current_block_body.clone());
+                }
+                break;
+            }
+            depth -= 1;
+            if depth > 0 {
+                // Вложенный endif/endeif - добавляем в текущий блок
+                current_block_body.push(line);
+            }
+        } else if trimmed == "else" && depth == 1 {
+            // Сохраняем текущий блок перед переходом к else
+            if let Some(condition) = current_condition.take() {
+                blocks.push(ConditionalBlock {
+                    condition,
+                    body: current_block_body.clone(),
+                });
+                current_block_body.clear();
+            }
+            in_else = true;
+            i += 1;
+            continue;
         } else {
-            if_body.push(*line);
+            // Обычная строка - добавляем в текущий блок
+            current_block_body.push(line);
         }
+
         i += 1;
     }
 
-    // Выполняем соответствующий блок
-    let body_to_execute = if condition_result { &if_body } else { &else_body };
+    // Сохраняем последний блок, если он был
+    if let Some(condition) = current_condition {
+        blocks.push(ConditionalBlock {
+            condition,
+            body: current_block_body,
+        });
+    } else if in_else && else_body.is_none() {
+        else_body = Some(current_block_body);
+    }
 
-    // Выполняем блок с обработкой вложенных конструкций
-    execute_block_directly(interpreter, body_to_execute)?;
+    // Проверяем условия по порядку и выполняем первое истинное
+    let mut executed = false;
+    for block in &blocks {
+        let condition_value = eval_condition_safe(interpreter, &block.condition)?;
+        if to_bool(&condition_value) {
+            // Выполняем этот блок
+            execute_block_directly(interpreter, &block.body)?;
+            executed = true;
+            break;
+        }
+    }
+
+    // Если ни одно условие не выполнилось, выполняем else блок
+    if !executed {
+        if let Some(ref else_body_lines) = else_body {
+            execute_block_directly(interpreter, else_body_lines)?;
+        }
+    }
 
     Ok(())
 }
@@ -514,7 +599,7 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
 
                 if current_line.starts_with("if ") && (current_line.ends_with(" do") || current_line.ends_with(" then")) {
                     if_depth += 1;
-                } else if current_line == "endif" {
+                } else if current_line == "endif" || current_line == "endeif" {
                     if_depth -= 1;
                 }
 
@@ -630,73 +715,161 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
 }
 
 /// Выполнить условную конструкцию if итеративно (без рекурсии)
+/// Поддерживает: if ... do ... else if ... do ... else ... endif
 fn execute_if_statement_iteratively(interpreter: &mut Interpreter, if_lines: &[&str]) -> Result<()> {
     if if_lines.is_empty() {
         return Err(DataCodeError::syntax_error("Empty if statement", interpreter.current_line, 0));
     }
 
-    // Первая строка должна быть "if condition do" или "if condition then"
-    let first_line = &if_lines[0];
-    let trimmed_first = first_line.trim();
-    if !trimmed_first.starts_with("if ") || (!trimmed_first.ends_with(" do") && !trimmed_first.ends_with(" then")) {
-        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+    // Парсим все блоки: if, else if (может быть несколько), else (опционально)
+    struct ConditionalBlock<'a> {
+        condition: String,
+        body: Vec<&'a str>,
     }
 
-    // Извлекаем условие
-    let condition_str = if let Some(stripped) = trimmed_first.strip_prefix("if ") {
-        if let Some(condition) = stripped.strip_suffix(" do") {
-            condition.trim()
-        } else if let Some(condition) = stripped.strip_suffix(" then") {
-            condition.trim()
-        } else {
-            return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
-        }
-    } else {
-        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
-    };
-
-    // Вычисляем условие БЕЗ вызова пользовательских функций
-    let condition_value = eval_condition_without_user_functions(interpreter, condition_str)?;
-    let condition_result = is_truthy(&condition_value);
-
-    // Разбираем блоки if/else/endif
-    let mut if_body = Vec::new();
-    let mut else_body = Vec::new();
-    let mut in_else = false;
+    let mut blocks: Vec<ConditionalBlock> = Vec::new();
+    let mut else_body: Option<Vec<&str>> = None;
+    
+    let mut i = 0;
     let mut depth = 0;
+    let mut current_block_body: Vec<&str> = Vec::new();
+    let mut current_condition: Option<String> = None;
+    let mut in_else = false;
 
-    for (i, line) in if_lines.iter().enumerate() {
-        if i == 0 {
-            continue; // Пропускаем первую строку "if condition do"
-        }
-
+    while i < if_lines.len() {
+        let line = if_lines[i];
         let trimmed = line.trim();
 
-        if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
-            depth += 1;
-        } else if trimmed == "endif" {
-            if depth == 0 {
-                break; // Конец нашего if
+        // Сначала проверяем else if (должно быть до проверки if)
+        if trimmed.starts_with("else if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) && depth == 1 {
+            // Сохраняем предыдущий блок перед переходом к else if
+            if let Some(condition) = current_condition.take() {
+                blocks.push(ConditionalBlock {
+                    condition,
+                    body: current_block_body.clone(),
+                });
+                current_block_body.clear();
             }
-            depth -= 1;
-        } else if trimmed == "else" && depth == 0 {
-            in_else = true;
+
+            // Извлекаем условие из else if
+            let condition_str = if let Some(stripped) = trimmed.strip_prefix("else if ") {
+                if let Some(condition) = stripped.strip_suffix(" do") {
+                    condition.trim().to_string()
+                } else if let Some(condition) = stripped.strip_suffix(" then") {
+                    condition.trim().to_string()
+                } else {
+                    return Err(DataCodeError::syntax_error("Invalid else if statement", interpreter.current_line, 0));
+                }
+            } else {
+                return Err(DataCodeError::syntax_error("Invalid else if statement", interpreter.current_line, 0));
+            };
+
+            current_condition = Some(condition_str);
+            i += 1;
             continue;
         }
+        // Проверяем на вложенные if
+        else if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
+            if depth == 0 {
+                // Это начало нового блока if (первый if)
+                // Сохраняем предыдущий блок, если он был
+                if let Some(condition) = current_condition.take() {
+                    blocks.push(ConditionalBlock {
+                        condition,
+                        body: current_block_body.clone(),
+                    });
+                    current_block_body.clear();
+                }
 
-        if in_else {
-            else_body.push(*line);
+                // Извлекаем условие
+                let condition_str = if let Some(stripped) = trimmed.strip_prefix("if ") {
+                    if let Some(condition) = stripped.strip_suffix(" do") {
+                        condition.trim().to_string()
+                    } else if let Some(condition) = stripped.strip_suffix(" then") {
+                        condition.trim().to_string()
+                    } else {
+                        return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+                    }
+                } else {
+                    return Err(DataCodeError::syntax_error("Invalid if statement", interpreter.current_line, 0));
+                };
+
+                current_condition = Some(condition_str);
+            } else {
+                // Вложенный if - добавляем в текущий блок
+                current_block_body.push(line);
+            }
+            depth += 1;
+        } else if trimmed == "endif" || trimmed == "endeif" {
+            if depth == 0 {
+                // Конец всей конструкции
+                if let Some(condition) = current_condition.take() {
+                    blocks.push(ConditionalBlock {
+                        condition,
+                        body: current_block_body.clone(),
+                    });
+                } else if in_else {
+                    // Сохраняем else блок
+                    else_body = Some(current_block_body.clone());
+                }
+                break;
+            }
+            depth -= 1;
+            if depth > 0 {
+                // Вложенный endif/endeif - добавляем в текущий блок
+                current_block_body.push(line);
+            }
+        } else if trimmed == "else" && depth == 1 {
+            // Сохраняем текущий блок перед переходом к else
+            if let Some(condition) = current_condition.take() {
+                blocks.push(ConditionalBlock {
+                    condition,
+                    body: current_block_body.clone(),
+                });
+                current_block_body.clear();
+            }
+            in_else = true;
+            i += 1;
+            continue;
         } else {
-            if_body.push(*line);
+            // Обычная строка - добавляем в текущий блок
+            current_block_body.push(line);
+        }
+
+        i += 1;
+    }
+
+    // Сохраняем последний блок, если он был
+    if let Some(condition) = current_condition {
+        blocks.push(ConditionalBlock {
+            condition,
+            body: current_block_body,
+        });
+    } else if in_else && else_body.is_none() {
+        else_body = Some(current_block_body);
+    }
+
+    // Проверяем условия по порядку и выполняем первое истинное
+    let mut executed = false;
+    for block in &blocks {
+        let condition_value = eval_condition_without_user_functions(interpreter, &block.condition)?;
+        if is_truthy(&condition_value) {
+            // Выполняем этот блок
+            for line in &block.body {
+                execute_line_simple_safe(interpreter, line)?;
+            }
+            executed = true;
+            break;
         }
     }
 
-    // Выполняем соответствующий блок
-    let body_to_execute = if condition_result { &if_body } else { &else_body };
-
-    // Выполняем блок итеративно (без рекурсии)
-    for line in body_to_execute {
-        execute_line_simple_safe(interpreter, line)?;
+    // Если ни одно условие не выполнилось, выполняем else блок
+    if !executed {
+        if let Some(ref else_body_lines) = else_body {
+            for line in else_body_lines {
+                execute_line_simple_safe(interpreter, line)?;
+            }
+        }
     }
 
     Ok(())
@@ -708,6 +881,12 @@ fn execute_line_simple_safe(interpreter: &mut Interpreter, code: &str) -> Result
 
     // Пропускаем пустые строки и комментарии
     if trimmed_code.is_empty() || trimmed_code.starts_with('#') {
+        return Ok(());
+    }
+
+    // Пропускаем ключевые слова блочных конструкций (они обрабатываются на уровне выше)
+    if trimmed_code == "else" || trimmed_code == "endif" || trimmed_code == "endeif" || 
+       trimmed_code == "endfunction" || trimmed_code.starts_with("next ") {
         return Ok(());
     }
 
