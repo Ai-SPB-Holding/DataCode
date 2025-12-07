@@ -19,7 +19,7 @@ for pair in enum(customer_numbers) do
     global i = pair[0]
     global data = pair[1]
 
-    if not isinstance(data, 'number') do
+    if not isinstance(data, num) do
         print('Строка', i, ': Некорректный CustomerNo =', data)
     else
         print('Строка', i, ': Корректный CustomerNo =', data)
@@ -39,26 +39,26 @@ for pair in enum(customer_numbers) do
     global idx = pair[0]
     global val = pair[1]
 
-    if not isinstance(val, 'number') do
+    if not isinstance(val, num) do
         global problem_indices = push(problem_indices, idx)
         global problem_values = push(problem_values, val)
     endif
 next pair
 
-print('Найдено проблемных записей:', length(problem_indices))
+print('Найдено проблемных записей:', len(problem_indices))
 print('Индексы проблемных записей:', problem_indices)
 print('Проблемные значения:', problem_values)
 print()
 
 # Пример 2: Подсчет статистики
-global total_records = length(customer_numbers)
+global total_records = len(customer_numbers)
 global valid_records = 0
 
 for pair in enum(customer_numbers) do
     global index = pair[0]
     global value = pair[1]
 
-    if isinstance(value, 'number') do
+    if isinstance(value, num) do
         global valid_records = valid_records + 1
     endif
 next pair

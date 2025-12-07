@@ -25,7 +25,7 @@ This section demonstrates the DataCode type system, type checking, conversions, 
 **Usage example**:
 ```datacode
 global value = 42
-if isinstance(value, integer) do
+if isinstance(value, int) do
     print('This is an integer')
 endif
 ```
@@ -87,13 +87,13 @@ global file_path = path('/tmp')   # path
 ### Type Checking
 ```datacode
 global function check_type(value) do
-    if isinstance(value, integer) do
+    if isinstance(value, int) do
         return 'Integer'
     else
         if isinstance(value, float) do
             return 'Floating-point number'
         else
-            if isinstance(value, string) do
+            if isinstance(value, str) do
                 return 'String'
             else
                 return 'Other type'
@@ -140,16 +140,16 @@ global a = 42
 global b = 'hello'
 global c = [1, 2, 3]
 
-print(isinstance(a, integer))  # true
-print(isinstance(b, string))   # true
+print(isinstance(a, int))  # true
+print(isinstance(b, str))   # true
 print(isinstance(c, array))    # true
-print(isinstance(a, string))   # false
+print(isinstance(a, str))   # false
 ```
 
 ### Practical Application
 ```datacode
 global function safe_add(a, b) do
-    if isinstance(a, integer) and isinstance(b, integer) do
+    if isinstance(a, int) and isinstance(b, int) do
         return a + b
     else
         print('Error: integers expected')

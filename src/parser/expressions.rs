@@ -185,9 +185,33 @@ impl<'a> ExpressionParser<'a> {
                     // Вызов функции
                     if let Expr::Variable(name) = expr {
                         self.parser.advance(); // consume '('
-                        let (args, named_args) = self.parse_function_args()?;
-                        self.parser.expect(Token::RightParen)?;
+                        let (mut args, named_args) = self.parse_function_args()?;
+                        
+                        // Специальная обработка для isinstance: преобразуем идентификаторы типов в строки
+                        if name == "isinstance" && args.len() == 2 {
+                            if let Expr::Variable(type_name) = &args[1] {
+                                // Проверяем, является ли это именем типа
+                                let type_names = ["int", "float", "num", "str", 
+                                                  "text", "bool", "date", "money", "array", "vec", "object", "dict", 
+                                                  "map", "table", "null", "path", "pathpattern", "pattern"];
+                                if type_names.contains(&type_name.as_str()) {
+                                    use crate::value::Value;
+                                    args[1] = Expr::Literal(Value::String(type_name.clone()));
+                                }
+                            }
+                        }
+                        
+                        if std::env::var("DATACODE_DEBUG").is_ok() {
+                            eprintln!("🔍 DEBUG parse_postfix: Before expecting RightParen, current token: {:?}", self.parser.current_token());
+                        }
+                        self.parser.expect(Token::RightParen).map_err(|e| {
+                            eprintln!("❌ DEBUG parse_postfix: Error expecting RightParen, current token: {:?}", self.parser.current_token());
+                            e
+                        })?;
                         expr = Expr::FunctionCall { name, args, named_args };
+                        if std::env::var("DATACODE_DEBUG").is_ok() {
+                            eprintln!("🔍 DEBUG parse_postfix: After function call, current token: {:?}", self.parser.current_token());
+                        }
                     } else {
                         break;
                     }
@@ -243,6 +267,10 @@ impl<'a> ExpressionParser<'a> {
                 }
             }
             self.parser.skip_newlines(); // skip newlines after first argument
+            let current_token_after = format!("{:?}", self.parser.current_token());
+            if std::env::var("DATACODE_DEBUG").is_ok() {
+                eprintln!("🔍 DEBUG parse_function_args: After parsing arg, token: {}", current_token_after);
+            }
 
             while matches!(self.parser.current_token(), Token::Comma) {
                 self.parser.advance(); // consume ','
@@ -251,6 +279,9 @@ impl<'a> ExpressionParser<'a> {
                 // Check for trailing comma (comma followed by closing paren)
                 if matches!(self.parser.current_token(), Token::RightParen) {
                     break;
+                }
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("🔍 DEBUG parse_function_args: After comma, token: {:?}", self.parser.current_token());
                 }
 
                 match self.parse_function_arg()? {
@@ -270,6 +301,10 @@ impl<'a> ExpressionParser<'a> {
                 }
                 self.parser.skip_newlines(); // skip newlines after argument
             }
+        }
+        
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            eprintln!("🔍 DEBUG parse_function_args: Finished parsing args, current token: {:?}", self.parser.current_token());
         }
 
         Ok((args, named_args))
@@ -314,7 +349,7 @@ impl<'a> ExpressionParser<'a> {
                 // Это не именованный аргумент, парсим как обычное выражение
                 // Но мы уже продвинулись, поэтому нужно парсить оставшуюся часть
                 // Начинаем с переменной и продолжаем парсинг
-                let mut expr = Expr::Variable(name);
+                let expr = Expr::Variable(name);
                 
                 // Продолжаем парсинг постфиксных операторов и бинарных выражений
                 // Используем parse_postfix_until_comma, но начинаем с уже созданной переменной
@@ -726,7 +761,15 @@ impl<'a> ExpressionParser<'a> {
 
     /// Парсить первичные выражения (литералы, переменные, скобки)
     fn parse_primary(&mut self) -> Result<Expr> {
-        match self.parser.current_token() {
+        let current_token = self.parser.current_token();
+        if matches!(current_token, Token::Local) {
+            eprintln!("🔍 DEBUG parse_primary: Found Local token!");
+            eprintln!("🔍 DEBUG parse_primary: Parser position info - need to check input");
+        }
+        if std::env::var("DATACODE_DEBUG").is_ok() || std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+            eprintln!("🔍 DEBUG parse_primary: Current token: {:?}", current_token);
+        }
+        match current_token {
             Token::String(s) => {
                 let value = s.clone();
                 self.parser.advance();
@@ -750,6 +793,10 @@ impl<'a> ExpressionParser<'a> {
                 let name = name.clone();
                 self.parser.advance();
                 Ok(Expr::Variable(name))
+            }
+            Token::Print => {
+                self.parser.advance();
+                Ok(Expr::Variable("print".to_string()))
             }
             Token::LeftParen => {
                 self.parser.advance(); // consume '('
@@ -852,6 +899,14 @@ impl<'a> ExpressionParser<'a> {
 
                 self.parser.expect(Token::RightBrace)?;
                 Ok(Expr::ObjectLiteral { pairs })
+            }
+            token if token.is_statement_keyword() => {
+                eprintln!("🔍 DEBUG parse_primary: Found statement keyword token: {:?}", token);
+                eprintln!("🔍 DEBUG parse_primary: Current parser state - checking if this is a statement keyword");
+                Err(DataCodeError::syntax_error(
+                    &format!("Unexpected keyword '{:?}' in expression context. Keywords like 'if', 'for', 'try', 'function', etc. cannot be used as expressions.", token),
+                    1, 0
+                ))
             }
             _ => Err(DataCodeError::syntax_error(
                 &format!("Unexpected token: {:?}", self.parser.current_token()),

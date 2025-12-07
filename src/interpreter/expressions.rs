@@ -170,6 +170,8 @@ impl<'a> ExpressionEvaluator<'a> {
                 (String(a), String(b)) => Ok(String(format!("{}{}", a, b))),
                 (String(a), Number(b)) => Ok(String(format!("{}{}", a, b))),
                 (Number(a), String(b)) => Ok(String(format!("{}{}", a, b))),
+                (String(a), Bool(b)) => Ok(String(format!("{}{}", a, b))),
+                (Bool(b), String(a)) => Ok(String(format!("{}{}", b, a))),
                 (Path(p), String(s)) => {
                     let result = p.join(s);
                     if s.contains('*') || s.contains('?') || s.contains('[') {
@@ -209,6 +211,36 @@ impl<'a> ExpressionEvaluator<'a> {
 
             Multiply => match (left, right) {
                 (Number(a), Number(b)) => Ok(Number(a * b)),
+                (String(s), Number(n)) => {
+                    if *n >= 0.0 && n.fract() == 0.0 {
+                        let count = *n as usize;
+                        Ok(String(s.repeat(count)))
+                    } else {
+                        Err(DataCodeError::runtime_error(
+                            "String multiplication requires non-negative integer",
+                            self.current_line,
+                        ))
+                    }
+                }
+                (Number(n), String(s)) => {
+                    if *n >= 0.0 && n.fract() == 0.0 {
+                        let count = *n as usize;
+                        Ok(String(s.repeat(count)))
+                    } else {
+                        Err(DataCodeError::runtime_error(
+                            "String multiplication requires non-negative integer",
+                            self.current_line,
+                        ))
+                    }
+                }
+                (Bool(b), Number(n)) => {
+                    // Bool(true) = 1.0, Bool(false) = 0.0
+                    Ok(Number(if *b { *n } else { 0.0 }))
+                }
+                (Number(n), Bool(b)) => {
+                    // Bool(true) = 1.0, Bool(false) = 0.0
+                    Ok(Number(if *b { *n } else { 0.0 }))
+                }
                 _ => Err(DataCodeError::runtime_error(
                     &format!("Cannot multiply {:?} and {:?}", left, right),
                     self.current_line,
@@ -399,9 +431,9 @@ impl<'a> ExpressionEvaluator<'a> {
                     ))
             }
             Array(arr) => {
-                // Поддержка свойств массива, например arr.length
+                // Поддержка свойств массива, например arr.len
                 match member {
-                    "length" | "len" => Ok(Number(arr.len() as f64)),
+                    "len" => Ok(Number(arr.len() as f64)),
                     _ => Err(DataCodeError::runtime_error(
                         &format!("Array has no member '{}'", member),
                         self.current_line,
@@ -409,9 +441,9 @@ impl<'a> ExpressionEvaluator<'a> {
                 }
             }
             String(s) => {
-                // Поддержка свойств строки, например str.length
+                // Поддержка свойств строки, например str.len
                 match member {
-                    "length" | "len" => Ok(Number(s.len() as f64)),
+                    "len" => Ok(Number(s.len() as f64)),
                     _ => Err(DataCodeError::runtime_error(
                         &format!("String has no member '{}'", member),
                         self.current_line,

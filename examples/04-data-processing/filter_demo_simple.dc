@@ -56,7 +56,7 @@ global departments = table_distinct(employees, 'department')
 print("Unique departments:")
 for dept in departments do
     print("  - " + dept)
-endfor
+next dept
 print("")
 
 # 5. SAMPLE random rows
@@ -80,11 +80,11 @@ show_table(active_high)
 print("7. Statistics:")
 print("-------------")
 
-global eng_count = length(engineering['rows'])
-global total_count = length(employees['rows'])
+global eng_count = len(engineering)
+global total_count = len(employees)
 print("Engineering employees: " + eng_count + " out of " + total_count)
 
-global active_count = length(active_employees['rows'])
+global active_count = len(active)
 print("Active employees: " + active_count + " out of " + total_count)
 
 print("")

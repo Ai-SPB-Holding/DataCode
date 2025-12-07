@@ -1,0 +1,12 @@
+# Простой тест for loop в try блоке
+try
+    for i in [1, 2, 3] do
+        print("i = ", i)
+        if i > 1 do
+            print("  больше 1")
+        endif
+    next i
+catch e
+    print("Ошибка: ", e)
+endtry
+

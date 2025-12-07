@@ -7,6 +7,7 @@ mod parser;
 mod evaluator;
 mod repl;
 mod websocket;
+mod cache;
 
 use std::env;
 use std::fs;
@@ -131,7 +132,13 @@ fn run_file(file_path: &str, debug_mode: bool, build_model: bool, sqlite_output:
 
     // Читаем содержимое файла
     let content = match fs::read_to_string(file_path) {
-        Ok(content) => content,
+        Ok(content) => {
+            // Debug: проверяем размер файла
+            if debug_mode {
+                println!("🔍 File size: {} bytes", content.len());
+            }
+            content
+        },
         Err(e) => {
             println!("❌ Error reading file '{}': {}", file_path, e);
             std::process::exit(1);
@@ -144,6 +151,16 @@ fn run_file(file_path: &str, debug_mode: bool, build_model: bool, sqlite_output:
         println!("✅ Execution completed (nothing to execute)");
         return;
     }
+
+    // Удаляем BOM (Byte Order Mark) если присутствует
+    let content = if content.starts_with('\u{feff}') {
+        if debug_mode {
+            println!("🔍 Removing UTF-8 BOM");
+        }
+        content.trim_start_matches('\u{feff}').to_string()
+    } else {
+        content
+    };
 
     // Создаем интерпретатор
     let mut interpreter = Interpreter::new();

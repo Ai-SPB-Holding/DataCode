@@ -145,7 +145,7 @@ DataCode> print(square(5))
 **Built-in Functions (40+ functions):**
 - **Basic**: `print()`, `now()`
 - **Mathematical**: `abs()`, `sqrt()`, `pow()`, `min()`, `max()`, `round()`
-- **String**: `length()`, `upper()`, `lower()`, `trim()`, `split()`, `join()`, `contains()`
+- **String**: `len()`, `upper()`, `lower()`, `trim()`, `split()`, `join()`, `contains()`
 - **Arrays**: `push()`, `pop()`, `unique()`, `reverse()`, `sort()`, `sum()`, `average()`, `count()`
 - **File**: `getcwd()`, `path()`, `read_file()` (supports .txt, .csv, .xlsx)
 - **Table**: `table()`, `show_table()`, `table_info()`, `table_head()`, `table_tail()`, `table_select()`, `table_sort()`

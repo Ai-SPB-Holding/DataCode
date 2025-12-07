@@ -86,7 +86,8 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                         for entry in entries {
                             let entry = entry.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
                             if let Ok(file_type) = entry.file_type() {
-                                if file_type.is_file() {
+                                // Возвращаем и файлы, и директории
+                                if file_type.is_file() || file_type.is_dir() {
                                     if let Some(name) = entry.file_name().to_str() {
                                         files.push(String(name.to_string()));
                                     }
@@ -122,7 +123,8 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                             DataCodeError::runtime_error(&format!("Invalid glob pattern: {}", e), line))? {
                             match entry {
                                 Ok(path) => {
-                                    if path.is_file() {
+                                    // Возвращаем и файлы, и директории
+                                    if path.is_file() || path.is_dir() {
                                         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                                             files.push(String(name.to_string()));
                                         }

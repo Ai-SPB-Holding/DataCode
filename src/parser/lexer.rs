@@ -13,6 +13,13 @@ pub struct Lexer {
 impl Lexer {
     /// Создать новый лексер для заданного входного текста
     pub fn new(input: &str) -> Self {
+        // Диагностика: выводим входной текст для отладки
+        if std::env::var("DATACODE_DEBUG").is_ok() || std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+            eprintln!("🔍 DEBUG Lexer::new: Input text (length: {}): '{}'", input.len(), input);
+            if input.contains('\n') {
+                eprintln!("⚠️  DEBUG Lexer::new: WARNING - Input contains newlines!");
+            }
+        }
         let chars: Vec<char> = input.chars().collect();
         let current_char = chars.get(0).copied();
         Self {
@@ -24,12 +31,21 @@ impl Lexer {
     
     /// Перейти к следующему символу
     fn advance(&mut self) {
+        // Защита от чтения за пределами входного текста
+        if self.position >= self.input.len() {
+            self.current_char = None;
+            return;
+        }
         self.position += 1;
         self.current_char = self.input.get(self.position).copied();
     }
     
     /// Посмотреть на следующий символ без перехода к нему
     fn peek(&self) -> Option<char> {
+        // Защита от чтения за пределами входного текста
+        if self.position + 1 >= self.input.len() {
+            return None;
+        }
         self.input.get(self.position + 1).copied()
     }
     
@@ -116,14 +132,17 @@ impl Lexer {
 
         // Ищем закрывающие """
         while let Some(ch) = self.current_char {
-            if ch == '"' && self.peek() == Some('"') {
-                // Проверяем, есть ли третья кавычка
-                if self.input.get(self.position + 2) == Some(&'"') {
-                    // Пропускаем закрывающие """
-                    self.advance(); // первая "
-                    self.advance(); // вторая "
-                    self.advance(); // третья "
-                    break;
+            // Защита от чтения за пределами входного текста
+            if self.position + 2 < self.input.len() {
+                if ch == '"' && self.peek() == Some('"') {
+                    // Проверяем, есть ли третья кавычка
+                    if self.input.get(self.position + 2) == Some(&'"') {
+                        // Пропускаем закрывающие """
+                        self.advance(); // первая "
+                        self.advance(); // вторая "
+                        self.advance(); // третья "
+                        break;
+                    }
                 }
             }
             self.advance();
@@ -133,8 +152,21 @@ impl Lexer {
     /// Получить следующий токен
     pub fn next_token(&mut self) -> Token {
         loop {
+            // Проверяем, не вышли ли мы за пределы входного текста
+            if self.position >= self.input.len() {
+                if std::env::var("DATACODE_DEBUG").is_ok() || std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                    eprintln!("🔍 DEBUG Lexer::next_token: Reached end of input at position {}", self.position);
+                }
+                return Token::EOF;
+            }
+            
             match self.current_char {
-                None => return Token::EOF,
+                None => {
+                    if std::env::var("DATACODE_DEBUG").is_ok() || std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                        eprintln!("🔍 DEBUG Lexer::next_token: current_char is None, returning EOF");
+                    }
+                    return Token::EOF;
+                },
                 Some(' ') | Some('\t') | Some('\r') => {
                     self.skip_whitespace();
                     continue;
@@ -149,14 +181,16 @@ impl Lexer {
                 }
                 Some('"') => {
                     // Проверяем, начинается ли многострочный комментарий
-                    if self.peek() == Some('"') && self.input.get(self.position + 2) == Some(&'"') {
-                        self.skip_multiline_comment();
-                        continue;
-                    } else {
-                        // Обычная строка в двойных кавычках
-                        let string_val = self.read_string('"');
-                        return Token::String(string_val);
+                    // Защита от чтения за пределами входного текста
+                    if self.position + 2 < self.input.len() {
+                        if self.peek() == Some('"') && self.input.get(self.position + 2) == Some(&'"') {
+                            self.skip_multiline_comment();
+                            continue;
+                        }
                     }
+                    // Обычная строка в двойных кавычках
+                    let string_val = self.read_string('"');
+                    return Token::String(string_val);
                 }
                 Some('\'') => {
                     let string_val = self.read_string('\'');
@@ -277,7 +311,7 @@ impl Lexer {
     
     /// Определить, является ли идентификатор ключевым словом
     fn keyword_or_identifier(&self, ident: String) -> Token {
-        match ident.as_str() {
+        let token = match ident.as_str() {
             "true" => Token::Bool(true),
             "false" => Token::Bool(false),
             "null" => Token::Null,
@@ -295,8 +329,21 @@ impl Lexer {
             "do" => Token::Do,
             "endfunction" => Token::EndFunction,
             "return" => Token::Return,
-            _ => Token::Identifier(ident),
+            "if" => Token::If,
+            "else" => Token::Else,
+            "endif" => Token::EndIf,
+            "for" => Token::For,
+            "next" => Token::Next,
+            "in" => Token::In,
+            "print" => Token::Print,
+            _ => Token::Identifier(ident.clone()),
+        };
+        if std::env::var("DATACODE_DEBUG").is_ok() || std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+            if matches!(token, Token::Local) {
+                eprintln!("🔍 DEBUG lexer: Found 'Local' token for identifier '{}'", ident);
+            }
         }
+        token
     }
 }
 

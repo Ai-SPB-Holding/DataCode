@@ -227,6 +227,7 @@ impl<'a> FunctionCallHandler<'a> {
 }
 
 /// Трейт для функций
+#[allow(dead_code)]
 pub trait FunctionCallable {
     /// Имя функции
     fn name(&self) -> &str;
@@ -286,21 +287,25 @@ impl FunctionRegistry {
     }
     
     /// Зарегистрировать функцию
+    #[allow(dead_code)]
     pub fn register(&mut self, info: FunctionInfo) {
         self.functions.insert(info.name.clone(), info);
     }
     
     /// Получить информацию о функции
+    #[allow(dead_code)]
     pub fn get_function_info(&self, name: &str) -> Option<&FunctionInfo> {
         self.functions.get(name)
     }
     
     /// Получить все функции
+    #[allow(dead_code)]
     pub fn get_all_functions(&self) -> &std::collections::HashMap<String, FunctionInfo> {
         &self.functions
     }
     
     /// Получить функции по категории
+    #[allow(dead_code)]
     pub fn get_functions_by_category(&self, category: &str) -> Vec<&FunctionInfo> {
         self.functions.values()
             .filter(|info| info.category == category)

@@ -31,6 +31,7 @@ impl<'a> Evaluator<'a> {
     }
     
     /// Получить ссылку на переменные
+    #[allow(dead_code)]
     pub fn variables(&self) -> &HashMap<String, Value> {
         self.variables
     }
@@ -111,6 +112,7 @@ impl<'a> Evaluator<'a> {
 }
 
 /// Вспомогательная функция для быстрого парсинга и вычисления выражений
+#[allow(dead_code)]
 pub fn parse_and_evaluate(expr_str: &str, variables: &HashMap<String, Value>, line: usize) -> Result<Value> {
     let mut parser = crate::parser::Parser::new(expr_str);
     let expr = parser.parse_expression()?;

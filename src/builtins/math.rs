@@ -46,42 +46,88 @@ pub fn call_math_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
             if args.is_empty() {
                 return Err(DataCodeError::wrong_argument_count("min", 1, 0, line));
             }
-            let mut min_val = match &args[0] {
-                Number(n) => *n,
-                _ => return Err(DataCodeError::type_error("Number", "other", line)),
-            };
-            for arg in &args[1..] {
-                match arg {
-                    Number(n) => {
-                        if *n < min_val {
-                            min_val = *n;
-                        }
-                    }
-                    _ => return Err(DataCodeError::type_error("Number", "other", line)),
+            // Поддержка массива как первого аргумента
+            if let Array(arr) = &args[0] {
+                if arr.is_empty() {
+                    return Err(DataCodeError::runtime_error("Cannot find minimum of empty array", line));
                 }
+                let mut min_val = match &arr[0] {
+                    Number(n) => *n,
+                    _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                };
+                for item in &arr[1..] {
+                    match item {
+                        Number(n) => {
+                            if *n < min_val {
+                                min_val = *n;
+                            }
+                        }
+                        _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                    }
+                }
+                Ok(Number(min_val))
+            } else {
+                // Обработка отдельных аргументов (старое поведение)
+                let mut min_val = match &args[0] {
+                    Number(n) => *n,
+                    _ => return Err(DataCodeError::type_error("Number or Array", "other", line)),
+                };
+                for arg in &args[1..] {
+                    match arg {
+                        Number(n) => {
+                            if *n < min_val {
+                                min_val = *n;
+                            }
+                        }
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    }
+                }
+                Ok(Number(min_val))
             }
-            Ok(Number(min_val))
         }
         
         "max" => {
             if args.is_empty() {
                 return Err(DataCodeError::wrong_argument_count("max", 1, 0, line));
             }
-            let mut max_val = match &args[0] {
-                Number(n) => *n,
-                _ => return Err(DataCodeError::type_error("Number", "other", line)),
-            };
-            for arg in &args[1..] {
-                match arg {
-                    Number(n) => {
-                        if *n > max_val {
-                            max_val = *n;
-                        }
-                    }
-                    _ => return Err(DataCodeError::type_error("Number", "other", line)),
+            // Поддержка массива как первого аргумента
+            if let Array(arr) = &args[0] {
+                if arr.is_empty() {
+                    return Err(DataCodeError::runtime_error("Cannot find maximum of empty array", line));
                 }
+                let mut max_val = match &arr[0] {
+                    Number(n) => *n,
+                    _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                };
+                for item in &arr[1..] {
+                    match item {
+                        Number(n) => {
+                            if *n > max_val {
+                                max_val = *n;
+                            }
+                        }
+                        _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                    }
+                }
+                Ok(Number(max_val))
+            } else {
+                // Обработка отдельных аргументов (старое поведение)
+                let mut max_val = match &args[0] {
+                    Number(n) => *n,
+                    _ => return Err(DataCodeError::type_error("Number or Array", "other", line)),
+                };
+                for arg in &args[1..] {
+                    match arg {
+                        Number(n) => {
+                            if *n > max_val {
+                                max_val = *n;
+                            }
+                        }
+                        _ => return Err(DataCodeError::type_error("Number", "other", line)),
+                    }
+                }
+                Ok(Number(max_val))
             }
-            Ok(Number(max_val))
         }
         
         "round" => {

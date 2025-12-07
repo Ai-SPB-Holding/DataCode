@@ -27,11 +27,13 @@ impl SmbConnection {
     }
 
     /// Получить UNC путь для подключения
+    #[allow(dead_code)]
     pub fn get_unc_path(&self) -> String {
         format!("\\\\{}\\{}", self.ip, self.share_name)
     }
 
     /// Получить путь для lib:// протокола
+    #[allow(dead_code)]
     pub fn get_lib_path(&self) -> String {
         format!("lib://{}", self.share_name)
     }
@@ -119,7 +121,7 @@ impl SmbManager {
                 // Пробуем передать пароль через stdin
                 let mut cmd = Command::new("smbclient");
                 cmd.args(&args);
-                let mut child = cmd.stdin(std::process::Stdio::piped())
+                let child = cmd.stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn();
@@ -204,11 +206,13 @@ impl SmbManager {
     }
 
     /// Получить подключение по имени шары
+    #[allow(dead_code)]
     pub fn get_connection(&self, share_name: &str) -> Option<&SmbConnection> {
         self.connections.get(share_name)
     }
 
     /// Проверить, подключена ли шара
+    #[allow(dead_code)]
     pub fn is_connected(&self, share_name: &str) -> bool {
         self.connections.contains_key(share_name)
     }
@@ -374,7 +378,7 @@ impl SmbManager {
                             
                             // Определяем тип файла
                             let file_type: String = chars.iter().skip(char_pos).take_while(|c| **c != ' ').collect();
-                            let is_directory = file_type == "D";
+                            let _is_directory = file_type == "D";
                             
                             // Возвращаем и файлы, и директории (кроме служебных)
                             // Пропускаем скрытые файлы (начинающиеся с точки) и служебные
@@ -500,7 +504,7 @@ impl SmbManager {
                                 
                                 // Определяем тип файла
                                 let file_type: String = chars.iter().skip(char_pos).take_while(|c| **c != ' ').collect();
-                                let is_directory = file_type == "D";
+                                let _is_directory = file_type == "D";
                                 
                                 // Возвращаем и файлы, и директории (кроме служебных)
                                 // Пропускаем скрытые файлы (начинающиеся с точки) и служебные

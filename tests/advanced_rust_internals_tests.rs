@@ -390,8 +390,8 @@ mod advanced_rust_internals_tests {
         next i
 
         # Проверяем размеры
-        global array_size = length(large_array)
-        global arrays_count = length(nested_arrays)
+        global array_size = len(large_array)
+        global arrays_count = len(nested_arrays)
         "#;
 
         let result = interp.exec(code);

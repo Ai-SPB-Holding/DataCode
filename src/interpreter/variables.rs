@@ -22,22 +22,49 @@ impl VariableManager {
 
     /// Получить переменную с учетом областей видимости
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
-        // Сначала ищем в локальных переменных циклов (проверяем все уровни, начиная с последнего)
-        for loop_vars in self.loop_stack.iter().rev() {
-            if let Some(value) = loop_vars.get(name) {
-                return Some(value);
+        // Отладочный вывод (можно включить через переменную окружения DEBUG_VARIABLES=1)
+        let debug = std::env::var("DEBUG_VARIABLES").is_ok();
+        
+        if debug {
+            eprintln!("🔍 get_variable('{}'): loop_stack depth = {}", name, self.loop_stack.len());
+            for (i, loop_vars) in self.loop_stack.iter().rev().enumerate() {
+                eprintln!("  Level {}: {:?}", i, loop_vars.keys().collect::<Vec<_>>());
+                if let Some(value) = loop_vars.get(name) {
+                    eprintln!("  ✓ Found '{}' at level {}", name, i);
+                    return Some(value);
+                }
+            }
+        } else {
+            // Сначала ищем в локальных переменных циклов (проверяем все уровни, начиная с последнего)
+            for loop_vars in self.loop_stack.iter().rev() {
+                if let Some(value) = loop_vars.get(name) {
+                    return Some(value);
+                }
             }
         }
 
         // Затем ищем в локальных переменных функций (стек вызовов)
         if let Some(local_vars) = self.call_stack.last() {
             if let Some(value) = local_vars.get(name) {
+                if debug {
+                    eprintln!("  ✓ Found '{}' in function scope", name);
+                }
                 return Some(value);
             }
         }
 
         // Затем в глобальных переменных
-        self.global_variables.get(name)
+        if let Some(value) = self.global_variables.get(name) {
+            if debug {
+                eprintln!("  ✓ Found '{}' in global scope", name);
+            }
+            return Some(value);
+        }
+        
+        if debug {
+            eprintln!("  ✗ Variable '{}' not found", name);
+        }
+        None
     }
 
     /// Установить переменную
@@ -110,8 +137,25 @@ impl VariableManager {
 
     /// Специальный метод для установки переменной цикла
     pub fn set_loop_variable(&mut self, name: String, value: Value) {
+        let debug = std::env::var("DEBUG_VARIABLES").is_ok();
+        let stack_depth = self.loop_stack.len();
+        
         if let Some(loop_vars) = self.loop_stack.last_mut() {
+            if debug {
+                eprintln!("🔧 set_loop_variable('{}') at level {} (stack depth: {})", 
+                    name, stack_depth - 1, stack_depth);
+            }
             loop_vars.insert(name, value);
+        } else {
+            // Если loop_stack пуст, создаем новую область видимости
+            // Это может произойти, если переменная устанавливается до enter_loop_scope
+            if debug {
+                eprintln!("⚠️  set_loop_variable('{}'): loop_stack is empty, creating new scope", name);
+            }
+            self.loop_stack.push(HashMap::new());
+            if let Some(loop_vars) = self.loop_stack.last_mut() {
+                loop_vars.insert(name, value);
+            }
         }
     }
 
@@ -132,11 +176,19 @@ impl VariableManager {
 
     /// Войти в новую область видимости цикла
     pub fn enter_loop_scope(&mut self) {
+        let debug = std::env::var("DEBUG_VARIABLES").is_ok();
+        if debug {
+            eprintln!("🔧 enter_loop_scope: depth before = {}, after = {}", self.loop_stack.len(), self.loop_stack.len() + 1);
+        }
         self.loop_stack.push(HashMap::new());
     }
 
     /// Выйти из области видимости цикла
     pub fn exit_loop_scope(&mut self) {
+        let debug = std::env::var("DEBUG_VARIABLES").is_ok();
+        if debug {
+            eprintln!("🔧 exit_loop_scope: depth before = {}, after = {}", self.loop_stack.len(), self.loop_stack.len().saturating_sub(1));
+        }
         self.loop_stack.pop();
     }
 
@@ -177,11 +229,13 @@ impl VariableManager {
     }
 
     /// Проверить, находимся ли мы в функции
+    #[allow(dead_code)]
     pub fn is_in_function(&self) -> bool {
         !self.call_stack.is_empty()
     }
 
     /// Проверить, находимся ли мы в цикле
+    #[allow(dead_code)]
     pub fn is_in_loop(&self) -> bool {
         !self.loop_stack.is_empty()
     }

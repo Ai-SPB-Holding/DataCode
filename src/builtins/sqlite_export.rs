@@ -177,7 +177,7 @@ fn write_variables_metadata(
         let value_str = value.to_display_string();
         let value_to_store = if value_str.len() > 10000 {
             // Для очень больших значений сохраняем только префикс
-            format!("{}... (truncated, length: {})", 
+            format!("{}... (truncated, len: {})", 
                 &value_str[..10000], 
                 value_str.len())
         } else {

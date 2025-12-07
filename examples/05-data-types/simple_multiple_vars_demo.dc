@@ -15,7 +15,7 @@ print()
 
 print('Проверка типов с помощью for i, data in enum():')
 for i, data in enum(customer_numbers) do
-    if not isinstance(data, 'number') do
+    if not isinstance(data, num) do
         print('Строка', i, ': Некорректный CustomerNo =', data)
     else
         print('Строка', i, ': Корректный CustomerNo =', data)
@@ -57,16 +57,16 @@ print('Смешанные данные:', mixed_data)
 
 print('Анализ типов по позициям:')
 for position, value in enum(mixed_data) do
-    if isinstance(value, 'number') do
+    if isinstance(value, num) do
         print('Позиция', position, ': Число =', value)
     else
-        if isinstance(value, 'string') do
+        if isinstance(value, str) do
             print('Позиция', position, ': Строка =', value)
         else
-            if isinstance(value, 'bool') do
+            if isinstance(value, bool) do
                 print('Позиция', position, ': Булево =', value)
             else
-                if isinstance(value, 'null') do
+                if isinstance(value, null) do
                     print('Позиция', position, ': Null значение')
                 else
                     print('Позиция', position, ': Неизвестный тип =', value)

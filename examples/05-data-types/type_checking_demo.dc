@@ -30,45 +30,40 @@ print('================================')
 
 # Проверка числовых типов
 print('Проверка числовых типов:')
-print('isinstance(number_var, "number") =', isinstance(number_var, 'number'))
-print('isinstance(number_var, "int") =', isinstance(number_var, 'int'))
-print('isinstance(number_var, "integer") =', isinstance(number_var, 'integer'))
-print('isinstance(float_var, "number") =', isinstance(float_var, 'number'))
-print('isinstance(float_var, "float") =', isinstance(float_var, 'float'))
+print('isinstance(number_var, num) =', isinstance(number_var, num))
+print('isinstance(number_var, int) =', isinstance(number_var, int))
+print('isinstance(float_var, num) =', isinstance(float_var, num))
+print('isinstance(float_var, float) =', isinstance(float_var, float))
 print()
 
 # Проверка строковых типов
 print('Проверка строковых типов:')
-print('isinstance(string_var, "string") =', isinstance(string_var, 'string'))
-print('isinstance(string_var, "str") =', isinstance(string_var, 'str'))
-print('isinstance(number_var, "string") =', isinstance(number_var, 'string'))
+print('isinstance(string_var, str) =', isinstance(string_var, str))
+print('isinstance(number_var, str) =', isinstance(number_var, str))
 print()
 
 # Проверка логических типов
 print('Проверка логических типов:')
-print('isinstance(bool_var, "bool") =', isinstance(bool_var, 'bool'))
-print('isinstance(bool_var, "boolean") =', isinstance(bool_var, 'boolean'))
-print('isinstance(string_var, "bool") =', isinstance(string_var, 'bool'))
+print('isinstance(bool_var, bool) =', isinstance(bool_var, bool))
+print('isinstance(string_var, bool) =', isinstance(string_var, bool))
 print()
 
 # Проверка массивов
 print('Проверка массивов:')
-print('isinstance(array_var, "array") =', isinstance(array_var, 'array'))
-print('isinstance(array_var, "list") =', isinstance(array_var, 'list'))
-print('isinstance(string_var, "array") =', isinstance(string_var, 'array'))
+print('isinstance(array_var, array) =', isinstance(array_var, array))
+print('isinstance(string_var, array) =', isinstance(string_var, array))
 print()
 
 # Проверка null значений
 print('Проверка null значений:')
-print('isinstance(null_var, "null") =', isinstance(null_var, 'null'))
-print('isinstance(null_var, "none") =', isinstance(null_var, 'none'))
-print('isinstance(number_var, "null") =', isinstance(number_var, 'null'))
+print('isinstance(null_var, null) =', isinstance(null_var, null))
+print('isinstance(number_var, null) =', isinstance(number_var, null))
 print()
 
 # Проверка путей
 print('Проверка путей:')
-print('isinstance(path_var, "path") =', isinstance(path_var, 'path'))
-print('isinstance(string_var, "path") =', isinstance(string_var, 'path'))
+print('isinstance(path_var, path) =', isinstance(path_var, path))
+print('isinstance(string_var, path) =', isinstance(string_var, path))
 print()
 
 # Демонстрация использования isinstance в условных конструкциях
@@ -77,9 +72,9 @@ print('===================================================')
 
 global test_value = 42
 
-if isinstance(test_value, 'number') do
+if isinstance(test_value, num) do
     print('test_value является числом!')
-    if isinstance(test_value, 'int') do
+    if isinstance(test_value, int) do
         print('Это целое число')
     else
         print('Это дробное число')
@@ -91,22 +86,22 @@ print()
 
 # Функция для определения типа переменной
 global function get_type_name(value) do
-    if isinstance(value, 'number') do
+    if isinstance(value, num) do
         return 'число'
     endif
-    if isinstance(value, 'string') do
+    if isinstance(value, str) do
         return 'строка'
     endif
-    if isinstance(value, 'bool') do
+    if isinstance(value, bool) do
         return 'логическое значение'
     endif
-    if isinstance(value, 'array') do
+    if isinstance(value, array) do
         return 'массив'
     endif
-    if isinstance(value, 'null') do
+    if isinstance(value, null) do
         return 'null'
     endif
-    if isinstance(value, 'path') do
+    if isinstance(value, path) do
         return 'путь'
     endif
     return 'неизвестный тип'
@@ -129,13 +124,13 @@ print('===========================')
 # Работа с числами как строками (через print)
 print('Число как строка: 42')
 global num_as_string = 'Число: 42'
-print('isinstance(num_as_string, "string") =', isinstance(num_as_string, 'string'))
+print('isinstance(num_as_string, str) =', isinstance(num_as_string, str))
 print()
 
 # Создание массива из разных типов
 global mixed_array = [number_var, string_var, bool_var]
 print('Смешанный массив:', mixed_array)
-print('isinstance(mixed_array, "array") =', isinstance(mixed_array, 'array'))
+print('isinstance(mixed_array, array) =', isinstance(mixed_array, array))
 print()
 
 # Проверка элементов массива
@@ -152,17 +147,17 @@ print()
 # Демонстрация работы с валютными значениями (если поддерживается)
 print('💰 Работа с валютными значениями:')
 print('=================================')
-global currency_string = '$100.50'
+global currency_string = money('100.50', '# 0,0 $')
 print('Валютная строка:', currency_string)
-print('isinstance(currency_string, "string") =', isinstance(currency_string, 'string'))
+print('isinstance(currency_string, str) =', isinstance(currency_string, str))
 
 # Попытка проверить, определяется ли как валюта
 # (результат зависит от того, как система обрабатывает валютные строки)
-global is_currency = isinstance(currency_string, 'currency')
-print('isinstance(currency_string, "currency") =', is_currency)
+global is_currency = isinstance(currency_string, money)
+print('isinstance(currency_string, money) =', is_currency)
 print()
 
 print('✅ Демонстрация завершена!')
 print('Функция isinstance() позволяет проверять типы данных в DataCode')
-print('Поддерживаемые типы: number, string, bool, array, null, path, currency')
+print('Поддерживаемые типы: num, str, bool, array, null, path, money')
 print('Альтернативные имена: int/integer/float, str, boolean, list, none, money')

@@ -248,9 +248,10 @@ mod error_tests {
         
         match result.unwrap_err() {
             DataCodeError::SyntaxError { message, .. } => {
-                assert!(message.contains("Missing next"));
+                assert!(message.contains("Missing next") || message.contains("Missing 'next"), 
+                    "Expected message containing 'Missing next', got: '{}'", message);
             }
-            _ => panic!("Expected SyntaxError"),
+            e => panic!("Expected SyntaxError, got: {:?}", e),
         }
     }
 

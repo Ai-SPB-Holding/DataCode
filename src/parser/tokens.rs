@@ -18,6 +18,7 @@ pub enum Token {
     Multiply,       // *
     Divide,         // /
     Modulo,         // %
+    #[allow(dead_code)]
     PathJoin,       // / (для путей)
     
     // Операторы сравнения
@@ -47,6 +48,19 @@ pub enum Token {
     Do,             // do
     EndFunction,    // endfunction
     Return,         // return
+    
+    // Условные конструкции
+    If,             // if
+    Else,           // else
+    EndIf,          // endif
+    
+    // Циклы
+    For,            // for
+    Next,           // next
+    In,             // in
+    
+    // Встроенные функции
+    Print,          // print
     
     // Скобки
     LeftParen,      // (
@@ -107,12 +121,48 @@ pub enum Expr {
     Spread {
         expression: Box<Expr>,
     },
-    TryBlock {
-        try_body: Vec<String>,
-        catch_var: Option<String>,
-        catch_body: Vec<String>,
-        finally_body: Option<Vec<String>>,
+    // Statements (операторы)
+    Assignment {
+        target: Box<Expr>,
+        value: Box<Expr>,
     },
+    Declaration {
+        scope: DeclarationScope,
+        names: Vec<String>,
+    },
+    ReturnStmt {
+        value: Option<Box<Expr>>,
+    },
+    PrintStmt {
+        args: Vec<Expr>,
+    },
+    ExprStmt {
+        expr: Box<Expr>,
+    },
+    Block {
+        statements: Vec<Expr>,
+    },
+    IfStmt {
+        condition: Box<Expr>,
+        then_block: Box<Expr>,
+        else_block: Option<Box<Expr>>,
+    },
+    ForStmt {
+        vars: Vec<String>,
+        iter_expr: Box<Expr>,
+        body: Box<Expr>,
+    },
+    TryStmt {
+        try_block: Box<Expr>,
+        catch_var: String,
+        catch_block: Box<Expr>,
+    },
+    FunctionDef {
+        name: String,
+        params: Vec<String>,
+        body: Box<Expr>,
+    },
+    #[allow(dead_code)]
     ThrowStatement {
         message: Box<Expr>,
     },
@@ -144,13 +194,24 @@ pub enum UnaryOp {
     Minus,
 }
 
+/// Область видимости для объявлений переменных
+#[derive(Debug, Clone, PartialEq)]
+pub enum DeclarationScope {
+    #[allow(dead_code)]
+    Global,
+    #[allow(dead_code)]
+    Local,
+}
+
 impl Token {
     /// Проверить, является ли токен литералом
+    #[allow(dead_code)]
     pub fn is_literal(&self) -> bool {
         matches!(self, Token::String(_) | Token::Number(_) | Token::Bool(_) | Token::Null)
     }
     
     /// Проверить, является ли токен оператором
+    #[allow(dead_code)]
     pub fn is_operator(&self) -> bool {
         matches!(self,
             Token::Plus | Token::Minus | Token::Multiply | Token::Divide | Token::Modulo |
@@ -160,18 +221,32 @@ impl Token {
     }
     
     /// Проверить, является ли токен ключевым словом
+    #[allow(dead_code)]
     pub fn is_keyword(&self) -> bool {
         matches!(self,
             Token::And | Token::Or | Token::Not | Token::Try |
             Token::Catch | Token::Finally | Token::EndTry | Token::Throw |
             Token::Function | Token::Global | Token::Local | Token::Do |
-            Token::EndFunction | Token::Return
+            Token::EndFunction | Token::Return | Token::If | Token::Else |
+            Token::EndIf | Token::For | Token::Next | Token::In | Token::Print
+        )
+    }
+    
+    /// Проверить, является ли токен ключевым словом оператора (не может быть в expression context)
+    /// Примечание: Print не включен, так как print() может использоваться как функция в выражениях
+    pub fn is_statement_keyword(&self) -> bool {
+        matches!(self,
+            Token::If | Token::For | Token::Try | Token::Function |
+            Token::Return | Token::Global | Token::Local |
+            Token::Else | Token::EndIf | Token::Next | Token::Catch |
+            Token::EndTry | Token::EndFunction | Token::Do
         )
     }
 }
 
 impl BinaryOp {
     /// Получить приоритет оператора (чем больше число, тем выше приоритет)
+    #[allow(dead_code)]
     pub fn precedence(&self) -> u8 {
         match self {
             BinaryOp::Or => 1,
@@ -184,6 +259,7 @@ impl BinaryOp {
     }
     
     /// Проверить, является ли оператор левоассоциативным
+    #[allow(dead_code)]
     pub fn is_left_associative(&self) -> bool {
         // Все наши операторы левоассоциативны
         true

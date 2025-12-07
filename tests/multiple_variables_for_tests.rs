@@ -59,7 +59,7 @@ mod multiple_variables_for_tests {
             for num, word in pairs do
                 global numbers = push(numbers, num)
                 global words = push(words, word)
-            next num, word
+            next num
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -103,7 +103,7 @@ mod multiple_variables_for_tests {
                 if flag do
                     global true_count = true_count + 1
                 endif
-            next num, letter, flag
+            next num
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -151,7 +151,7 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             for a, b in wrong_pairs do
                 print(a, b)
-            next a, b
+            next a
         "#;
         
         let result = interp.exec(loop_code);
@@ -174,7 +174,7 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             for a, b in non_arrays do
                 print(a, b)
-            next a, b
+            next a
         "#;
         
         let result = interp.exec(loop_code);
@@ -197,10 +197,10 @@ mod multiple_variables_for_tests {
         let loop_code = r#"
             global string_positions = []
             for i, value in enum(mixed_data) do
-                if isinstance(value, 'string') do
+                if isinstance(value, str) do
                     global string_positions = push(string_positions, i)
                 endif
-            next i, value
+            next i
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -229,7 +229,7 @@ mod multiple_variables_for_tests {
                     for num, letter in [pair] do
                         global combined = [row_idx, col_idx, num, letter]
                         global result = push(result, combined)
-                    next num, letter
+                    next num
                 next col_idx
             next row_idx
         "#;
@@ -291,7 +291,7 @@ mod multiple_variables_for_tests {
             for  a  ,  b  in pairs do
                 global sum1 = sum1 + a
                 global sum2 = sum2 + b
-            next a, b
+            next a
         "#;
         
         interp.exec(loop_code).unwrap();

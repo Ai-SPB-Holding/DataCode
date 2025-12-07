@@ -43,8 +43,17 @@ impl<'a> ExpressionEvaluator<'a> {
                 // Evaluate the value expression
                 self.evaluate(value)
             },
-            Expr::TryBlock { .. } => self.evaluate_try_block(),
+            Expr::TryStmt { .. } => {
+                // Try statements are handled at statement level, not expression level
+                Err(DataCodeError::runtime_error("Try statement cannot be used as expression", 0))
+            },
             Expr::ThrowStatement { message } => self.evaluate_throw_statement(message),
+            // Statements should not appear in expression context
+            Expr::Assignment { .. } | Expr::Declaration { .. } | Expr::ReturnStmt { .. } |
+            Expr::PrintStmt { .. } | Expr::ExprStmt { .. } | Expr::Block { .. } |
+            Expr::IfStmt { .. } | Expr::ForStmt { .. } | Expr::FunctionDef { .. } => {
+                Err(DataCodeError::runtime_error("Statement cannot be used as expression", 0))
+            },
         }
     }
     
@@ -72,6 +81,7 @@ impl<'a> ExpressionEvaluator<'a> {
     }
     
     /// Вычислить вызов функции
+    #[allow(dead_code)]
     fn evaluate_function_call(&self, name: &str, args: &[Expr]) -> Result<Value> {
         self.evaluator.evaluate_function_call(name, args)
     }
@@ -141,7 +151,7 @@ impl<'a> ExpressionEvaluator<'a> {
     }
 
     /// Вычислить spread выражение
-    fn evaluate_spread(&self, expression: &Expr) -> Result<Value> {
+    fn evaluate_spread(&self, _expression: &Expr) -> Result<Value> {
         // Spread выражения не должны вычисляться напрямую
         // Они обрабатываются специально в контексте вызова функций
         Err(DataCodeError::runtime_error(
@@ -151,6 +161,7 @@ impl<'a> ExpressionEvaluator<'a> {
     }
 
     /// Обработать try блок (не поддерживается в выражениях)
+    #[allow(dead_code)]
     fn evaluate_try_block(&self) -> Result<Value> {
         // Try блоки не должны вычисляться как выражения в evaluator
         // Они обрабатываются в интерпретаторе
@@ -171,6 +182,7 @@ impl<'a> ExpressionEvaluator<'a> {
 /// Трейт для вычисления выражений
 pub trait ExpressionEvaluable {
     /// Вычислить выражение с заданным вычислителем
+    #[allow(dead_code)]
     fn evaluate_with(&self, evaluator: &Evaluator) -> Result<Value>;
 }
 
@@ -186,6 +198,7 @@ pub mod utils {
     use super::*;
     
     /// Проверить, является ли выражение константой
+    #[allow(dead_code)]
     pub fn is_constant_expression(expr: &Expr) -> bool {
         match expr {
             Expr::Literal(_) => true,
@@ -197,6 +210,7 @@ pub mod utils {
     }
     
     /// Получить все переменные, используемые в выражении
+    #[allow(dead_code)]
     pub fn get_variables_in_expression(expr: &Expr) -> Vec<String> {
         let mut variables = Vec::new();
         collect_variables(expr, &mut variables);
@@ -240,6 +254,7 @@ pub mod utils {
     }
     
     /// Оценить сложность выражения (количество операций)
+    #[allow(dead_code)]
     pub fn expression_complexity(expr: &Expr) -> usize {
         match expr {
             Expr::Literal(_) | Expr::Variable(_) => 1,

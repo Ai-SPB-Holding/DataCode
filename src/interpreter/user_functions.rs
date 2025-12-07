@@ -57,6 +57,7 @@ impl TryBlock {
     }
 
     /// Создать простой блок try/catch для тестов
+    #[allow(dead_code)]
     pub fn new_simple(block_id: usize, nesting_level: usize) -> Self {
         Self::new(
             Some("error".to_string()),
@@ -68,6 +69,7 @@ impl TryBlock {
     }
 
     /// Создать блок try/catch с минимальными параметрами для тестов (альтернативный конструктор)
+    #[allow(dead_code)]
     pub fn new_minimal(block_id: usize, line: usize) -> Self {
         Self {
             _catch_var: Some("error".to_string()),
@@ -80,16 +82,19 @@ impl TryBlock {
     }
 
     /// Проверить, может ли этот блок обработать исключение
+    #[allow(dead_code)]
     pub fn can_handle_exception(&self) -> bool {
         self._is_active && !self._catch_body.is_empty()
     }
 
     /// Проверить, активен ли блок
+    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         self._is_active
     }
 
     /// Деактивировать блок (когда он завершает выполнение)
+    #[allow(dead_code)]
     pub fn deactivate(&mut self) {
         self._is_active = false;
     }
@@ -123,6 +128,7 @@ impl UserFunctionManager {
         &self.functions
     }
 
+    #[allow(dead_code)]
     pub fn remove_function(&mut self, name: &str) -> Option<UserFunction> {
         self.functions.remove(name)
     }

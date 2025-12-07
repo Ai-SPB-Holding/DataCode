@@ -85,7 +85,7 @@ global departments = table_distinct(employees, 'department')
 print("🏢 Уникальные отделы:")
 for dept in departments do
     print("  • " + dept)
-endfor
+next dept
 print("")
 
 # Уникальные статусы активности
@@ -93,7 +93,7 @@ global statuses = table_distinct(employees, 'active')
 print("📊 Уникальные статусы активности:")
 for status in statuses do
     print("  • " + status)
-endfor
+next status
 print("")
 
 # ========== 5. СЛУЧАЙНАЯ ВЫБОРКА table_sample ==========
@@ -134,9 +134,9 @@ print("-" * 40)
 # Статистика по зарплатам в Engineering
 global eng_salaries = table_select(engineering, ['salary'])
 global eng_salary_array = []
-for row in eng_salaries['rows'] do
+for row in eng_salaries do
     global eng_salary_array = push(eng_salary_array, row[0])
-endfor
+next row
 
 print("📈 Статистика зарплат в Engineering:")
 print("  • Средняя зарплата: " + average(eng_salary_array))
@@ -151,15 +151,15 @@ print("-" * 40)
 
 # Неравенство
 global not_hr = table_where(employees, 'department', '!=', 'HR')
-print("🚫 Сотрудники НЕ из HR (" + length(not_hr['rows']) + " человек)")
+print("🚫 Сотрудники НЕ из HR (" + len(not_hr) + " человек)")
 
 # Меньше или равно
 global young = table_where(employees, 'age', '<=', 30)
-print("👶 Молодые сотрудники (≤30 лет): " + length(young['rows']) + " человек")
+print("👶 Молодые сотрудники (≤30 лет): " + len(young) + " человек")
 
 # Больше или равно
 global experienced = table_where(employees, 'age', '>=', 35)
-print("👴 Опытные сотрудники (≥35 лет): " + length(experienced['rows']) + " человек")
+print("👴 Опытные сотрудники (≥35 лет): " + len(experienced) + " человек")
 
 print("")
 print("✅ Демонстрация функций фильтрации завершена!")

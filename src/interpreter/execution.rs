@@ -28,14 +28,14 @@ pub fn execute_multiline(interpreter: &mut Interpreter, code: &str) -> Result<()
     while i < lines.len() {
         let line = lines[i].trim();
 
-        // Увеличиваем номер строки для всех строк
-        interpreter.current_line += 1;
-
         // Пропускаем пустые строки и однострочные комментарии
         if line.is_empty() || line.starts_with('#') {
             i += 1;
             continue;
         }
+
+        // Увеличиваем номер строки только для непустых строк
+        interpreter.current_line += 1;
 
         // Обрабатываем многострочные комментарии """
         if line.starts_with("\"\"\"") {
@@ -72,11 +72,18 @@ pub fn execute_multiline(interpreter: &mut Interpreter, code: &str) -> Result<()
         }
 
         // Обрабатываем многострочные конструкции
-        if line.starts_with("global function ") || line.starts_with("local function ") {
+        // Проверяем function с учетом возможных пробелов в начале (хотя line уже trimmed)
+        // ВАЖНО: Проверяем function ПЕРВЫМ делом, ДО всех остальных проверок
+        if line.starts_with("function ") || line.starts_with("global function ") || line.starts_with("local function ") {
+            // Отладка
+            if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                eprintln!("🔍 DEBUG execute_multiline: Handling function definition: '{}'", line);
+            }
             i = handle_function_definition(interpreter, &lines, i)?;
+            continue; // Продолжаем со следующей строки после обработки функции
         } else if line.starts_with("for ") && line.ends_with(" do") {
             i = handle_for_loop(interpreter, &lines, i)?;
-        } else if line.starts_with("if ") && (line.ends_with(" do") || line.ends_with(" then")) {
+        } else if line.starts_with("if ") && (line.contains(" do") || line.contains(" then")) {
             i = handle_if_statement(interpreter, &lines, i)?;
         } else if line == "try" {
             i = handle_try_statement(interpreter, &lines, i)?;
@@ -85,6 +92,13 @@ pub fn execute_multiline(interpreter: &mut Interpreter, code: &str) -> Result<()
             i = handle_multiline_assignment(interpreter, &lines, i)?;
         } else {
             // Обычная строка - используем execute_line_simple чтобы избежать рекурсии
+            // Но сначала проверяем, не является ли это function (на случай, если проверка выше не сработала)
+            let line_to_exec = lines[i].trim();
+            if line_to_exec.starts_with("function ") || line_to_exec.starts_with("global function ") || line_to_exec.starts_with("local function ") {
+                // Это должно было быть обработано выше, но на всякий случай пропускаем
+                i += 1;
+                continue;
+            }
             execute_line_simple(interpreter, lines[i])?;
         }
 
@@ -107,9 +121,134 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
         return Ok(());
     }
 
+    // Игнорируем next, так как он уже обрабатывается на уровне парсера циклов
+    // Это нужно делать в самом начале, чтобы избежать ошибок
+    if trimmed_code.starts_with("next ") {
+        return Ok(());  // Игнорируем next, он уже обработан парсером циклов
+    }
+
+    // ВАЖНО: Проверяем на блочные конструкции ПЕРВЫМ делом, ДО всех остальных проверок
+    // Это нужно делать ДО попытки парсить выражения, чтобы избежать ошибок парсера
+    // Также обрабатываем любую строку, начинающуюся с "if", "for" или "function", чтобы избежать попытки парсить её как выражение
+    // Для if, for и function просто возвращаем Ok(()), так как они должны обрабатываться execute_multiline или execute_block_directly
+    if trimmed_code.starts_with("function ") || trimmed_code.starts_with("global function ") || trimmed_code.starts_with("local function ") {
+        // Это должно было быть обработано в execute_multiline, но на всякий случай пропускаем здесь
+        return Ok(());  // Эти конструкции обрабатываются execute_multiline
+    }
+    if trimmed_code.starts_with("if ") || (trimmed_code.starts_with("for ") && trimmed_code.ends_with(" do")) {
+        return Ok(());  // Эти конструкции обрабатываются execute_block_directly
+    }
+    if trimmed_code == "try" || trimmed_code == "catch" || trimmed_code == "finally" ||
+       trimmed_code == "endtry" || trimmed_code == "else" || trimmed_code == "endif" || trimmed_code == "endeif" ||
+       trimmed_code == "endfunction" {
+        // Эти ключевые слова обрабатываются на уровне выше через execute_multiline или execute_block_directly
+        // Просто возвращаем Ok(()), чтобы не вызывать ошибку
+        return Ok(());
+    }
+
     // Обработка throw statements
     if trimmed_code.starts_with("throw ") {
         return handle_throw_statement(interpreter, trimmed_code);
+    }
+
+    // Обработка print statement (должна быть до return и присваивания)
+    if trimmed_code.starts_with("print(") {
+        // Извлекаем аргументы из print(...)
+        if let Some(args_str) = trimmed_code.strip_prefix("print(") {
+            if let Some(close_paren_pos) = args_str.rfind(')') {
+                let args_content = &args_str[..close_paren_pos];
+                
+                // Парсим аргументы (разделенные запятыми)
+                let args: Vec<Value> = if args_content.trim().is_empty() {
+                    Vec::new()
+                } else {
+                    // Разделяем по запятым, но учитываем вложенные скобки и кавычки
+                    let mut args_list = Vec::new();
+                    let mut current_arg = String::new();
+                    let mut depth = 0;
+                    let mut in_string = false;
+                    let mut string_char: Option<char> = None;
+                    
+                    for ch in args_content.chars() {
+                        match ch {
+                            '\'' | '"' if !in_string => {
+                                // Начало строки
+                                in_string = true;
+                                string_char = Some(ch);
+                                current_arg.push(ch);
+                            }
+                            ch if in_string && Some(ch) == string_char => {
+                                // Конец строки
+                                in_string = false;
+                                string_char = None;
+                                current_arg.push(ch);
+                            }
+                            '(' | '[' | '{' if !in_string => {
+                                depth += 1;
+                                current_arg.push(ch);
+                            }
+                            ')' | ']' | '}' if !in_string => {
+                                depth -= 1;
+                                current_arg.push(ch);
+                            }
+                            ',' if depth == 0 && !in_string => {
+                                if !current_arg.trim().is_empty() {
+                                    args_list.push(current_arg.trim().to_string());
+                                }
+                                current_arg.clear();
+                            }
+                            _ => {
+                                current_arg.push(ch);
+                            }
+                        }
+                    }
+                    
+                    if !current_arg.trim().is_empty() {
+                        args_list.push(current_arg.trim().to_string());
+                    }
+                    
+                    // Вычисляем каждый аргумент
+                    // Проверяем, что аргументы не пустые перед парсингом
+                    if args_list.is_empty() {
+                        return Err(DataCodeError::syntax_error(
+                            "print() requires at least one argument",
+                            interpreter.current_line, 0
+                        ));
+                    }
+                    
+                    // Отладка: выводим аргументы перед парсингом
+                    if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                        eprintln!("🔍 DEBUG: Parsing print arguments at line {}: {:?}", interpreter.current_line, args_list);
+                    }
+                    
+                    args_list.into_iter()
+                        .map(|arg| {
+                            if arg.trim().is_empty() {
+                                Err(DataCodeError::syntax_error(
+                                    "Empty argument in print()",
+                                    interpreter.current_line, 0
+                                ))
+                            } else {
+                                if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                                    eprintln!("🔍 DEBUG: Evaluating print argument: '{}'", arg);
+                                }
+                                interpreter.eval_expr(&arg).map_err(|e| {
+                                    if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+                                        eprintln!("❌ DEBUG: Error evaluating print argument '{}' at line {}: {}", arg, interpreter.current_line, e);
+                                    }
+                                    e
+                                })
+                            }
+                        })
+                        .collect::<Result<Vec<_>>>()?
+                };
+                
+                // Вызываем встроенную функцию print
+                use crate::builtins::system::call_system_function;
+                call_system_function("print", args, interpreter.current_line)?;
+                return Ok(());
+            }
+        }
     }
 
     // Обработка return
@@ -130,6 +269,10 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
         let code = &trimmed_code[if is_global { 7 } else { 6 }..];
         let parts: Vec<_> = code.splitn(2, '=').map(|s| s.trim()).collect();
 
+        eprintln!("🔍 DEBUG execute_line_simple: Processing global/local assignment: '{}'", trimmed_code);
+        eprintln!("🔍 DEBUG execute_line_simple: Code after prefix: '{}'", code);
+        eprintln!("🔍 DEBUG execute_line_simple: Parts: {:?}", parts);
+
         if parts.len() != 2 {
             return Err(DataCodeError::syntax_error("Invalid assignment", interpreter.current_line, 0));
         }
@@ -137,7 +280,12 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
         let var_name = parts[0].to_string();
         let expr = parts[1];
 
-        let val = interpreter.eval_expr(expr)?;
+        eprintln!("🔍 DEBUG execute_line_simple: var_name='{}', expr='{}'", var_name, expr);
+        eprintln!("🔍 DEBUG execute_line_simple: About to call eval_expr with: '{}'", expr);
+        let val = interpreter.eval_expr(expr).map_err(|e| {
+            eprintln!("❌ DEBUG execute_line_simple: Error in eval_expr for '{}': {}", expr, e);
+            e
+        })?;
         interpreter.set_variable(var_name, val, is_global);
         return Ok(());
     }
@@ -150,9 +298,17 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
             let var_name = parts[0];
             let expr = parts[1];
 
+            eprintln!("🔍 DEBUG execute_line_simple: Processing assignment: var_name='{}', expr='{}'", var_name, expr);
+            eprintln!("🔍 DEBUG execute_line_simple: Full line being processed: '{}'", trimmed_code);
+
             // Проверяем, что левая часть - это простой идентификатор (не выражение)
             if var_name.chars().all(|c| c.is_alphanumeric() || c == '_') && !var_name.is_empty() {
-                let val = interpreter.eval_expr(expr)?;
+                eprintln!("🔍 DEBUG execute_line_simple: Valid identifier, evaluating expression: '{}'", expr);
+                eprintln!("🔍 DEBUG execute_line_simple: About to call eval_expr with: '{}'", expr);
+                let val = interpreter.eval_expr(expr).map_err(|e| {
+                    eprintln!("❌ DEBUG execute_line_simple: Error evaluating expression '{}': {}", expr, e);
+                    e
+                })?;
 
                 // Определяем, нужно ли обновить существующую переменную или создать новую
                 // Сначала проверяем, существует ли переменная в текущих областях видимости
@@ -174,16 +330,6 @@ fn execute_line_simple(interpreter: &mut Interpreter, code: &str) -> Result<()> 
     // Обработка throw
     if trimmed_code.starts_with("throw ") {
         return handle_throw_statement(interpreter, trimmed_code);
-    }
-
-    // Проверяем на блочные конструкции, которые не должны обрабатываться как выражения
-    if trimmed_code == "try" || trimmed_code == "catch" || trimmed_code == "finally" ||
-       trimmed_code == "endtry" || trimmed_code == "else" || trimmed_code == "endif" || trimmed_code == "endeif" ||
-       trimmed_code == "endfunction" || trimmed_code.starts_with("next ") {
-        return Err(DataCodeError::syntax_error(
-            &format!("Unexpected keyword '{}' outside of block context", trimmed_code),
-            interpreter.current_line, 0
-        ));
     }
 
     // Все остальное - выражения
@@ -302,14 +448,55 @@ fn handle_for_loop(interpreter: &mut Interpreter, lines: &[&str], start: usize) 
     
     // Извлекаем имя переменной текущего цикла
     let current_var = parse_for_variable(lines[start])
-        .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+        .ok_or_else(|| DataCodeError::syntax_error("Invalid for syntax: expected 'for variable in iterable do'", interpreter.current_line, 0))?;
     
     // Стек переменных для отслеживания вложенных циклов
     let mut var_stack: Vec<String> = vec![current_var.clone()];
     let mut i = start + 1;
+    
+    // Отслеживаем вложенные try/catch и if/endif блоки
+    let mut try_depth = 0;
+    let mut if_depth = 0;
 
     while i < lines.len() && !var_stack.is_empty() {
         let current_line = lines[i].trim();
+
+        // Обрабатываем вложенные try/catch блоки
+        if current_line == "try" {
+            try_depth += 1;
+            loop_lines.push(lines[i]);
+            i += 1;
+            continue;
+        } else if current_line == "endtry" {
+            if try_depth > 0 {
+                try_depth -= 1;
+            }
+            loop_lines.push(lines[i]);
+            i += 1;
+            continue;
+        } else if current_line.starts_with("catch") && try_depth > 0 {
+            // catch внутри try блока - пропускаем
+            loop_lines.push(lines[i]);
+            i += 1;
+            continue;
+        }
+        
+        // Обрабатываем вложенные if/endif блоки
+        if current_line.starts_with("if ") && (current_line.contains(" do") || current_line.contains(" then")) {
+            if_depth += 1;
+        } else if current_line == "endif" || current_line == "endeif" {
+            if if_depth > 0 {
+                if_depth -= 1;
+            }
+        }
+
+        // Если мы внутри try/catch или if/endif блока, просто добавляем строку
+        // и не проверяем на next (next может быть внутри этих блоков)
+        if try_depth > 0 || if_depth > 0 {
+            loop_lines.push(lines[i]);
+            i += 1;
+            continue;
+        }
 
         if current_line.starts_with("for ") && current_line.ends_with(" do") {
             // Новый вложенный цикл
@@ -318,8 +505,10 @@ fn handle_for_loop(interpreter: &mut Interpreter, lines: &[&str], start: usize) 
             }
         } else if let Some(next_var) = parse_next_variable(current_line) {
             // Проверяем что next соответствует последнему циклу
+            // Для множественных переменных берем первую переменную из next
+            let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
             if let Some(last_var) = var_stack.last() {
-                if next_var == *last_var {
+                if next_first_var == *last_var || next_var == *last_var {
                     var_stack.pop();
                 } else {
                     return Err(DataCodeError::syntax_error(
@@ -369,7 +558,7 @@ fn handle_if_statement(interpreter: &mut Interpreter, lines: &[&str], start: usi
     while i < lines.len() && if_depth > 0 {
         let current_line = lines[i].trim();
 
-        if current_line.starts_with("if ") && (current_line.ends_with(" do") || current_line.ends_with(" then")) {
+        if current_line.starts_with("if ") && (current_line.contains(" do") || current_line.contains(" then")) {
             if_depth += 1;
         } else if current_line == "endif" || current_line == "endeif" {
             if_depth -= 1;
@@ -451,7 +640,7 @@ fn execute_if_statement_directly(interpreter: &mut Interpreter, if_lines: &[&str
         let trimmed = line.trim();
 
         // Сначала проверяем else if (должно быть до проверки if)
-        if trimmed.starts_with("else if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) && depth == 1 {
+        if trimmed.starts_with("else if ") && (trimmed.contains(" do") || trimmed.contains(" then")) && depth == 1 {
             // Сохраняем предыдущий блок перед переходом к else if
             if let Some(condition) = current_condition.take() {
                 blocks.push(ConditionalBlock {
@@ -479,7 +668,7 @@ fn execute_if_statement_directly(interpreter: &mut Interpreter, if_lines: &[&str
             continue;
         }
         // Проверяем на вложенные if
-        else if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
+        else if trimmed.starts_with("if ") && (trimmed.contains(" do") || trimmed.contains(" then")) {
             if depth == 0 {
                 // Это начало нового блока if (первый if)
                 // Сохраняем предыдущий блок, если он был
@@ -583,12 +772,39 @@ fn execute_if_statement_directly(interpreter: &mut Interpreter, if_lines: &[&str
 
 /// Выполнить блок кода напрямую с обработкой вложенных конструкций
 pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> Result<()> {
+    let debug = std::env::var("DEBUG_FOR_LOOP").is_ok();
+    let debug_all = std::env::var("DATACODE_DEBUG").is_ok();
     let mut i = 0;
     while i < lines.len() {
+        // Проверяем, был ли выполнен return - если да, прекращаем выполнение
+        if interpreter.return_value.is_some() {
+            return Ok(());
+        }
+        
         let line = lines[i].trim();
+        if debug_all {
+            eprintln!("🔍 DEBUG execute_block_directly: Processing line {}: '{}'", i, line);
+        }
+        
+        if debug && line.starts_with("for ") {
+            eprintln!("🔍 DEBUG: execute_block_directly processing line {}: {}", i, line);
+        }
+        
+        // Пропускаем пустые строки и комментарии
+        if line.is_empty() || line.starts_with('#') {
+            i += 1;
+            continue;
+        }
+
+        // Пропускаем next statements - они являются маркерами конца цикла и не должны выполняться как код
+        if line.starts_with("next ") {
+            i += 1;
+            continue;
+        }
 
         // Проверяем на условные конструкции
-        if line.starts_with("if ") && (line.ends_with(" do") || line.ends_with(" then")) {
+        // Более гибкая проверка: if должен содержать " do" или " then" где-то в строке
+        if line.starts_with("if ") && (line.contains(" do") || line.contains(" then")) {
             // Собираем всю условную конструкцию
             let mut if_lines = vec![lines[i]];
             let mut if_depth = 1;
@@ -597,7 +813,7 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
             while j < lines.len() && if_depth > 0 {
                 let current_line = lines[j].trim();
 
-                if current_line.starts_with("if ") && (current_line.ends_with(" do") || current_line.ends_with(" then")) {
+                if current_line.starts_with("if ") && (current_line.contains(" do") || current_line.contains(" then")) {
                     if_depth += 1;
                 } else if current_line == "endif" || current_line == "endeif" {
                     if_depth -= 1;
@@ -613,14 +829,29 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
 
             // Выполняем условную конструкцию итеративно
             execute_if_statement_iteratively(interpreter, &if_lines)?;
+            
+            // Проверяем return после выполнения if
+            if interpreter.return_value.is_some() {
+                return Ok(());
+            }
+            
             i = j + 1;
         } else if line.starts_with("for ") && line.ends_with(" do") {
             // Обрабатываем циклы for
+            let debug = std::env::var("DEBUG_FOR_LOOP").is_ok();
+            if debug {
+                eprintln!("🔍 DEBUG execute_block_directly: Found for loop at line {}: {}", i, line);
+            }
+            
             let mut for_lines = vec![lines[i]];
             
             // Извлекаем имя переменной текущего цикла
             let current_var = parse_for_variable(lines[i])
                 .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+            
+            if debug {
+                eprintln!("  Current var: {}", current_var);
+            }
             
             // Стек переменных для отслеживания вложенных циклов
             let mut var_stack: Vec<String> = vec![current_var.clone()];
@@ -634,12 +865,20 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
                     if let Some(var_name) = parse_for_variable(current_line) {
                         var_stack.push(var_name);
                     }
+                    // Добавляем строку в for_lines, чтобы она была частью тела цикла
+                    for_lines.push(lines[j]);
                 } else if let Some(next_var) = parse_next_variable(current_line) {
                     // Проверяем что next соответствует последнему циклу
+                    // Для множественных переменных проверяем первую переменную
+                    let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
                     if let Some(last_var) = var_stack.last() {
-                        if next_var == *last_var {
+                        if next_first_var == *last_var || next_var == *last_var {
                             var_stack.pop();
+                            // Добавляем next в for_lines, но не выполняем его как код
+                            // next - это просто маркер конца цикла
+                            for_lines.push(lines[j]);
                         } else {
+                            // Неправильный next - это ошибка
                             return Err(DataCodeError::syntax_error(
                                 &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
                                 interpreter.current_line,
@@ -653,9 +892,9 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
                             0
                         ));
                     }
+                } else {
+                    for_lines.push(lines[j]);
                 }
-
-                for_lines.push(lines[j]);
 
                 if var_stack.is_empty() {
                     break;
@@ -673,6 +912,12 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
 
             // Выполняем цикл for итеративно
             execute_for_loop_iteratively(interpreter, &for_lines)?;
+            
+            // Проверяем return после выполнения цикла
+            if interpreter.return_value.is_some() {
+                return Ok(());
+            }
+            
             i = j + 1;
         } else if line == "try" {
             // Обрабатываем try блоки
@@ -699,10 +944,130 @@ pub fn execute_block_directly(interpreter: &mut Interpreter, lines: &[&str]) -> 
 
             // Выполняем try блок
             execute_try_statement_directly(interpreter, &try_lines)?;
+            
+            // Проверяем return после выполнения try
+            if interpreter.return_value.is_some() {
+                return Ok(());
+            }
+            
+            i = j + 1;
+        } else if is_incomplete_assignment(line) {
+            // Обрабатываем многострочные присваивания в блоке
+            let mut assignment_lines = vec![lines[i]];
+            let mut j = i + 1;
+            
+            while j < lines.len() {
+                assignment_lines.push(lines[j]);
+                let combined = assignment_lines.join("\n");
+                if !is_incomplete_assignment(&combined) {
+                    break;
+                }
+                j += 1;
+            }
+            
+            // Выполняем полное многострочное присваивание
+            let combined_assignment = assignment_lines.join("\n");
+            // Используем execute_line_simple, так как он правильно обрабатывает многострочные присваивания
+            execute_line_simple(interpreter, &combined_assignment)?;
+            
+            // Проверяем return после выполнения присваивания
+            if interpreter.return_value.is_some() {
+                return Ok(());
+            }
             i = j + 1;
         } else {
-            // Обычная строка - выполняем через безопасную версию без рекурсии
-            execute_line_simple_safe(interpreter, lines[i])?;
+            // Обычная строка - проверяем, находимся ли мы внутри Call Frame Engine
+            if interpreter.use_call_frame_engine && !interpreter.call_stack.is_empty() {
+                // Внутри Call Frame Engine - используем execute_instruction_signal для правильной обработки return
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("🔍 DEBUG execute_block_directly: Using execute_instruction_signal for line: '{}'", line);
+                }
+                use crate::interpreter::ExecSignal;
+                let signal = interpreter.execute_instruction_signal(lines[i])?;
+                
+                match signal {
+                    ExecSignal::Value(_) => {
+                        // Инструкция выполнена, продолжаем
+                    }
+                    ExecSignal::Return(return_value) => {
+                        // Return - устанавливаем return_value и прекращаем выполнение
+                        if std::env::var("DATACODE_DEBUG").is_ok() {
+                            eprintln!("🔍 DEBUG execute_block_directly: Return detected with value: {:?}", return_value);
+                        }
+                        interpreter.return_value = Some(return_value);
+                        return Ok(());
+                    }
+                    ExecSignal::Call { function_id, args, return_slot } => {
+                        // Вызов функции внутри блока - возвращаем сигнал Call обратно в главный цикл
+                        // ВАЖНО: НЕ обрабатываем его здесь, а возвращаем через специальный механизм
+                        // Сохраняем информацию о вызове функции в специальном поле интерпретатора
+                        // и возвращаем ошибку, которая будет обработана главным циклом
+                        // Но на самом деле, нам нужно вернуть ExecSignal::Call обратно в главный цикл
+                        // Для этого используем специальный механизм: сохраняем ExecSignal::Call в return_value
+                        // и возвращаем специальный флаг
+                        // Но это сложно. Вместо этого, просто обрабатываем ExecSignal::Call здесь,
+                        // создавая новый фрейм и продолжая выполнение
+                        // ВАЖНО: Это должно обрабатываться главным циклом call_user_function
+                        // Но так как мы уже внутри главного цикла, мы можем обработать это здесь
+                        // Создаем новый фрейм и продолжаем выполнение
+                        let called_function = interpreter.function_manager.get_function(&function_id)
+                            .ok_or_else(|| DataCodeError::function_not_found(&function_id, interpreter.current_line))?;
+                        
+                        if called_function.parameters.len() != args.len() {
+                            return Err(DataCodeError::wrong_argument_count(
+                                &function_id,
+                                called_function.parameters.len(),
+                                args.len(),
+                                interpreter.current_line,
+                            ));
+                        }
+                        
+                        use crate::interpreter::call_frame::CallFrame;
+                        let new_frame = CallFrame::new(
+                            function_id.clone(),
+                            args,
+                            return_slot,
+                            interpreter.call_stack.len(),
+                        );
+                        
+                        interpreter.call_stack.push(new_frame)?;
+                        interpreter.variable_manager.enter_function_scope();
+                        
+                        if let Some(frame) = interpreter.call_stack.last_mut() {
+                            let args = frame.args.clone();
+                            for (param, arg_value) in called_function.parameters.iter().zip(args.iter()) {
+                                frame.set_local(param.clone(), arg_value.clone());
+                                if let Some(local_vars) = interpreter.variable_manager.call_stack.last_mut() {
+                                    local_vars.insert(param.clone(), arg_value.clone());
+                                }
+                            }
+                        }
+                        
+                        // Возвращаемся из execute_block_directly, чтобы главный цикл мог обработать новый фрейм
+                        // Но это сложно, потому что мы теряем контекст выполнения блока
+                        // Вместо этого, просто продолжаем выполнение в главном цикле
+                        // Но execute_block_directly вызывается из главного цикла, поэтому мы можем просто
+                        // вернуть Ok(()), и главный цикл продолжит выполнение нового фрейма
+                        // Но проблема в том, что мы теряем контекст выполнения блока
+                        // Поэтому нужно использовать другой подход: сохранить состояние выполнения блока
+                        // и продолжить его после возврата из функции
+                        // Но это очень сложно
+                        // Вместо этого, просто обрабатываем ExecSignal::Call здесь, создавая новый фрейм
+                        // и продолжая выполнение в главном цикле
+                        // Но execute_block_directly вызывается из главного цикла, поэтому мы можем просто
+                        // вернуть Ok(()), и главный цикл продолжит выполнение нового фрейма
+                        return Ok(());
+                    }
+                }
+            } else {
+                // Не внутри Call Frame Engine - используем безопасную версию
+                execute_line_simple_safe(interpreter, lines[i])?;
+                
+                // Проверяем return после выполнения строки
+                if interpreter.return_value.is_some() {
+                    return Ok(());
+                }
+            }
             i += 1;
         }
 
@@ -741,7 +1106,7 @@ fn execute_if_statement_iteratively(interpreter: &mut Interpreter, if_lines: &[&
         let trimmed = line.trim();
 
         // Сначала проверяем else if (должно быть до проверки if)
-        if trimmed.starts_with("else if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) && depth == 1 {
+        if trimmed.starts_with("else if ") && (trimmed.contains(" do") || trimmed.contains(" then")) && depth == 1 {
             // Сохраняем предыдущий блок перед переходом к else if
             if let Some(condition) = current_condition.take() {
                 blocks.push(ConditionalBlock {
@@ -769,7 +1134,7 @@ fn execute_if_statement_iteratively(interpreter: &mut Interpreter, if_lines: &[&
             continue;
         }
         // Проверяем на вложенные if
-        else if trimmed.starts_with("if ") && (trimmed.ends_with(" do") || trimmed.ends_with(" then")) {
+        else if trimmed.starts_with("if ") && (trimmed.contains(" do") || trimmed.contains(" then")) {
             if depth == 0 {
                 // Это начало нового блока if (первый if)
                 // Сохраняем предыдущий блок, если он был
@@ -854,10 +1219,8 @@ fn execute_if_statement_iteratively(interpreter: &mut Interpreter, if_lines: &[&
     for block in &blocks {
         let condition_value = eval_condition_without_user_functions(interpreter, &block.condition)?;
         if is_truthy(&condition_value) {
-            // Выполняем этот блок
-            for line in &block.body {
-                execute_line_simple_safe(interpreter, line)?;
-            }
+            // Выполняем этот блок - используем execute_block_directly для правильной обработки вложенных циклов
+            execute_block_directly(interpreter, &block.body)?;
             executed = true;
             break;
         }
@@ -866,9 +1229,8 @@ fn execute_if_statement_iteratively(interpreter: &mut Interpreter, if_lines: &[&
     // Если ни одно условие не выполнилось, выполняем else блок
     if !executed {
         if let Some(ref else_body_lines) = else_body {
-            for line in else_body_lines {
-                execute_line_simple_safe(interpreter, line)?;
-            }
+            // Используем execute_block_directly для правильной обработки вложенных циклов
+            execute_block_directly(interpreter, else_body_lines)?;
         }
     }
 
@@ -885,13 +1247,27 @@ fn execute_line_simple_safe(interpreter: &mut Interpreter, code: &str) -> Result
     }
 
     // Пропускаем ключевые слова блочных конструкций (они обрабатываются на уровне выше)
+    // Также обрабатываем любую строку, начинающуюся с "if", чтобы избежать попытки парсить её как выражение
     if trimmed_code == "else" || trimmed_code == "endif" || trimmed_code == "endeif" || 
-       trimmed_code == "endfunction" || trimmed_code.starts_with("next ") {
+       trimmed_code == "endfunction" || trimmed_code.starts_with("next ") ||
+       trimmed_code == "try" || trimmed_code == "catch" || trimmed_code == "finally" || trimmed_code == "endtry" ||
+       (trimmed_code.starts_with("for ") && trimmed_code.ends_with(" do")) ||
+       trimmed_code.starts_with("if ") {
         return Ok(());
     }
 
     // Обработка return
+    // ВАЖНО: Если мы внутри Call Frame Engine, return должен обрабатываться через execute_instruction_signal
+    // в главном цикле call_user_function, а не здесь. Поэтому просто пропускаем return здесь.
     if trimmed_code.starts_with("return") {
+        // Если мы внутри Call Frame Engine, return обрабатывается в главном цикле
+        if interpreter.use_call_frame_engine && !interpreter.call_stack.is_empty() {
+            // Пропускаем обработку return здесь - он будет обработан через execute_instruction_signal
+            // в главном цикле call_user_function
+            return Ok(());
+        }
+        
+        // Если мы не внутри Call Frame Engine, обрабатываем return здесь
         let after_return = trimmed_code.strip_prefix("return").unwrap().trim();
         let value = if after_return.is_empty() {
             Value::Null
@@ -948,7 +1324,75 @@ fn execute_line_simple_safe(interpreter: &mut Interpreter, code: &str) -> Result
         }
     }
 
-
+    // Обработка print statement (должна быть до throw и выражений)
+    if trimmed_code.starts_with("print(") {
+        // Извлекаем аргументы из print(...)
+        if let Some(args_str) = trimmed_code.strip_prefix("print(") {
+            if let Some(close_paren_pos) = args_str.rfind(')') {
+                let args_content = &args_str[..close_paren_pos];
+                
+                // Парсим аргументы (разделенные запятыми)
+                let args: Vec<Value> = if args_content.trim().is_empty() {
+                    Vec::new()
+                } else {
+                    // Разделяем по запятым, но учитываем вложенные скобки и кавычки
+                    let mut args_list = Vec::new();
+                    let mut current_arg = String::new();
+                    let mut depth = 0;
+                    let mut in_string = false;
+                    let mut string_char: Option<char> = None;
+                    
+                    for ch in args_content.chars() {
+                        match ch {
+                            '\'' | '"' if !in_string => {
+                                // Начало строки
+                                in_string = true;
+                                string_char = Some(ch);
+                                current_arg.push(ch);
+                            }
+                            ch if in_string && Some(ch) == string_char => {
+                                // Конец строки
+                                in_string = false;
+                                string_char = None;
+                                current_arg.push(ch);
+                            }
+                            '(' | '[' | '{' if !in_string => {
+                                depth += 1;
+                                current_arg.push(ch);
+                            }
+                            ')' | ']' | '}' if !in_string => {
+                                depth -= 1;
+                                current_arg.push(ch);
+                            }
+                            ',' if depth == 0 && !in_string => {
+                                if !current_arg.trim().is_empty() {
+                                    args_list.push(current_arg.trim().to_string());
+                                }
+                                current_arg.clear();
+                            }
+                            _ => {
+                                current_arg.push(ch);
+                            }
+                        }
+                    }
+                    
+                    if !current_arg.trim().is_empty() {
+                        args_list.push(current_arg.trim().to_string());
+                    }
+                    
+                    // Вычисляем каждый аргумент
+                    args_list.into_iter()
+                        .map(|arg| eval_expr_safe(interpreter, &arg))
+                        .collect::<Result<Vec<_>>>()?
+                };
+                
+                // Вызываем встроенную функцию print
+                use crate::builtins::system::call_system_function;
+                call_system_function("print", args, interpreter.current_line)?;
+                return Ok(());
+            }
+        }
+    }
 
     // Обработка throw
     if trimmed_code.starts_with("throw ") {
@@ -1152,42 +1596,137 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
     let variables: Vec<&str> = variable_part.split(',').map(|v| v.trim()).collect();
 
     // Вычисляем итерируемое значение
+    let debug = std::env::var("DEBUG_FOR_LOOP").is_ok();
+    if debug {
+        eprintln!("🔍 DEBUG execute_for_loop_iteratively: Parsing for loop");
+        eprintln!("  variable_part = '{}'", variable_part);
+        eprintln!("  iterable_part = '{}'", iterable_part);
+        eprintln!("  variables = {:?} (count = {})", variables, variables.len());
+    }
+    
     let iterable_value = interpreter.eval_expr(iterable_part)?;
+    
+    if debug {
+        eprintln!("  iterable_value type = {:?}, len = {:?}", 
+            match &iterable_value {
+                Value::Array(arr) => format!("Array({})", arr.len()),
+                _ => format!("{:?}", iterable_value),
+            },
+            match &iterable_value {
+                Value::Array(arr) => arr.len(),
+                _ => 0,
+            }
+        );
+        if let Value::Array(ref arr) = iterable_value {
+            if !arr.is_empty() {
+                eprintln!("  First element: {:?}", arr[0]);
+            }
+        }
+    }
 
     // Собираем тело цикла (все строки кроме первой и последней)
-    // Нужно правильно обрабатывать вложенные циклы
+    // Нужно правильно обрабатывать вложенные циклы, try блоки и if блоки
     let mut body_lines: Vec<&str> = Vec::new();
     let mut var_stack: Vec<String> = Vec::new();
+    let mut try_depth = 0;
+    let mut if_depth = 0;
+    
+    if debug {
+        eprintln!("🔍 DEBUG: Starting body collection for loop with {} lines", for_lines.len());
+        for (idx, line) in for_lines.iter().enumerate() {
+            eprintln!("  Line {}: {}", idx, line);
+        }
+    }
     
     for i in 1..for_lines.len() {
         let line = for_lines[i].trim();
 
-        if line.starts_with("for ") && line.ends_with(" do") {
+        // Обрабатываем вложенные try блоки
+        if line == "try" {
+            try_depth += 1;
+            body_lines.push(for_lines[i]);
+        } else if line == "endtry" {
+            if try_depth > 0 {
+                try_depth -= 1;
+            }
+            body_lines.push(for_lines[i]);
+        } else if line.starts_with("catch") && try_depth > 0 {
+            // catch внутри try блока - добавляем и пропускаем проверку
+            body_lines.push(for_lines[i]);
+        } else if line.starts_with("if ") && (line.contains(" do") || line.contains(" then")) {
+            if_depth += 1;
+            body_lines.push(for_lines[i]);
+        } else if line == "endif" || line == "endeif" {
+            if if_depth > 0 {
+                if_depth -= 1;
+            }
+            body_lines.push(for_lines[i]);
+        } else if try_depth > 0 || if_depth > 0 {
+            // Мы внутри try/catch или if/endif блока - просто добавляем строку
+            body_lines.push(for_lines[i]);
+        } else if line.starts_with("for ") && line.ends_with(" do") {
             // Новый вложенный цикл
+            if debug {
+                eprintln!("🔍 DEBUG: Found nested for loop in body collection: {}", line);
+            }
             if let Some(var_name) = parse_for_variable(line) {
+                if debug {
+                    eprintln!("  Pushing to var_stack: {}", var_name);
+                }
                 var_stack.push(var_name);
             }
             body_lines.push(for_lines[i]);
         } else if let Some(next_var) = parse_next_variable(line) {
+            if debug {
+                eprintln!("🔍 DEBUG: Found next statement: {}", next_var);
+                eprintln!("  var_stack = {:?}, variables[0] = {}", var_stack, variables[0]);
+            }
             if var_stack.is_empty() {
                 // Нет вложенных циклов, проверяем что это next для нашего цикла
-                if next_var == variables[0] {
+                // Для множественных переменных проверяем первую переменную
+                let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
+                if next_first_var == variables[0] {
                     // Это next для нашего цикла - заканчиваем сбор тела
+                    if debug {
+                        eprintln!("  ✅ This is next for our loop, breaking");
+                    }
                     break;
                 } else {
-                    // Неправильный next - это ошибка, но мы уже собрали тело
-                    break;
+                    // Неправильный next - возможно это next для цикла, который мы еще не обработали
+                    // Добавляем в тело и продолжаем (это может быть next для вложенного цикла, который мы пропустили)
+                    if debug {
+                        eprintln!("  ⚠️ Unexpected next '{}', adding to body and continuing", next_var);
+                    }
+                    body_lines.push(for_lines[i]);
+                    // Не прерываем сбор - продолжаем до правильного next
                 }
             } else {
                 // Есть вложенные циклы
                 if let Some(last_var) = var_stack.last() {
-                    if next_var == *last_var {
+                    let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
+                    if next_first_var == last_var {
                         // Это next для вложенного цикла
+                        if debug {
+                            eprintln!("  ✅ This is next for nested loop: {}", last_var);
+                        }
                         var_stack.pop();
                         body_lines.push(for_lines[i]);
                     } else {
-                        // Неправильный next
-                        body_lines.push(for_lines[i]);
+                        // Неправильный next - возможно это next для нашего цикла
+                        let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
+                        if next_first_var == variables[0] {
+                            // Это next для нашего цикла - заканчиваем сбор тела
+                            if debug {
+                                eprintln!("  ✅ This is next for our loop, breaking");
+                            }
+                            break;
+                        } else {
+                            // Неправильный next - добавляем в тело и продолжаем
+                            if debug {
+                                eprintln!("  ⚠️ Wrong next, adding to body");
+                            }
+                            body_lines.push(for_lines[i]);
+                        }
                     }
                 } else {
                     body_lines.push(for_lines[i]);
@@ -1198,56 +1737,196 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
         }
     }
 
-    // Входим в область видимости цикла
-    interpreter.enter_loop_scope();
+    // НЕ создаём scope здесь - он будет создаваться для каждой итерации
 
     let result = match iterable_value {
         Value::Array(ref arr) => {
-            for item in arr {
-                if variables.len() == 1 {
-                    // Простое присваивание
-                    interpreter.set_loop_variable(variables[0].to_string(), item.clone());
-                } else {
-                    // Деструктуризация
-                    match item {
-                        Value::Array(ref sub_arr) => {
-                            if sub_arr.len() != variables.len() {
+            if debug {
+                eprintln!("🔍 DEBUG: Processing array with {} elements, variables count = {}", arr.len(), variables.len());
+            }
+            if variables.len() > 1 {
+                // Множественные переменные - деструктуризация элементов массива
+                // Проверяем, является ли сам массив подходящим для деструктуризации
+                // (если длина массива равна количеству переменных, это может быть одна итерация)
+                // Но обычно мы итерируемся по элементам массива, где каждый элемент - массив для деструктуризации
+                
+                // Проверяем первый элемент, чтобы понять структуру
+                if arr.is_empty() {
+                    // Пустой массив - нет итераций
+                    if debug {
+                        eprintln!("🔍 DEBUG: Array is empty, no iterations");
+                    }
+                    Ok(())
+                } else if let Some(first_item) = arr.first() {
+                    if debug {
+                        eprintln!("🔍 DEBUG: First item type = {:?}", 
+                            match first_item {
+                                Value::Array(_) => "Array",
+                                _ => "Not Array",
+                            }
+                        );
+                    }
+                    match first_item {
+                        Value::Array(_) => {
+                            if debug {
+                                eprintln!("✅ DEBUG: First item is array, iterating over array elements");
+                            }
+                            // Элементы массива - это массивы для деструктуризации
+                            // Итерируемся по элементам
+                            for (iter_idx, item) in arr.iter().enumerate() {
+                                if debug {
+                                    eprintln!("🔍 DEBUG: Iteration {}: item = {:?}", iter_idx, item);
+                                }
+                                // Создаём новый scope для этой итерации
+                                interpreter.enter_loop_scope();
+                                
+                                // Проверяем, является ли элемент массивом для деструктуризации
+                                let item_arr = match item {
+                                    Value::Array(ref item_arr) => {
+                                        if debug {
+                                            eprintln!("  Item is array with length {}, variables count = {}", item_arr.len(), variables.len());
+                                        }
+                                        // Элемент - массив, проверяем длину
+                                        if item_arr.len() != variables.len() {
+                                            interpreter.exit_loop_scope();
+                                            return Err(DataCodeError::runtime_error(
+                                                &format!("Cannot unpack array of length {} into {} variables", item_arr.len(), variables.len()),
+                                                interpreter.current_line
+                                            ));
+                                        }
+                                        item_arr
+                                    }
+                                    _ => {
+                                        // Элемент не массив - ошибка
+                                        interpreter.exit_loop_scope();
+                                        return Err(DataCodeError::runtime_error(
+                                            &format!("Cannot unpack non-array value into {} variables", variables.len()),
+                                            interpreter.current_line
+                                        ));
+                                    }
+                                };
+                                
+                                // Устанавливаем все переменные из массива
+                                if debug {
+                                    eprintln!("🔍 DEBUG: Setting {} variables from array", variables.len());
+                                }
+                                for (i, var_name) in variables.iter().enumerate() {
+                                    let value = item_arr[i].clone();
+                                    if debug {
+                                        eprintln!("  Setting variable '{}' = {:?}", var_name, value);
+                                    }
+                                    interpreter.set_loop_variable(var_name.to_string(), value);
+                                    // Проверяем, что переменная установлена
+                                    if debug {
+                                        if let Some(set_value) = interpreter.get_variable(var_name) {
+                                            eprintln!("  ✅ Variable '{}' is now set to {:?}", var_name, set_value);
+                                        } else {
+                                            eprintln!("  ❌ Variable '{}' is NOT set after set_loop_variable!", var_name);
+                                        }
+                                    }
+                                }
+
+                                // Выполняем тело цикла
+                                if debug {
+                                    eprintln!("🔍 DEBUG: Executing body of loop with {} lines", body_lines.len());
+                                    for (idx, line) in body_lines.iter().enumerate() {
+                                        eprintln!("  Body line {}: {}", idx, line);
+                                    }
+                                }
+                                execute_block_directly(interpreter, &body_lines)?;
+
+                                // Удаляем scope этой итерации
                                 interpreter.exit_loop_scope();
-                                return Err(DataCodeError::runtime_error(
-                                    &format!("Cannot unpack array of length {} into {} variables", sub_arr.len(), variables.len()),
-                                    interpreter.current_line
-                                ));
+
+                                // Проверяем return
+                                if interpreter.return_value.is_some() {
+                                    break;
+                                }
                             }
-                            for (i, var_name) in variables.iter().enumerate() {
-                                interpreter.set_loop_variable(var_name.to_string(), sub_arr[i].clone());
-                            }
+                            Ok(())
                         }
                         _ => {
-                            interpreter.exit_loop_scope();
-                            return Err(DataCodeError::runtime_error(
-                                &format!("Cannot unpack non-array value into {} variables", variables.len()),
-                                interpreter.current_line
-                            ));
+                            // Первый элемент не массив - возможно, сам массив нужно деструктурировать
+                            // Но это не цикл, это одна итерация
+                            let debug = std::env::var("DEBUG_FOR_LOOP").is_ok();
+                            if debug {
+                                eprintln!("🔍 DEBUG: First element is not array, checking direct unpacking");
+                                eprintln!("  arr.len() = {}, variables.len() = {}", arr.len(), variables.len());
+                                eprintln!("  variables = {:?}", variables);
+                            }
+                            
+                            if arr.len() == variables.len() {
+                                if debug {
+                                    eprintln!("✅ DEBUG: Array length matches variables, unpacking directly");
+                                }
+                                // Деструктурируем сам массив
+                                interpreter.enter_loop_scope();
+                                
+                                // Устанавливаем все переменные из массива
+                                for (i, var_name) in variables.iter().enumerate() {
+                                    let value = arr[i].clone();
+                                    if debug {
+                                        eprintln!("  Setting variable '{}' = {:?}", var_name, value);
+                                    }
+                                    interpreter.set_loop_variable(var_name.to_string(), value);
+                                }
+
+                                // Выполняем тело цикла
+                                let result = execute_block_directly(interpreter, &body_lines);
+                                
+                                // Удаляем scope этой итерации
+                                interpreter.exit_loop_scope();
+                                
+                                result
+                            } else {
+                                // Массив не подходит для прямой деструктуризации
+                                // Попробуем итерироваться по элементам, если они массивы
+                                // Но это не должно происходить, так как первый элемент не массив
+                                Err(DataCodeError::runtime_error(
+                                    &format!("Cannot unpack array of length {} into {} variables. For iteration over array elements, each element must be an array.", arr.len(), variables.len()),
+                                    interpreter.current_line
+                                ))
+                            }
                         }
                     }
+                } else {
+                    Ok(())
                 }
+            } else {
+                // Обычная итерация по элементам массива (одна переменная)
+                for item in arr {
+                    // Создаём новый scope для этой итерации
+                    interpreter.enter_loop_scope();
+                    
+                    // Простое присваивание
+                    interpreter.set_loop_variable(variables[0].to_string(), item.clone());
 
-                // Выполняем тело цикла
-                execute_block_directly(interpreter, &body_lines)?;
+                    // Выполняем тело цикла
+                    execute_block_directly(interpreter, &body_lines)?;
 
-                // Проверяем return
-                if interpreter.return_value.is_some() {
-                    break;
+                    // Удаляем scope этой итерации
+                    interpreter.exit_loop_scope();
+
+                    // Проверяем return
+                    if interpreter.return_value.is_some() {
+                        break;
+                    }
                 }
+                Ok(())
             }
-            Ok(())
         }
         Value::String(ref s) => {
             for ch in s.chars() {
+                // Создаём новый scope для этой итерации
+                interpreter.enter_loop_scope();
+                
                 interpreter.set_loop_variable(variables[0].to_string(), Value::String(ch.to_string()));
 
                 // Выполняем тело цикла
                 execute_block_directly(interpreter, &body_lines)?;
+
+                // Удаляем scope этой итерации
+                interpreter.exit_loop_scope();
 
                 // Проверяем return
                 if interpreter.return_value.is_some() {
@@ -1259,10 +1938,33 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
         Value::Table(ref table) => {
             let table_borrowed = table.borrow();
             for row in &table_borrowed.rows {
-                interpreter.set_loop_variable(variables[0].to_string(), Value::Array(row.clone()));
+                // Создаём новый scope для этой итерации
+                interpreter.enter_loop_scope();
+                
+                if variables.len() > 1 {
+                    // Деструктуризация строки таблицы в переменные
+                    if row.len() != variables.len() {
+                        interpreter.exit_loop_scope();
+                        return Err(DataCodeError::runtime_error(
+                            &format!("Cannot unpack table row of length {} into {} variables", row.len(), variables.len()),
+                            interpreter.current_line
+                        ));
+                    }
+                    
+                    // Устанавливаем все переменные из строки
+                    for (i, var_name) in variables.iter().enumerate() {
+                        interpreter.set_loop_variable(var_name.to_string(), row[i].clone());
+                    }
+                } else {
+                    // Одна переменная - присваиваем весь массив строки
+                    interpreter.set_loop_variable(variables[0].to_string(), Value::Array(row.clone()));
+                }
 
                 // Выполняем тело цикла
                 execute_block_directly(interpreter, &body_lines)?;
+
+                // Удаляем scope этой итерации
+                interpreter.exit_loop_scope();
 
                 // Проверяем return
                 if interpreter.return_value.is_some() {
@@ -1278,6 +1980,9 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
 
             for key in keys {
                 if let Some(value) = obj.get(key) {
+                    // Создаём новый scope для этой итерации
+                    interpreter.enter_loop_scope();
+                    
                     if variables.len() == 1 {
                         // Простое присваивание - создаем массив [ключ, значение]
                         let key_value_pair = Value::Array(vec![
@@ -1300,6 +2005,9 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
                     // Выполняем тело цикла
                     execute_block_directly(interpreter, &body_lines)?;
 
+                    // Удаляем scope этой итерации
+                    interpreter.exit_loop_scope();
+
                     // Проверяем return
                     if interpreter.return_value.is_some() {
                         break;
@@ -1314,8 +2022,6 @@ fn execute_for_loop_iteratively(interpreter: &mut Interpreter, for_lines: &[&str
         )),
     };
 
-    // Выходим из области видимости цикла
-    interpreter.exit_loop_scope();
     result
 }
 
@@ -1325,13 +2031,16 @@ fn parse_and_define_function_directly(interpreter: &mut Interpreter, function_li
         return Err(DataCodeError::syntax_error("Empty function definition", interpreter.current_line, 0));
     }
 
-    // Первая строка должна быть "global function name(params) do" или "local function name(params) do"
+    // Первая строка должна быть "function name(params) do", "global function name(params) do" или "local function name(params) do"
     let first_line = function_lines[0].trim();
 
     let (is_global, function_part) = if let Some(stripped) = first_line.strip_prefix("global function ") {
         (true, stripped)
     } else if let Some(stripped) = first_line.strip_prefix("local function ") {
         (false, stripped)
+    } else if let Some(stripped) = first_line.strip_prefix("function ") {
+        // По умолчанию функция глобальная, если не указан префикс
+        (true, stripped)
     } else {
         return Err(DataCodeError::syntax_error("Invalid function definition", interpreter.current_line, 0));
     };
@@ -1593,6 +2302,139 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
             continue;
         }
 
+        // Пропускаем next, если он уже был обработан в цикле for
+        // Это нужно для случаев, когда цикл for находится внутри try блока
+        if let Some(_) = parse_next_variable(line) {
+            i += 1;
+            continue;
+        }
+
+        // Обрабатываем циклы for ПЕРЕД try блоками (важно для правильного порядка)
+        if line.starts_with("for ") && line.ends_with(" do") {
+            // Находим соответствующий next с правильным учетом вложенности
+            let mut for_lines = vec![lines[i]];
+            
+            // Извлекаем имя переменной текущего цикла
+            let current_var = parse_for_variable(line)
+                .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
+            
+            // Стек переменных для отслеживания вложенных циклов
+            let mut var_stack: Vec<String> = vec![current_var.clone()];
+            // Начинаем со следующей строки после "for ... do"
+            let mut j = i + 1;
+            
+            // Отслеживаем вложенные try/catch и if/endif блоки
+            let mut try_depth = 0;
+            let mut if_depth = 0;
+
+            while j < lines.len() && !var_stack.is_empty() {
+                let current_line = lines[j].trim();
+
+                // Пропускаем пустые строки и комментарии
+                if current_line.is_empty() || current_line.starts_with('#') {
+                    for_lines.push(lines[j]);
+                    j += 1;
+                    continue;
+                }
+
+                // Обрабатываем вложенные try/catch блоки
+                if current_line == "try" {
+                    try_depth += 1;
+                    for_lines.push(lines[j]);
+                    j += 1;
+                    continue;
+                } else if current_line == "endtry" {
+                    if try_depth > 0 {
+                        try_depth -= 1;
+                    }
+                    for_lines.push(lines[j]);
+                    j += 1;
+                    continue;
+                } else if current_line.starts_with("catch") && try_depth > 0 {
+                    // catch внутри try блока - добавляем и пропускаем проверку
+                    for_lines.push(lines[j]);
+                    j += 1;
+                    continue;
+                }
+                
+                // Обрабатываем вложенные if/endif блоки
+                if current_line.starts_with("if ") && (current_line.contains(" do") || current_line.contains(" then")) {
+                    if_depth += 1;
+                } else if current_line == "endif" || current_line == "endeif" {
+                    if if_depth > 0 {
+                        if_depth -= 1;
+                    }
+                }
+
+                // Если мы внутри try/catch или if/endif блока, просто добавляем строку
+                // и не проверяем на next (next может быть внутри этих блоков)
+                if try_depth > 0 || if_depth > 0 {
+                    for_lines.push(lines[j]);
+                    j += 1;
+                    continue;
+                }
+
+                // Проверяем на вложенные циклы и next только когда мы НЕ внутри других блоков
+                if current_line.starts_with("for ") && current_line.ends_with(" do") {
+                    // Новый вложенный цикл - добавляем в стек
+                    if let Some(var_name) = parse_for_variable(current_line) {
+                        var_stack.push(var_name);
+                    }
+                    // Добавляем строку for в for_lines
+                    for_lines.push(lines[j]);
+                } else if let Some(next_var) = parse_next_variable(current_line) {
+                    // Нашли next - проверяем, соответствует ли он последнему циклу
+                    // Для множественных переменных берем первую переменную из next
+                    let next_first_var = next_var.split(',').next().unwrap_or(&next_var).trim();
+                    if let Some(last_var) = var_stack.last() {
+                        if next_first_var == *last_var || next_var == *last_var {
+                            // Это next для вложенного цикла - удаляем из стека
+                            var_stack.pop();
+                            // Добавляем next в for_lines
+                            for_lines.push(lines[j]);
+                        } else {
+                            // Неправильное имя переменной в next
+                            return Err(DataCodeError::syntax_error(
+                                &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
+                                interpreter.current_line,
+                                0
+                            ));
+                        }
+                    } else {
+                        // next найден, но стек пуст - это ошибка
+                        return Err(DataCodeError::syntax_error(
+                            "Unexpected next statement outside of for loop",
+                            interpreter.current_line,
+                            0
+                        ));
+                    }
+                } else {
+                    // Добавляем строку (включая next, если он был найден)
+                    for_lines.push(lines[j]);
+                }
+
+                // Если стек пуст, мы нашли все next'ы для всех циклов
+                if var_stack.is_empty() {
+                    break;
+                }
+
+                j += 1;
+            }
+
+            if !var_stack.is_empty() {
+                return Err(DataCodeError::syntax_error(
+                    &format!("Missing 'next {}' in for loop", var_stack[0]),
+                    interpreter.current_line,
+                    0
+                ));
+            }
+
+            // Выполняем for цикл
+            execute_for_loop_iteratively(interpreter, &for_lines)?;
+            i = j + 1;  // Пропускаем строку next, которая уже была обработана
+            continue;
+        }
+
         // Обрабатываем try блоки
         if line.trim() == "try" {
             // Находим соответствующий endtry
@@ -1628,62 +2470,39 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
             continue;
         }
 
-        // Обрабатываем циклы for
-        if line.starts_with("for ") && line.ends_with(" do") {
-            // Находим соответствующий next
-            let mut for_lines = Vec::new();
-            
-            // Извлекаем имя переменной текущего цикла
-            let current_var = parse_for_variable(line)
-                .ok_or_else(|| DataCodeError::syntax_error("Invalid for loop syntax", interpreter.current_line, 0))?;
-            
-            // Стек переменных для отслеживания вложенных циклов
-            let mut var_stack: Vec<String> = vec![current_var.clone()];
-            let mut j = i;
+        // Пропускаем next, если он уже был обработан в цикле for
+        if let Some(_) = parse_next_variable(line) {
+            i += 1;
+            continue;
+        }
 
-            while j < lines.len() && !var_stack.is_empty() {
+        // Обрабатываем условные конструкции if
+        if line.starts_with("if ") && (line.contains(" do") || line.contains(" then")) {
+            // Собираем всю условную конструкцию
+            let mut if_lines = vec![lines[i]];
+            let mut if_depth = 1;
+            let mut j = i + 1;
+
+            while j < lines.len() && if_depth > 0 {
                 let current_line = lines[j].trim();
-                for_lines.push(current_line);
 
-                if current_line.starts_with("for ") && current_line.ends_with(" do") {
-                    // Новый вложенный цикл
-                    if let Some(var_name) = parse_for_variable(current_line) {
-                        var_stack.push(var_name);
-                    }
-                } else if let Some(next_var) = parse_next_variable(current_line) {
-                    // Проверяем что next соответствует последнему циклу
-                    if let Some(last_var) = var_stack.last() {
-                        if next_var == *last_var {
-                            var_stack.pop();
-                        } else {
-                            return Err(DataCodeError::syntax_error(
-                                &format!("Mismatched next: expected 'next {}' but found 'next {}'", last_var, next_var),
-                                interpreter.current_line,
-                                0
-                            ));
-                        }
-                    } else {
-                        return Err(DataCodeError::syntax_error(
-                            "Unexpected next statement outside of for loop",
-                            interpreter.current_line,
-                            0
-                        ));
-                    }
+                if current_line.starts_with("if ") && (current_line.contains(" do") || current_line.contains(" then")) {
+                    if_depth += 1;
+                } else if current_line == "endif" || current_line == "endeif" {
+                    if_depth -= 1;
+                }
+
+                if_lines.push(lines[j]);
+
+                if if_depth == 0 {
+                    break;
                 }
                 j += 1;
             }
 
-            if !var_stack.is_empty() {
-                return Err(DataCodeError::syntax_error(
-                    &format!("Missing 'next {}' in for loop", var_stack[0]),
-                    interpreter.current_line,
-                    0
-                ));
-            }
-
-            // Выполняем for цикл
-            execute_for_loop_iteratively(interpreter, &for_lines)?;
-            i = j;
+            // Выполняем условную конструкцию итеративно
+            execute_if_statement_iteratively(interpreter, &if_lines)?;
+            i = j + 1;
             continue;
         }
 
@@ -1692,8 +2511,8 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
             // Обрабатываем многострочные присваивания
             i = handle_multiline_assignment_in_try_block(interpreter, lines, i)?;
         } else {
-            // Выполняем обычную строку кода
-            execute_line_simple(interpreter, line)?;
+            // Выполняем обычную строку кода (используем safe версию, чтобы игнорировать next и другие блочные ключевые слова)
+            execute_line_simple_safe(interpreter, line)?;
         }
         i += 1;
     }
@@ -1703,8 +2522,20 @@ fn execute_block_with_try_support(interpreter: &mut Interpreter, lines: &[&str])
 /// Проверить, является ли строка неполным присваиванием (содержит незакрытые скобки)
 fn is_incomplete_assignment(line: &str) -> bool {
     // Проверяем, что это присваивание
-    if !(line.starts_with("global ") || line.starts_with("local ")) || !line.contains('=') {
+    // Должно начинаться с global/local И содержать =
+    // Для многострочных присваиваний первая строка может быть обрезана, поэтому проверяем trimmed версию
+    let trimmed = line.trim();
+    let is_declaration = trimmed.starts_with("global ") || trimmed.starts_with("local ");
+    if !is_declaration || !line.contains('=') {
+        if std::env::var("DATACODE_DEBUG_PARSE").is_ok() && (trimmed.starts_with("global ") || trimmed.starts_with("local ")) {
+            eprintln!("🔍 DEBUG: is_incomplete_assignment('{}'): is_declaration={}, contains='='={}", 
+                line, is_declaration, line.contains('='));
+        }
         return false;
+    }
+    
+    if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+        eprintln!("🔍 DEBUG: Checking incomplete assignment: '{}'", line);
     }
 
     // Подсчитываем открытые и закрытые скобки
@@ -1734,7 +2565,14 @@ fn is_incomplete_assignment(line: &str) -> bool {
     }
 
     // Если есть незакрытые скобки, это неполное присваивание
-    bracket_count > 0 || paren_count > 0 || brace_count > 0
+    let is_incomplete = bracket_count > 0 || paren_count > 0 || brace_count > 0;
+    
+    if std::env::var("DATACODE_DEBUG_PARSE").is_ok() {
+        eprintln!("🔍 DEBUG: is_incomplete_assignment result: bracket_count={}, paren_count={}, brace_count={}, is_incomplete={}", 
+            bracket_count, paren_count, brace_count, is_incomplete);
+    }
+    
+    is_incomplete
 }
 
 /// Обработать многострочное присваивание

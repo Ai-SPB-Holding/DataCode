@@ -138,6 +138,7 @@ impl TableColumn {
     }
 
     /// Получить процент значений основного типа
+    #[allow(dead_code)]
     pub fn get_type_purity(&self) -> f64 {
         if self.total_values == 0 {
             return 100.0;
@@ -156,6 +157,7 @@ impl TableColumn {
     }
 
     /// Проверить, является ли колонка однородной
+    #[allow(dead_code)]
     pub fn is_homogeneous(&self) -> bool {
         self.warnings.is_empty()
     }
@@ -244,6 +246,7 @@ impl Table {
     }
 
     /// Получить все предупреждения от всех колонок
+    #[allow(dead_code)]
     pub fn get_warnings(&self) -> Vec<String> {
         self.columns.iter()
             .flat_map(|col| col.warnings.iter())
@@ -262,11 +265,13 @@ impl Table {
     }
 
     /// Получить значение по индексам строки и колонки
+    #[allow(dead_code)]
     pub fn get_value(&self, row: usize, col: usize) -> Option<&Value> {
         self.rows.get(row)?.get(col)
     }
 
     /// Получить всю строку по индексу
+    #[allow(dead_code)]
     pub fn get_row(&self, row: usize) -> Option<&Vec<Value>> {
         self.rows.get(row)
     }
@@ -288,11 +293,13 @@ impl Table {
     }
 
     /// Проверить, является ли таблица пустой
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 
     /// Очистить все данные таблицы
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.rows.clear();
         for column in &mut self.columns {

@@ -234,7 +234,6 @@ where
     serializer.serialize_u64(duration.as_micros() as u64)
 }
 
-/// Глобальный профилировщик
 lazy_static::lazy_static! {
     pub static ref GLOBAL_PROFILER: Profiler = Profiler::new();
 }

@@ -1,0 +1,55 @@
+# Тест 10: for с try внутри после функции
+print("Тест 10: for с try внутри после функции")
+print("========================================")
+
+# Код перед функцией
+print("Код перед функцией")
+
+# Функция с вложенными циклами
+global function merge_tables(tables) do
+    if len(tables) == 0 do
+        return null
+    endif
+    
+    local headers = table_headers(tables[0])
+    local all_rows = []
+    
+    for table in tables do
+        for row in table do
+            all_rows = push(all_rows, row)
+        next row
+    next table
+    
+    return table_create(all_rows, headers)
+endfunction
+
+# Код после функции
+print("Код после функции")
+
+# Базовый путь к данным
+global base_path = getcwd() / "model_data"
+
+print("📊 Загрузка ежемесячных данных...")
+# Получаем список годов из директории model_data
+global year_dirs = list_files(base_path)
+print("  Найдено элементов в model_data: ", len(year_dirs))
+
+# Обрабатываем каждую директорию года
+for year_dir in year_dirs do
+    # Пропускаем файлы и служебные директории
+    if year_dir != "docs" and year_dir != "__pycache__" and year_dir != "generate_model_data.py" and not contains(year_dir, ".") do
+        local year_str = year_dir
+        local year_path = base_path / year_str
+        
+        # Получаем список месяцев в году
+        try
+            local month_dirs = list_files(year_path)
+            print("  Год ", year_str, ": найдено ", len(month_dirs), " элементов")
+        catch e
+            print("  ⚠️  Пропущен год ", year_str, ": ", e)
+        endtry
+    endif
+next year_dir
+
+print("✓ Тест завершен")
+

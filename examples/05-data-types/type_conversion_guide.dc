@@ -17,13 +17,13 @@ global my_array = [1, 2, 3]
 global my_null = null
 global my_path = path('/home/user')
 
-print('Число:', my_number, '- тип:', isinstance(my_number, 'number'))
-print('Дробное:', my_float, '- тип:', isinstance(my_float, 'number'))
-print('Строка:', my_string, '- тип:', isinstance(my_string, 'string'))
-print('Булево:', my_bool, '- тип:', isinstance(my_bool, 'bool'))
-print('Массив:', my_array, '- тип:', isinstance(my_array, 'array'))
-print('Null:', my_null, '- тип:', isinstance(my_null, 'null'))
-print('Путь:', my_path, '- тип:', isinstance(my_path, 'path'))
+print('Число:', my_number, '- тип:', isinstance(my_number, num))
+print('Дробное:', my_float, '- тип:', isinstance(my_float, float))
+print('Строка:', my_string, '- тип:', isinstance(my_string, str))
+print('Булево:', my_bool, '- тип:', isinstance(my_bool, bool))
+print('Массив:', my_array, '- тип:', isinstance(my_array, array))
+print('Null:', my_null, '- тип:', isinstance(my_null, null))
+print('Путь:', my_path, '- тип:', isinstance(my_path, path))
 print()
 
 # 2. Проверка типов с isinstance()
@@ -31,22 +31,22 @@ print('2️⃣ Проверка типов с isinstance():')
 print('=================================')
 
 global function check_type(value) do
-    if isinstance(value, 'number') do
+    if isinstance(value, num) do
         return 'Это число'
     endif
-    if isinstance(value, 'string') do
+    if isinstance(value, str) do
         return 'Это строка'
     endif
-    if isinstance(value, 'bool') do
+    if isinstance(value, bool) do
         return 'Это булево значение'
     endif
-    if isinstance(value, 'array') do
+    if isinstance(value, array) do
         return 'Это массив'
     endif
-    if isinstance(value, 'null') do
+    if isinstance(value, null) do
         return 'Это null'
     endif
-    if isinstance(value, 'path') do
+    if isinstance(value, path) do
         return 'Это путь'
     endif
     return 'Неизвестный тип'
@@ -69,10 +69,10 @@ global float_num = 3.14
 print('Целое число:', int_num)
 print('Дробное число:', float_num)
 print('Оба являются числами:')
-print('  isinstance(int_num, "number"):', isinstance(int_num, 'number'))
-print('  isinstance(float_num, "number"):', isinstance(float_num, 'number'))
-print('  isinstance(int_num, "int"):', isinstance(int_num, 'int'))
-print('  isinstance(float_num, "float"):', isinstance(float_num, 'float'))
+print('  isinstance(int_num, num):', isinstance(int_num, num))
+print('  isinstance(float_num, float):', isinstance(float_num, num))
+print('  isinstance(int_num, int):', isinstance(int_num, int))
+print('  isinstance(float_num, int):', isinstance(float_num, int))
 print()
 
 # 4. Работа со строками
@@ -84,14 +84,14 @@ global text2 = '$100.50'  # Может быть определена как ва
 global text3 = '12/9/2019'  # Может быть определена как дата
 
 print('Обычная строка:', text1)
-print('  isinstance(text1, "string"):', isinstance(text1, 'string'))
+print('  isinstance(text1, str):', isinstance(text1, str))
 
 print('Валютная строка:', text2)
-print('  isinstance(text2, "string"):', isinstance(text2, 'string'))
-print('  isinstance(text2, "currency"):', isinstance(text2, 'currency'))
+print('  isinstance(text2, str):', isinstance(text2, str))
+print('  isinstance(text2, money):', isinstance(text2, money))
 
 print('Строка с датой:', text3)
-print('  isinstance(text3, "string"):', isinstance(text3, 'string'))
+print('  isinstance(text3, str):', isinstance(text3, str))
 print()
 
 # 5. Работа с массивами
@@ -109,10 +109,10 @@ print('Смешанный массив:', mixed)
 print('Пустой массив:', empty)
 
 print('Все являются массивами:')
-print('  isinstance(numbers, "array"):', isinstance(numbers, 'array'))
-print('  isinstance(strings, "list"):', isinstance(strings, 'list'))
-print('  isinstance(mixed, "array"):', isinstance(mixed, 'array'))
-print('  isinstance(empty, "array"):', isinstance(empty, 'array'))
+print('  isinstance(numbers, array):', isinstance(numbers, array))
+print('  isinstance(strings, array):', isinstance(strings, array))
+print('  isinstance(mixed, array):', isinstance(mixed, array))
+print('  isinstance(empty, array):', isinstance(empty, array))
 print()
 
 # 6. Проверка элементов массива
@@ -123,11 +123,11 @@ global data = [42, 'text', true, null, [1, 2]]
 
 print('Массив данных:', data)
 print('Типы элементов:')
-print('  data[0] (42):', isinstance(data[0], 'number'))
-print('  data[1] ("text"):', isinstance(data[1], 'string'))
-print('  data[2] (true):', isinstance(data[2], 'bool'))
-print('  data[3] (null):', isinstance(data[3], 'null'))
-print('  data[4] ([1,2]):', isinstance(data[4], 'array'))
+print('  data[0] (42):', isinstance(data[0], num))
+print('  data[1] ("text"):', isinstance(data[1], str))
+print('  data[2] (true):', isinstance(data[2], bool))
+print('  data[3] (null):', isinstance(data[3], null))
+print('  data[4] ([1,2]):', isinstance(data[4], array))
 print()
 
 # 7. Условная логика на основе типов
@@ -135,17 +135,17 @@ print('7️⃣ Условная логика на основе типов:')
 print('===================================')
 
 global function process_value(val) do
-    if isinstance(val, 'number') do
+    if isinstance(val, num) do
         print('Обрабатываю число:', val)
         return val * 2
     endif
     
-    if isinstance(val, 'string') do
+    if isinstance(val, str) do
         print('Обрабатываю строку:', val)
         return val + ' (обработано)'
     endif
     
-    if isinstance(val, 'bool') do
+    if isinstance(val, bool) do
         print('Обрабатываю булево значение:', val)
         if val do
             return 'Истина'
@@ -154,12 +154,12 @@ global function process_value(val) do
         endif
     endif
     
-    if isinstance(val, 'array') do
+    if isinstance(val, array) do
         print('Обрабатываю массив:', val)
-        return length(val)
+        return len(val)
     endif
     
-    if isinstance(val, 'null') do
+    if isinstance(val, null) do
         print('Обрабатываю null значение')
         return 'Пустое значение'
     endif
@@ -191,19 +191,16 @@ print('==============================')
 global test_val = 42
 
 print('Число 42 можно проверить разными способами:')
-print('  isinstance(test_val, "number"):', isinstance(test_val, 'number'))
-print('  isinstance(test_val, "int"):', isinstance(test_val, 'int'))
-print('  isinstance(test_val, "integer"):', isinstance(test_val, 'integer'))
+print('  isinstance(test_val, num):', isinstance(test_val, num))
+print('  isinstance(test_val, int):', isinstance(test_val, int))
 
 global test_str = 'hello'
 print('Строку можно проверить как:')
-print('  isinstance(test_str, "string"):', isinstance(test_str, 'string'))
-print('  isinstance(test_str, "str"):', isinstance(test_str, 'str'))
+print('  isinstance(test_str, str):', isinstance(test_str, str))
 
 global test_arr = [1, 2, 3]
 print('Массив можно проверить как:')
-print('  isinstance(test_arr, "array"):', isinstance(test_arr, 'array'))
-print('  isinstance(test_arr, "list"):', isinstance(test_arr, 'list'))
+print('  isinstance(test_arr, array):', isinstance(test_arr, array))
 print()
 
 print('✅ Руководство завершено!')

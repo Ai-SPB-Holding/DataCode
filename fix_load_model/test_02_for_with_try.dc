@@ -1,0 +1,17 @@
+# Тест 2: Цикл for с try внутри
+print("Тест 2: Цикл for с try внутри")
+print("==============================")
+
+global test_array = ["item1", "item2", "item3"]
+
+for item in test_array do
+    print("  Обработка: ", item)
+    try
+        print("    Внутри try: ", item)
+    catch e
+        print("    Ошибка: ", e)
+    endtry
+next item
+
+print("✓ Тест завершен")
+

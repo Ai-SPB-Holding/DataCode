@@ -92,7 +92,7 @@ endfunction
 
 global function combined_expression(num1, num2, str1, str2) do
     local numeric_part = (num1 + num2) * 2
-    local string_part = str1 + str2
+    string_part = str1 + str2
     # Преобразуем число в строку для конкатенации
     return string_part + ' = 80'  # Упрощенная версия
 endfunction

@@ -4,6 +4,7 @@ use super::Interpreter;
 use super::execution::execute_line;
 
 /// Обработчик управляющих конструкций
+#[allow(dead_code)]
 pub struct ControlFlowHandler;
 
 impl ControlFlowHandler {
@@ -29,31 +30,28 @@ impl ControlFlowHandler {
     /// Выполнить цикл for
     pub fn execute_for(
         interpreter: &mut Interpreter,
-        variable: &str,
+        variables: &[String],
         iterable: &crate::parser::Expr,
         body: &[String],
     ) -> Result<()> {
         let iterable_value = interpreter.evaluate_expression(iterable)?;
         
-        // Входим в область видимости цикла
-        interpreter.enter_loop_scope();
+        // НЕ создаём scope здесь - он будет создаваться для каждой итерации
 
         let result = match iterable_value {
-            Value::Array(arr) => Self::iterate_over_array(interpreter, variable, &arr, body),
+            Value::Array(arr) => Self::iterate_over_array(interpreter, variables, &arr, body),
             Value::Table(table) => {
                 let table_borrowed = table.borrow();
-                Self::iterate_over_table(interpreter, variable, &*table_borrowed, body)
+                Self::iterate_over_table(interpreter, variables, &*table_borrowed, body)
             },
-            Value::String(s) => Self::iterate_over_string(interpreter, variable, &s, body),
-            Value::Object(obj) => Self::iterate_over_object(interpreter, variable, &obj, body),
+            Value::String(s) => Self::iterate_over_string(interpreter, variables, &s, body),
+            Value::Object(obj) => Self::iterate_over_object(interpreter, variables, &obj, body),
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot iterate over {:?}", iterable_value),
                 interpreter.current_line,
             )),
         };
 
-        // Выходим из области видимости цикла
-        interpreter.exit_loop_scope();
         result
     }
 
@@ -145,18 +143,70 @@ impl ControlFlowHandler {
     /// Итерация по массиву
     fn iterate_over_array(
         interpreter: &mut Interpreter,
-        variable: &str,
+        variables: &[String],
         array: &[Value],
         body: &[String],
     ) -> Result<()> {
-        for item in array {
-            interpreter.set_loop_variable(variable.to_string(), item.clone());
-            
-            Self::execute_block(interpreter, body)?;
-            
-            // Если был return, выходим из цикла
-            if interpreter.return_value.is_some() {
-                break;
+        if variables.len() > 1 {
+            // Множественные переменные - деструктуризация элементов массива
+            for item in array {
+                // Создаём новый scope для этой итерации
+                interpreter.enter_loop_scope();
+                
+                // Проверяем, является ли элемент массивом для деструктуризации
+                match item {
+                    Value::Array(ref item_arr) => {
+                        // Деструктурируем массив в переменные
+                        if item_arr.len() != variables.len() {
+                            interpreter.exit_loop_scope();
+                            return Err(DataCodeError::runtime_error(
+                                &format!("Cannot unpack array of length {} into {} variables", item_arr.len(), variables.len()),
+                                interpreter.current_line,
+                            ));
+                        }
+                        
+                        // Устанавливаем все переменные из массива
+                        for (i, var_name) in variables.iter().enumerate() {
+                            interpreter.set_loop_variable(var_name.to_string(), item_arr[i].clone());
+                        }
+                    }
+                    _ => {
+                        // Элемент не массив - ошибка
+                        interpreter.exit_loop_scope();
+                        return Err(DataCodeError::runtime_error(
+                            &format!("Cannot unpack non-array value into {} variables", variables.len()),
+                            interpreter.current_line,
+                        ));
+                    }
+                }
+                
+                Self::execute_block(interpreter, body)?;
+                
+                // Удаляем scope этой итерации
+                interpreter.exit_loop_scope();
+                
+                // Если был return, выходим из цикла
+                if interpreter.return_value.is_some() {
+                    break;
+                }
+            }
+        } else {
+            // Одна переменная - обычная итерация
+            for item in array {
+                // Создаём новый scope для этой итерации
+                interpreter.enter_loop_scope();
+                
+                interpreter.set_loop_variable(variables[0].to_string(), item.clone());
+                
+                Self::execute_block(interpreter, body)?;
+                
+                // Удаляем scope этой итерации
+                interpreter.exit_loop_scope();
+                
+                // Если был return, выходим из цикла
+                if interpreter.return_value.is_some() {
+                    break;
+                }
             }
         }
         Ok(())
@@ -165,14 +215,37 @@ impl ControlFlowHandler {
     /// Итерация по таблице
     fn iterate_over_table(
         interpreter: &mut Interpreter,
-        variable: &str,
+        variables: &[String],
         table: &crate::value::Table,
         body: &[String],
     ) -> Result<()> {
         for row in &table.rows {
-            interpreter.set_loop_variable(variable.to_string(), Value::Array(row.clone()));
+            // Создаём новый scope для этой итерации
+            interpreter.enter_loop_scope();
+            
+            if variables.len() > 1 {
+                // Деструктуризация строки таблицы в переменные
+                if row.len() != variables.len() {
+                    interpreter.exit_loop_scope();
+                    return Err(DataCodeError::runtime_error(
+                        &format!("Cannot unpack table row of length {} into {} variables", row.len(), variables.len()),
+                        interpreter.current_line,
+                    ));
+                }
+                
+                // Устанавливаем все переменные из строки
+                for (i, var_name) in variables.iter().enumerate() {
+                    interpreter.set_loop_variable(var_name.to_string(), row[i].clone());
+                }
+            } else {
+                // Одна переменная - присваиваем весь массив строки
+                interpreter.set_loop_variable(variables[0].to_string(), Value::Array(row.clone()));
+            }
             
             Self::execute_block(interpreter, body)?;
+            
+            // Удаляем scope этой итерации
+            interpreter.exit_loop_scope();
             
             // Если был return, выходим из цикла
             if interpreter.return_value.is_some() {
@@ -185,17 +258,30 @@ impl ControlFlowHandler {
     /// Итерация по строке (по символам)
     fn iterate_over_string(
         interpreter: &mut Interpreter,
-        variable: &str,
+        variables: &[String],
         string: &str,
         body: &[String],
     ) -> Result<()> {
+        if variables.len() > 1 {
+            return Err(DataCodeError::runtime_error(
+                &format!("String iteration supports only 1 variable, got {}", variables.len()),
+                interpreter.current_line,
+            ));
+        }
+        
         for ch in string.chars() {
+            // Создаём новый scope для этой итерации
+            interpreter.enter_loop_scope();
+            
             interpreter.set_loop_variable(
-                variable.to_string(),
+                variables[0].to_string(),
                 Value::String(ch.to_string()),
             );
 
             Self::execute_block(interpreter, body)?;
+
+            // Удаляем scope этой итерации
+            interpreter.exit_loop_scope();
 
             // Если был return, выходим из цикла
             if interpreter.return_value.is_some() {
@@ -208,7 +294,7 @@ impl ControlFlowHandler {
     /// Итерация по объекту (по парам ключ-значение)
     fn iterate_over_object(
         interpreter: &mut Interpreter,
-        variable: &str,
+        variables: &[String],
         object: &std::collections::HashMap<String, Value>,
         body: &[String],
     ) -> Result<()> {
@@ -218,15 +304,32 @@ impl ControlFlowHandler {
 
         for key in keys {
             if let Some(value) = object.get(key) {
-                // Создаем массив [ключ, значение] для итерации
-                let key_value_pair = Value::Array(vec![
-                    Value::String(key.clone()),
-                    value.clone(),
-                ]);
-
-                interpreter.set_loop_variable(variable.to_string(), key_value_pair);
+                // Создаём новый scope для этой итерации
+                interpreter.enter_loop_scope();
+                
+                if variables.len() == 1 {
+                    // Простое присваивание - создаем массив [ключ, значение]
+                    let key_value_pair = Value::Array(vec![
+                        Value::String(key.clone()),
+                        value.clone(),
+                    ]);
+                    interpreter.set_loop_variable(variables[0].to_string(), key_value_pair);
+                } else if variables.len() == 2 {
+                    // Деструктуризация на ключ и значение
+                    interpreter.set_loop_variable(variables[0].to_string(), Value::String(key.clone()));
+                    interpreter.set_loop_variable(variables[1].to_string(), value.clone());
+                } else {
+                    interpreter.exit_loop_scope();
+                    return Err(DataCodeError::runtime_error(
+                        &format!("Object iteration supports 1 or 2 variables, got {}", variables.len()),
+                        interpreter.current_line,
+                    ));
+                }
 
                 Self::execute_block(interpreter, body)?;
+
+                // Удаляем scope этой итерации
+                interpreter.exit_loop_scope();
 
                 // Если был return, выходим из цикла
                 if interpreter.return_value.is_some() {

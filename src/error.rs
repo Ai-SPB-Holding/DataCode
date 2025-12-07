@@ -37,6 +37,7 @@ pub enum DataCodeError {
     },
     
     // Ошибки файловой системы
+    #[allow(dead_code)]
     FileSystemError {
         path: String,
         error_type: FileSystemErrorType,
@@ -44,6 +45,7 @@ pub enum DataCodeError {
     },
     
     // Ошибки парсинга выражений
+    #[allow(dead_code)]
     ExpressionError {
         expression: String,
         message: String,
@@ -60,7 +62,9 @@ pub enum DataCodeError {
 #[derive(Debug, Clone, PartialEq)]
 pub enum VariableErrorType {
     NotFound,
+    #[allow(dead_code)]
     AlreadyDefined,
+    #[allow(dead_code)]
     InvalidScope,
 }
 
@@ -68,17 +72,24 @@ pub enum VariableErrorType {
 pub enum FunctionErrorType {
     NotFound,
     WrongArgumentCount { expected: usize, found: usize },
+    #[allow(dead_code)]
     InvalidArgument { index: usize, expected: String, found: String },
+    #[allow(dead_code)]
     InvalidReturn,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FileSystemErrorType {
     NotFound,
+    #[allow(dead_code)]
     PermissionDenied,
+    #[allow(dead_code)]
     InvalidPath,
+    #[allow(dead_code)]
     UnsupportedFormat,
+    #[allow(dead_code)]
     ReadError(String),
+    #[allow(dead_code)]
     WriteError(String),
 }
 
@@ -208,6 +219,7 @@ impl DataCodeError {
         }
     }
     
+    #[allow(dead_code)]
     pub fn file_not_found(path: &str, line: usize) -> Self {
         DataCodeError::FileSystemError {
             path: path.to_string(),
@@ -216,6 +228,7 @@ impl DataCodeError {
         }
     }
     
+    #[allow(dead_code)]
     pub fn expression_error(expression: &str, message: &str, line: usize) -> Self {
         DataCodeError::ExpressionError {
             expression: expression.to_string(),

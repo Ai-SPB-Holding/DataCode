@@ -9,7 +9,7 @@ organized by functionality for better maintainability and extensibility.
 - **system**: System utilities (now, print, getcwd, isinstance)
 - **file**: File operations (path, list_files, read_file, analyze_csv)
 - **math**: Mathematical functions (abs, sqrt, pow, min, max, round, div)
-- **array**: Array operations (length, push, pop, sort, unique, sum, average)
+- **array**: Array operations (len, push, pop, sort, unique, sum, average)
 - **string**: String manipulation (split, join, trim, upper, lower, contains)
 - **table**: Core table operations (table, show_table, table_info, table_select)
 - **filter**: Table filtering (table_where, table_filter, table_distinct, table_sample)
@@ -145,7 +145,7 @@ pub fn call_builtin_function_with_named_args(
             // Handle header_row named argument
             if let Some(header_row) = named_args.get("header_row") {
                 match header_row {
-                    Value::Number(n) => {
+                    Value::Number(_n) => {
                         if final_args.len() == 1 {
                             // read_file(path, header_row=...)
                             final_args.push(header_row.clone());

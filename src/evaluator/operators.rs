@@ -224,9 +224,11 @@ impl<'a> UnaryOperatorHandler<'a> {
 /// Трейт для операторов
 pub trait OperatorEvaluable {
     /// Получить приоритет оператора
+    #[allow(dead_code)]
     fn precedence(&self) -> u8;
     
     /// Проверить, является ли оператор левоассоциативным
+    #[allow(dead_code)]
     fn is_left_associative(&self) -> bool;
 }
 

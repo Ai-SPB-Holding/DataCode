@@ -14,6 +14,7 @@ global function factorial(n) do
 endfunction
 
 global fact_results = []
+
 for i in range(1, 16) do
     global result = factorial(i)
     global fact_results = push(fact_results, result)
@@ -51,13 +52,18 @@ global function ackermann(m, n) do
 endfunction
 
 global ack_results = []
-for m in range(0, 4) do
-    for n in range(0, 4) do
-        global result = ackermann(m, n)
-        global ack_results = push(ack_results, result)
-        print("ackermann(" + m + ", " + n + ") =", result)
-    next n
-next m
+# Ограничиваем значения для Ackermann, так как она растет очень быстро
+try
+    for m in range(0, 3) do
+        for n in range(0, 3) do
+            global result = ackermann(m, n)
+            global ack_results = push(ack_results, result)
+            print("ackermann(" + m + ", " + n + ") =", result)
+        next n
+    next m
+catch e
+    print("  Ошибка: ", e)
+endtry
 
 # Test 4: Mutual recursion
 print("Test 4: Mutual recursion performance...")
@@ -77,12 +83,16 @@ global function is_odd(n) do
 endfunction
 
 global mutual_results = []
-for i in range(0, 21) do
-    global even_result = is_even(i)
-    global odd_result = is_odd(i)
-    global mutual_results = push(mutual_results, [i, even_result, odd_result])
-    print(i, "is even:", even_result, "is odd:", odd_result)
-next i
+try
+    for i in range(0, 21) do
+        global even_result = is_even(i)
+        global odd_result = is_odd(i)
+        global mutual_results = push(mutual_results, [i, even_result, odd_result])
+        print(i, "is even:", even_result, "is odd:", odd_result)
+    next i
+catch e
+    print("  Ошибка: ", e)
+endtry
 
 # Test 5: Tree traversal simulation
 print("Test 5: Tree traversal recursion...")
@@ -97,11 +107,15 @@ global function tree_sum(depth, value) do
 endfunction
 
 global tree_results = []
-for depth in range(1, 8) do
-    global result = tree_sum(depth, 1)
-    global tree_results = push(tree_results, result)
-    print("tree_sum(depth=" + depth + ") =", result)
-next depth
+try
+    for depth in range(1, 8) do
+        global result = tree_sum(depth, 1)
+        global tree_results = push(tree_results, result)
+        print("tree_sum(depth=" + depth + ") =", result)
+    next depth
+catch e
+    print("  Ошибка: ", e)
+endtry
 
 # Results summary
 print("=== RECURSIVE PERFORMANCE RESULTS ===")

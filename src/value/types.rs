@@ -52,6 +52,7 @@ impl DataType {
     }
     
     /// Проверить, является ли тип числовым
+    #[allow(dead_code)]
     pub fn is_numeric(&self) -> bool {
         matches!(self, DataType::Integer | DataType::Float)
     }

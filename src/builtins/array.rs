@@ -6,7 +6,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
     use Value::*;
 
     match name {
-        "length" | "len" => {
+        "len" => {
             if args.len() != 1 {
                 return Err(DataCodeError::wrong_argument_count(name, 1, args.len(), line));
             }
@@ -89,7 +89,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                     for i in 0..count {
                         // Create row based on template and parameters
                         let mut row = Vec::with_capacity(template.len());
-                        for (j, template_item) in template.iter().enumerate() {
+                        for (_j, template_item) in template.iter().enumerate() {
                             match template_item {
                                 String(s) if s == "INDEX" => {
                                     row.push(Number(i as f64));
@@ -422,7 +422,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
 /// Check if a function name belongs to array functions
 pub fn is_array_function(name: &str) -> bool {
     matches!(name,
-        "length" | "len" | "push" | "pop" | "append" | "sort" |
+        "len" | "push" | "pop" | "append" | "sort" |
         "unique" | "array" | "sum" | "average" | "count" | "range" |
         "map" | "filter" | "reduce" | "array_builder" | "extend" | "bulk_create"
     )

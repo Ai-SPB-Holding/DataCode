@@ -33,6 +33,7 @@ pub enum LazyOperation {
         n: usize,
         _line: usize,
     },
+    #[allow(dead_code)]
     Sort {
         column: String,
         ascending: bool,
@@ -89,6 +90,7 @@ impl LazyTable {
     }
     
     /// Добавить операцию сортировки
+    #[allow(dead_code)]
     pub fn sort(mut self, column: String, ascending: bool, line: usize) -> Self {
         self.operations.push(LazyOperation::Sort { column, ascending, _line: line });
         self

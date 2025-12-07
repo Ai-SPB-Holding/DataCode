@@ -48,7 +48,7 @@ global departments = table_distinct(employees, 'department')
 print("Unique departments:")
 for dept in departments do
     print("  - " + dept)
-endfor
+next dept
 print("")
 
 print("5. table_sample examples:")

@@ -5,7 +5,7 @@ print("===============================")
 
 # 1. Load data from CSV file
 print("Loading data from CSV file...")
-global data_path = getcwd() / "examples" / "04-обработка-данных" / "sample_data.csv"
+global data_path = getcwd() / "examples" / "04-data-processing" / "sample_data.csv"
 global employees = read_file(data_path)
 
 print("Data loaded successfully!")

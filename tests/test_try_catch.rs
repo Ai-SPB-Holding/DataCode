@@ -88,7 +88,7 @@ fn test_object_literal_in_try_catch() {
 
             for key, data in f do
                 print(key, data)
-            next key, data
+            next key
 
             success = true
 
@@ -119,7 +119,7 @@ local f = {
 
 for key, data in f do
     print(key, data)
-next key, data
+next key
 
 catch e
     print(e)
@@ -447,7 +447,7 @@ local f = {
 
 for key, data in f do
     print(key, data)
-next key, data
+next key
 
 catch e
     print("Error:", e)
@@ -473,7 +473,7 @@ local obj1 = {
 
 for key, data in obj1 do
     print("try/catch:", key, data)
-next key, data
+next key
 
 catch e
     print("Error in try/catch:", e)
@@ -487,7 +487,7 @@ local obj2 = {
 
 for key, data in obj2 do
     print("regular:", key, data)
-next key, data
+next key
 "#;
 
     let result = interpreter.exec(code);

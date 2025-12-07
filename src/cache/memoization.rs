@@ -1,7 +1,7 @@
 // Система кэширования промежуточных результатов для DataCode
 // Критическая реализация для обеспечения должности специалиста по Rust
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::hash::{Hash, Hasher};
 
@@ -343,6 +343,202 @@ impl CacheStats {
     /// Общее количество записей в кэше
     pub fn total_entries(&self) -> usize {
         self.filter_entries + self.select_entries + self.sort_entries + self.aggregate_entries
+    }
+}
+
+/// Кэш результатов функций для мемоизации
+pub struct FunctionCache {
+    cache: HashMap<(String, u64), CacheEntry<Value>>,
+    /// Отслеживание функций, которые сейчас выполняются
+    /// Это предотвращает возврат значений из кэша для рекурсивных вызовов
+    in_progress: HashSet<(String, u64)>,
+    max_entries: usize,
+    ttl: Duration,
+    
+    // Статистика
+    hits: u64,
+    misses: u64,
+}
+
+impl FunctionCache {
+    /// Создать новый кэш функций
+    pub fn new(max_entries: usize, ttl: Duration) -> Self {
+        Self {
+            cache: HashMap::new(),
+            in_progress: HashSet::new(),
+            max_entries,
+            ttl,
+            hits: 0,
+            misses: 0,
+        }
+    }
+    
+    /// Отметить, что функция начала выполняться
+    pub fn mark_in_progress(&mut self, function_name: &str, args: &[Value]) {
+        let args_hash = Self::hash_args(args);
+        let key = (function_name.to_string(), args_hash);
+        self.in_progress.insert(key.clone());
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            eprintln!("🔍 DEBUG FunctionCache::mark_in_progress: Function {}({:?}) marked as in progress (key hash: {})", 
+                function_name, args, args_hash);
+        }
+    }
+    
+    /// Отметить, что функция завершила выполнение
+    pub fn mark_completed(&mut self, function_name: &str, args: &[Value]) {
+        let args_hash = Self::hash_args(args);
+        let key = (function_name.to_string(), args_hash);
+        self.in_progress.remove(&key);
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            eprintln!("🔍 DEBUG FunctionCache::mark_completed: Function {}({:?}) marked as completed (key hash: {})", 
+                function_name, args, args_hash);
+        }
+    }
+    
+    /// Проверить, выполняется ли функция
+    pub fn is_in_progress(&self, function_name: &str, args: &[Value]) -> bool {
+        let args_hash = Self::hash_args(args);
+        let key = (function_name.to_string(), args_hash);
+        self.in_progress.contains(&key)
+    }
+    
+    /// Хэшировать аргументы функции для создания ключа кэша
+    pub fn hash_args(args: &[Value]) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        for arg in args {
+            match arg {
+                Value::Number(n) => n.to_bits().hash(&mut hasher),
+                Value::String(s) => s.hash(&mut hasher),
+                Value::Bool(b) => b.hash(&mut hasher),
+                Value::Null => 0u8.hash(&mut hasher),
+                Value::Array(arr) => {
+                    arr.len().hash(&mut hasher);
+                    // Хэшируем первые несколько элементов для производительности
+                    for item in arr.iter().take(10) {
+                        match item {
+                            Value::Number(n) => n.to_bits().hash(&mut hasher),
+                            Value::String(s) => s.hash(&mut hasher),
+                            Value::Bool(b) => b.hash(&mut hasher),
+                            Value::Null => 0u8.hash(&mut hasher),
+                            _ => format!("{:?}", item).hash(&mut hasher),
+                        }
+                    }
+                }
+                Value::Object(obj) => {
+                    obj.len().hash(&mut hasher);
+                    // Хэшируем первые несколько пар ключ-значение
+                    for (k, v) in obj.iter().take(10) {
+                        k.hash(&mut hasher);
+                        match v {
+                            Value::Number(n) => n.to_bits().hash(&mut hasher),
+                            Value::String(s) => s.hash(&mut hasher),
+                            Value::Bool(b) => b.hash(&mut hasher),
+                            Value::Null => 0u8.hash(&mut hasher),
+                            _ => format!("{:?}", v).hash(&mut hasher),
+                        }
+                    }
+                }
+                _ => format!("{:?}", arg).hash(&mut hasher),
+            }
+        }
+        hasher.finish()
+    }
+    
+    /// Получить результат функции из кэша
+    /// НЕ возвращает значение, если функция сейчас выполняется (рекурсивный вызов)
+    pub fn get(&mut self, function_name: &str, args: &[Value]) -> Option<Value> {
+        let args_hash = Self::hash_args(args);
+        let key = (function_name.to_string(), args_hash);
+        
+        // ВАЖНО: Не возвращаем значение из кэша, если функция сейчас выполняется
+        // Это предотвращает возврат старых значений при рекурсивных вызовах
+        if self.is_in_progress(function_name, args) {
+            if std::env::var("DATACODE_DEBUG").is_ok() {
+                eprintln!("🔍 DEBUG FunctionCache::get: Function {}({:?}) is in progress, skipping cache (key hash: {})", 
+                    function_name, args, args_hash);
+            }
+            self.misses += 1;
+            return None;
+        }
+        
+        if let Some(entry) = self.cache.get_mut(&key) {
+            if !entry.is_expired(self.ttl) {
+                let cached_value = entry.access().clone();
+                self.hits += 1;
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("🔍 DEBUG FunctionCache::get: Cache HIT for {}({:?}) -> {:?} (key hash: {})", 
+                        function_name, args, cached_value, args_hash);
+                }
+                return Some(cached_value);
+            } else {
+                // Удаляем истекшую запись
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("🔍 DEBUG FunctionCache::get: Cache entry expired for {}({:?}) (key hash: {})", 
+                        function_name, args, args_hash);
+                }
+                self.cache.remove(&key);
+            }
+        }
+        
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            eprintln!("🔍 DEBUG FunctionCache::get: Cache MISS for {}({:?}) (key hash: {})", 
+                function_name, args, args_hash);
+        }
+        self.misses += 1;
+        None
+    }
+    
+    /// Сохранить результат функции в кэш
+    pub fn put(&mut self, function_name: &str, args: &[Value], result: Value) {
+        let args_hash = Self::hash_args(args);
+        let key = (function_name.to_string(), args_hash);
+        
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            eprintln!("🔍 DEBUG FunctionCache::put: Caching {}({:?}) -> {:?} (key hash: {})", 
+                function_name, args, result, args_hash);
+        }
+        
+        // Проверяем размер кэша
+        if self.cache.len() >= self.max_entries {
+            // Удаляем самую старую запись (первую в HashMap)
+            if let Some(first_key) = self.cache.keys().next().cloned() {
+                self.cache.remove(&first_key);
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("🔍 DEBUG FunctionCache::put: Evicted oldest cache entry (cache full)");
+                }
+            }
+        }
+        
+        self.cache.insert(key, CacheEntry::new(result));
+    }
+    
+    /// Очистить кэш
+    pub fn clear(&mut self) {
+        self.cache.clear();
+        self.in_progress.clear();
+        self.hits = 0;
+        self.misses = 0;
+    }
+    
+    /// Получить статистику кэша
+    pub fn get_stats(&self) -> (u64, u64, f64) {
+        let total = self.hits + self.misses;
+        let hit_rate = if total > 0 { self.hits as f64 / total as f64 } else { 0.0 };
+        (self.hits, self.misses, hit_rate)
+    }
+    
+    /// Получить количество записей в кэше
+    pub fn len(&self) -> usize {
+        self.cache.len()
+    }
+}
+
+impl Default for FunctionCache {
+    fn default() -> Self {
+        Self::new(10000, Duration::from_secs(3600)) // 10000 записей, 1 час TTL
     }
 }
 

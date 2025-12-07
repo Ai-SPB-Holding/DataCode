@@ -319,7 +319,6 @@ fn format_size(bytes: usize) -> String {
     }
 }
 
-/// Глобальный логгер производительности
 lazy_static::lazy_static! {
     pub static ref GLOBAL_PERFORMANCE_LOGGER: PerformanceLogger = {
         PerformanceLogger::new()

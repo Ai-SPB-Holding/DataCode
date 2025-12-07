@@ -202,24 +202,43 @@ print('🔟 Пользовательская функция с enum:')
 print('===================================')
 
 global function find_max_with_index(arr) do
-    global max_value = null
-    global max_index = -1
+    local max_value = null
+    local max_index = -1
 
-    for pair in enum(arr) do
-        global idx = pair[0]
-        global val = pair[1]
-
-        if isinstance(val, 'number') do
+    for idx, val in enum(arr) do
+        print(" idx = ", idx)
+        if isinstance(val, num) do
             if max_value == null do
-                global max_value = val
-                global max_index = idx
+                max_value = val
+                max_index = idx
             else
                 if val > max_value do
-                    global max_value = val
-                    global max_index = idx
+                    max_value = val
+                    max_index = idx
                 endif
             endif
         endif
+    next idx
+    print("===========")
+    for pair in enum(arr) do
+        print("pair = ", pair)
+        local idx = pair[0]
+        local val = pair[1]
+
+        print(" idx = ", idx)
+
+        if isinstance(val, num) do
+            if max_value == null do
+                max_value = val
+                max_index = idx
+            else
+                if val > max_value do
+                    max_value = val
+                    max_index = idx
+                endif
+            endif
+        endif
+
     next pair
 
     return [max_index, max_value]

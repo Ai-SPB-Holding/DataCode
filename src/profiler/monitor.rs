@@ -301,7 +301,6 @@ pub struct PerformanceReport {
     pub recommendations: Vec<OptimizationRecommendation>,
 }
 
-/// Глобальный монитор оптимизаций
 lazy_static::lazy_static! {
     pub static ref GLOBAL_OPTIMIZATION_MONITOR: std::sync::Mutex<OptimizationMonitor> = 
         std::sync::Mutex::new(OptimizationMonitor::new());

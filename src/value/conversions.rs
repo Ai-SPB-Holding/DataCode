@@ -63,6 +63,12 @@ pub fn is_date_string(s: &str) -> bool {
         if s.len() == 8 && NaiveDate::parse_from_str(s, "%d.%m.%y").is_ok() {
             return true;
         }
+        // Проверяем формат DD.MM.YYYY HH:MM:SS
+        if s.len() >= 19 {
+            if chrono::NaiveDateTime::parse_from_str(s, "%d.%m.%Y %H:%M:%S").is_ok() {
+                return true;
+            }
+        }
     }
 
     // Проверяем форматы с слешами (точные форматы сначала)
@@ -230,16 +236,19 @@ pub fn try_parse_bool(s: &str) -> Option<bool> {
 }
 
 /// Нормализовать строку валюты (удалить лишние пробелы, привести к стандартному формату)
+#[allow(dead_code)]
 pub fn normalize_currency_string(s: &str) -> String {
     s.trim().to_string()
 }
 
 /// Получить список поддерживаемых валютных символов
+#[allow(dead_code)]
 pub fn get_currency_symbols() -> &'static [char] {
     CURRENCY_SYMBOLS
 }
 
 /// Получить список поддерживаемых кодов валют
+#[allow(dead_code)]
 pub fn get_currency_codes() -> &'static [&'static str] {
     CURRENCY_CODES
 }

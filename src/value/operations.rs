@@ -173,6 +173,20 @@ pub fn add_values(left: &Value, right: &Value) -> Result<Value, String> {
             new_str.push_str(p.to_str().ok_or("Invalid path to string conversion")?);
             Ok(String(new_str))
         }
+        (String(a), Bool(b)) => {
+            let b_str = b.to_string();
+            let mut result = std::string::String::with_capacity(a.len() + b_str.len());
+            result.push_str(a);
+            result.push_str(&b_str);
+            Ok(String(result))
+        }
+        (Bool(b), String(a)) => {
+            let b_str = b.to_string();
+            let mut result = std::string::String::with_capacity(b_str.len() + a.len());
+            result.push_str(&b_str);
+            result.push_str(a);
+            Ok(String(result))
+        }
         _ => Err(format!("Unsupported add operation between {:?} and {:?}", left, right)),
     }
 }
@@ -207,7 +221,29 @@ pub fn multiply_values(left: &Value, right: &Value) -> Result<Value, String> {
                 Err("String multiplication requires non-negative integer".to_string())
             }
         }
-        _ => Err(format!("Unsupported multiply operation between {:?} and {:?}", left, right)),
+        (Bool(b), Number(n)) => {
+            // Bool(true) = 1.0, Bool(false) = 0.0
+            Ok(Number(if *b { *n } else { 0.0 }))
+        }
+        (Number(n), Bool(b)) => {
+            // Bool(true) = 1.0, Bool(false) = 0.0
+            Ok(Number(if *b { *n } else { 0.0 }))
+        }
+        (Array(arr), Number(n)) => {
+            // Умножение массива на число: умножаем каждый элемент на число
+            let result: Result<Vec<Value>, std::string::String> = arr.iter()
+                .map(|val| multiply_values(val, &Number(*n)))
+                .collect();
+            result.map(Array)
+        }
+        (Number(n), Array(arr)) => {
+            // Умножение числа на массив: умножаем каждый элемент на число
+            let result: Result<Vec<Value>, std::string::String> = arr.iter()
+                .map(|val| multiply_values(&Number(*n), val))
+                .collect();
+            result.map(Array)
+        }
+        _ => Err(format!("Cannot multiply {:?} and {:?}", left, right)),
     }
 }
 
@@ -298,6 +334,7 @@ pub fn compare_values(left: &Value, right: &Value) -> Result<std::cmp::Ordering,
 }
 
 /// Логическое И для значений
+#[allow(dead_code)]
 pub fn logical_and(left: &Value, right: &Value) -> Value {
     let left_bool = to_boolean(left);
     let right_bool = to_boolean(right);
@@ -305,6 +342,7 @@ pub fn logical_and(left: &Value, right: &Value) -> Value {
 }
 
 /// Логическое ИЛИ для значений
+#[allow(dead_code)]
 pub fn logical_or(left: &Value, right: &Value) -> Value {
     let left_bool = to_boolean(left);
     let right_bool = to_boolean(right);
@@ -312,11 +350,13 @@ pub fn logical_or(left: &Value, right: &Value) -> Value {
 }
 
 /// Логическое НЕ для значения
+#[allow(dead_code)]
 pub fn logical_not(value: &Value) -> Value {
     Value::Bool(!to_boolean(value))
 }
 
 /// Преобразование значения в булево
+#[allow(dead_code)]
 pub fn to_boolean(value: &Value) -> bool {
     use Value::*;
     match value {
@@ -334,6 +374,7 @@ pub fn to_boolean(value: &Value) -> bool {
 }
 
 /// Унарный минус для значения
+#[allow(dead_code)]
 pub fn negate_value(value: &Value) -> Result<Value, String> {
     match value {
         Value::Number(n) => Ok(Value::Number(-n)),
@@ -343,6 +384,7 @@ pub fn negate_value(value: &Value) -> Result<Value, String> {
 }
 
 /// Получить абсолютное значение
+#[allow(dead_code)]
 pub fn abs_value(value: &Value) -> Result<Value, String> {
     match value {
         Value::Number(n) => Ok(Value::Number(n.abs())),
@@ -351,11 +393,13 @@ pub fn abs_value(value: &Value) -> Result<Value, String> {
 }
 
 /// Проверить, является ли значение "истинным" в логическом контексте
+#[allow(dead_code)]
 pub fn is_truthy(value: &Value) -> bool {
     to_boolean(value)
 }
 
 /// Проверить, является ли значение "ложным" в логическом контексте
+#[allow(dead_code)]
 pub fn is_falsy(value: &Value) -> bool {
     !to_boolean(value)
 }

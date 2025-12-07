@@ -144,6 +144,7 @@ impl FunctionRegistry {
     }
     
     /// Зарегистрировать функцию
+    #[allow(dead_code)]
     pub fn register(&mut self, info: FunctionInfo) {
         // Добавляем в категорию
         self.categories
@@ -189,6 +190,7 @@ impl FunctionRegistry {
     }
     
     /// Получить все функции в категории
+    #[allow(dead_code)]
     pub fn get_functions_by_category(&self, category: &str) -> Vec<&FunctionInfo> {
         if let Some(function_names) = self.categories.get(category) {
             function_names
@@ -201,11 +203,13 @@ impl FunctionRegistry {
     }
     
     /// Получить все категории
+    #[allow(dead_code)]
     pub fn get_categories(&self) -> Vec<&str> {
         self.categories.keys().copied().collect()
     }
     
     /// Получить все функции
+    #[allow(dead_code)]
     pub fn get_all_functions(&self) -> &HashMap<&'static str, FunctionInfo> {
         &self.functions
     }
@@ -306,7 +310,6 @@ impl Default for FunctionRegistry {
     }
 }
 
-/// Глобальный реестр функций с оптимизированным доступом
 lazy_static::lazy_static! {
     pub static ref GLOBAL_FUNCTION_REGISTRY: FunctionRegistry = FunctionRegistry::new();
 }
@@ -322,16 +325,19 @@ pub fn function_exists(name: &str) -> bool {
 }
 
 /// Получить информацию о функции
+#[allow(dead_code)]
 pub fn get_function_info(name: &str) -> Option<&FunctionInfo> {
     GLOBAL_FUNCTION_REGISTRY.get_function(name)
 }
 
 /// Получить все функции по категории
+#[allow(dead_code)]
 pub fn get_functions_by_category(category: &str) -> Vec<&FunctionInfo> {
     GLOBAL_FUNCTION_REGISTRY.get_functions_by_category(category)
 }
 
 /// Получить список всех категорий
+#[allow(dead_code)]
 pub fn get_all_categories() -> Vec<String> {
     GLOBAL_FUNCTION_REGISTRY.get_categories().into_iter().map(|s| s.to_string()).collect()
 }

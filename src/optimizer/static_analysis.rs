@@ -150,13 +150,64 @@ impl StaticAnalyzer {
                 self.analyze_expression(expression, context)?;
                 Ok(DataType::Mixed) // Spread может возвращать различные типы
             }
-            Expr::TryBlock { .. } => {
-                // Try блоки не возвращают значения в выражениях
+            Expr::TryStmt { .. } => {
+                // Try statements не возвращают значения в выражениях
                 Ok(DataType::Null)
             }
             Expr::ThrowStatement { message } => {
                 self.analyze_expression(message, context)?;
                 Ok(DataType::Null) // throw не возвращает значение
+            }
+            // Statements should not appear in expression context
+            Expr::Assignment { target, value } => {
+                self.analyze_expression(target, context)?;
+                self.analyze_expression(value, context)?;
+                Ok(DataType::Null) // Assignment не возвращает значение
+            }
+            Expr::Declaration { .. } => {
+                Ok(DataType::Null) // Declaration не возвращает значение
+            }
+            Expr::ReturnStmt { value } => {
+                if let Some(val) = value {
+                    self.analyze_expression(val, context)?;
+                }
+                Ok(DataType::Null) // Return не возвращает значение в контексте выражения
+            }
+            Expr::PrintStmt { args } => {
+                for arg in args {
+                    self.analyze_expression(arg, context)?;
+                }
+                Ok(DataType::Null) // Print не возвращает значение
+            }
+            Expr::ExprStmt { expr } => {
+                self.analyze_expression(expr, context)
+            }
+            Expr::Block { statements } => {
+                for stmt in statements {
+                    self.analyze_expression(stmt, context)?;
+                }
+                Ok(DataType::Null) // Block не возвращает значение
+            }
+            Expr::IfStmt { condition, then_block, else_block } => {
+                self.analyze_expression(condition, context)?;
+                self.analyze_expression(then_block, context)?;
+                if let Some(else_blk) = else_block {
+                    self.analyze_expression(else_blk, context)?;
+                }
+                Ok(DataType::Null) // If statement не возвращает значение
+            }
+            Expr::ForStmt { iter_expr, body, .. } => {
+                self.analyze_expression(iter_expr, context)?;
+                self.analyze_expression(body, context)?;
+                Ok(DataType::Null) // For statement не возвращает значение
+            }
+            Expr::FunctionDef { params, body, .. } => {
+                // Добавляем параметры в контекст
+                for param in params {
+                    context.known_variables.insert(param.clone(), Value::Null);
+                }
+                self.analyze_expression(body, context)?;
+                Ok(DataType::Null) // Function definition не возвращает значение
             }
             Expr::NamedArg { name: _, value } => {
                 // NamedArg should only appear in function call arguments
@@ -254,7 +305,7 @@ impl StaticAnalyzer {
                     Ok(DataType::Mixed)
                 }
             }
-            "len" | "length" => {
+            "len" => {
                 if arg_types.len() == 1 {
                     Ok(DataType::Integer) // len возвращает целое число
                 } else {

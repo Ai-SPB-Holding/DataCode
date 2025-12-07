@@ -50,7 +50,7 @@ mod object_iteration_tests {
             for key, value in obj do
                 global keys = push(keys, key)
                 global values = push(values, value)
-            next key, value
+            next key
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -93,7 +93,7 @@ mod object_iteration_tests {
         let loop_code = r#"
             for key, value in empty_obj do
                 global count = count + 1
-            next key, value
+            next key
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -113,7 +113,7 @@ mod object_iteration_tests {
             for key, value in obj do
                 global keys_collected = push(keys_collected, key)
                 global values_collected = push(values_collected, value)
-            next key, value
+            next key
         "#;
 
         interp.exec(loop_code).unwrap();
@@ -166,7 +166,7 @@ mod object_iteration_tests {
         let loop_code = r#"
             for key, value in obj do
                 global key_order = push(key_order, key)
-            next key, value
+            next key
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -200,8 +200,8 @@ mod object_iteration_tests {
                 for inner_key, value in inner_obj do
                     global combined_key = outer_key + "." + inner_key
                     global all_values = push(all_values, [combined_key, value])
-                next inner_key, value
-            next outer_key, inner_obj
+                next inner_key
+            next outer_key
         "#;
         
         interp.exec(loop_code).unwrap();
@@ -239,7 +239,7 @@ mod object_iteration_tests {
         let loop_code = r#"
             for key, value in obj do
                 global collected = push(collected, key)
-            next key, value
+            next key
         "#;
 
         interp.exec(loop_code).unwrap();
@@ -266,7 +266,7 @@ mod object_iteration_tests {
         let result = interp.exec(r#"
             for x, y, z in obj do
                 print("This should not work")
-            next x, y, z
+            next x
         "#);
         
         assert!(result.is_err());

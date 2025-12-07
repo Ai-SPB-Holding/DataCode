@@ -315,18 +315,18 @@ mod rust_value_system_tests {
         global path_val = getcwd()
 
         # Проверяем типы с помощью isinstance
-        global is_int_number = isinstance(int_val, 'number')
-        global is_float_number = isinstance(float_val, 'number')
-        global is_str_string = isinstance(str_val, 'string')
-        global is_bool_bool = isinstance(bool_val, 'bool')
-        global is_null_null = isinstance(null_val, 'null')
-        global is_array_array = isinstance(array_val, 'array')
-        global is_currency_currency = isinstance(currency_val, 'currency')
-        global is_path_path = isinstance(path_val, 'path')
+        global is_int_number = isinstance(int_val, num)
+        global is_float_number = isinstance(float_val, float)
+        global is_str_string = isinstance(str_val, str)
+        global is_bool_bool = isinstance(bool_val, bool)
+        global is_null_null = isinstance(null_val, null)
+        global is_array_array = isinstance(array_val, array)
+        global is_currency_currency = isinstance(currency_val, money)
+        global is_path_path = isinstance(path_val, path)
 
         # Проверяем неправильные типы
-        global is_int_string = isinstance(int_val, 'string')
-        global is_str_number = isinstance(str_val, 'number')
+        global is_int_string = isinstance(int_val, str)
+        global is_str_number = isinstance(str_val, num)
         "#;
 
         let result = interp.exec(code);

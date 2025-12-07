@@ -1,0 +1,329 @@
+# Скрипт загрузки всех данных из model_data и создания SQLite базы данных
+# Использование: datacode load_model_data.dc --build_model
+
+print("============================================================")
+print("Загрузка данных из model_data")
+print("============================================================")
+print()
+
+# Базовый путь к данным
+global base_path = getcwd() / "model_data"
+global docs_path = base_path / "docs"
+
+print("📂 Загрузка справочников...")
+# Загружаем справочники
+global product_catalog = read_file(docs_path / "product_catalog.csv")
+global regions = read_file(docs_path / "regions.csv")
+global employees = read_file(docs_path / "employees.csv")
+
+print("  ✓ Загружено продуктов: ", len(product_catalog))
+print("  ✓ Загружено регионов: ", len(regions))
+print("  ✓ Загружено сотрудников: ", len(employees))
+print()
+
+# Функция для объединения таблиц
+global function merge_tables(tables) do
+    if len(tables) == 0 do
+        return null
+    endif
+    
+    # Получаем заголовки из первой таблицы
+    local headers = table_headers(tables[0])
+    
+    # Собираем все строки из всех таблиц
+    local all_rows = []
+    
+    for table in tables do
+        # Итерируемся по строкам таблицы (каждая строка - это массив)
+        for row in table do
+            all_rows = push(all_rows, row)
+        next row
+    next table
+    
+    # Создаем объединенную таблицу
+    return table_create(all_rows, headers)
+endfunction
+
+# Функция для форматирования месяца (добавляет ведущий ноль)
+global function format_month(month) do
+    if month < 10 do
+        return "0" + month
+    else
+        return "" + month
+    endif
+endfunction
+
+# Функция для проверки наличия файла в списке
+global function file_exists(files, filename) do
+    for file in files do
+        if file == filename do
+            return true
+        endif
+    next file
+    return false
+endfunction
+
+print("📊 Загрузка ежемесячных данных...")
+# Получаем список годов из директории model_data (теперь list_files() возвращает и директории)
+global year_dirs = list_files(base_path)
+print("  Найдено элементов в model_data: ", len(year_dirs))
+
+# Собираем все ежемесячные данные
+global all_sales_tables = []
+global all_inventory_tables = []
+global all_refunds_tables = []
+global all_marketing_tables = []
+
+# Обрабатываем каждую директорию года
+for year_dir in year_dirs do
+    # Пропускаем файлы и служебные директории
+    if year_dir != "docs" and year_dir != "__pycache__" and year_dir != "generate_model_data.py" and not contains(year_dir, ".") do
+        local year_str = year_dir
+        local year_path = base_path / year_str
+        
+        # Получаем список месяцев в году
+        try
+            local month_dirs = list_files(year_path)
+            
+            # Обрабатываем каждую директорию месяца
+            for month_dir_name in month_dirs do
+                # Пропускаем квартальные директории и файлы
+                if not contains(month_dir_name, "quarter_") and not contains(month_dir_name, ".") do
+                    # month_dir_name должно быть "01", "02", ..., "12"
+                    local month_str = month_dir_name
+                    local month_dir = year_path / month_str
+                    
+                    # Получаем список файлов в директории месяца
+                    try
+                        local files = list_files(month_dir)
+                        
+                        # Загружаем sales
+                        local sales_file = "sales_" + year_str + "_" + month_str + ".csv"
+                        if file_exists(files, sales_file) do
+                            try
+                                local sales_data = read_file(month_dir / sales_file)
+                                all_sales_tables = push(all_sales_tables, sales_data)
+                            catch e
+                                print("  ⚠️  Ошибка загрузки ", sales_file, ": ", e)
+                            endtry
+                        endif
+                        
+                        # Загружаем inventory
+                        local inventory_file = "inventory_" + year_str + "_" + month_str + ".csv"
+                        if file_exists(files, inventory_file) do
+                            try
+                                local inventory_data = read_file(month_dir / inventory_file)
+                                all_inventory_tables = push(all_inventory_tables, inventory_data)
+                            catch e
+                                print("  ⚠️  Ошибка загрузки ", inventory_file)
+                            endtry
+                        endif
+                        
+                        # Загружаем refunds
+                        local refunds_file = "refunds_" + year_str + "_" + month_str + ".csv"
+                        if file_exists(files, refunds_file) do
+                            try
+                                local refunds_data = read_file(month_dir / refunds_file)
+                                all_refunds_tables = push(all_refunds_tables, refunds_data)
+                            catch e
+                                print("  ⚠️  Ошибка загрузки ", refunds_file)
+                            endtry
+                        endif
+                        
+                        # Загружаем marketing_spend
+                        local marketing_file = "marketing_spend_" + year_str + "_" + month_str + ".csv"
+                        if file_exists(files, marketing_file) do
+                            try
+                                local marketing_data = read_file(month_dir / marketing_file)
+                                all_marketing_tables = push(all_marketing_tables, marketing_data)
+                            catch e
+                                print("  ⚠️  Ошибка загрузки ", marketing_file)
+                            endtry
+                        endif
+                    catch e
+                        # Директория не существует или ошибка доступа - пропускаем
+                        # ВАЖНО: Раскомментируйте следующую строку для отладки проблем с загрузкой файлов:
+                        # print("  ⚠️  Пропущена директория ", year_str, "/", month_str, ": ", e)
+                    endtry
+                endif
+            next month_dir_name
+        catch e
+            # Ошибка при получении списка месяцев для года
+            # print("  ⚠️  Пропущен год ", year_str, ": ", e)
+        endtry
+    endif
+next year_dir
+
+print("  ✓ Загружено файлов sales: ", len(all_sales_tables))
+print("  ✓ Загружено файлов inventory: ", len(all_inventory_tables))
+print("  ✓ Загружено файлов refunds: ", len(all_refunds_tables))
+print("  ✓ Загружено файлов marketing: ", len(all_marketing_tables))
+print()
+
+# Объединяем все ежемесячные таблицы
+print("🔗 Объединение ежемесячных данных...")
+global sales_all = merge_tables(all_sales_tables)
+global inventory_all = merge_tables(all_inventory_tables)
+global refunds_all = merge_tables(all_refunds_tables)
+global marketing_spend_all = merge_tables(all_marketing_tables)
+
+if sales_all != null do
+    print("  ✓ Объединено продаж: ", len(sales_all))
+endif
+if inventory_all != null do
+    print("  ✓ Объединено инвентаря: ", len(inventory_all))
+endif
+if refunds_all != null do
+    print("  ✓ Объединено возвратов: ", len(refunds_all))
+endif
+if marketing_spend_all != null do
+    print("  ✓ Объединено маркетинга: ", len(marketing_spend_all))
+endif
+print()
+
+# Загружаем квартальные данные
+print("📈 Загрузка квартальных агрегатов...")
+global all_financial_summary_tables = []
+global all_regional_summary_tables = []
+global all_product_summary_tables = []
+global all_employee_performance_tables = []
+
+# Обрабатываем каждую директорию года для квартальных данных
+for year_dir in year_dirs do
+    # Пропускаем файлы и служебные директории
+    if year_dir != "docs" and year_dir != "__pycache__" and year_dir != "generate_model_data.py" and not contains(year_dir, ".") do
+        local year_str = year_dir
+        local year_path = base_path / year_str
+        
+        # Получаем список месяцев в году
+        try
+            local month_dirs = list_files(year_path)
+            
+            # Ищем квартальные директории
+            for month_dir_name in month_dirs do
+                # Проверяем, содержит ли директория квартальные данные
+                if contains(month_dir_name, "quarter_") do
+                    # Это квартальная директория (например, quarter_2023_Q1)
+                    local quarter_dir_path = year_path / month_dir_name
+                    
+                    # Получаем список файлов в квартальной директории
+                    try
+                        local quarter_files = list_files(quarter_dir_path)
+                        
+                        # Обрабатываем каждый файл в квартальной директории
+                        for quarter_file in quarter_files do
+                            # Определяем тип файла по имени и загружаем
+                            if contains(quarter_file, "financial_summary_") do
+                                try
+                                    local financial_data = read_file(quarter_dir_path / quarter_file)
+                                    all_financial_summary_tables = push(all_financial_summary_tables, financial_data)
+                                catch e
+                                    print("  ⚠️  Ошибка загрузки ", quarter_file)
+                                endtry
+                            endif
+                            
+                            if contains(quarter_file, "regional_summary_") do
+                                try
+                                    local regional_data = read_file(quarter_dir_path / quarter_file)
+                                    all_regional_summary_tables = push(all_regional_summary_tables, regional_data)
+                                catch e
+                                    print("  ⚠️  Ошибка загрузки ", quarter_file)
+                                endtry
+                            endif
+                            
+                            if contains(quarter_file, "product_summary_") do
+                                try
+                                    local product_data = read_file(quarter_dir_path / quarter_file)
+                                    all_product_summary_tables = push(all_product_summary_tables, product_data)
+                                catch e
+                                    print("  ⚠️  Ошибка загрузки ", quarter_file)
+                                endtry
+                            endif
+                            
+                            if contains(quarter_file, "employee_performance_") do
+                                try
+                                    local employee_data = read_file(quarter_dir_path / quarter_file)
+                                    all_employee_performance_tables = push(all_employee_performance_tables, employee_data)
+                                catch e
+                                    print("  ⚠️  Ошибка загрузки ", quarter_file)
+                                endtry
+                            endif
+                        next quarter_file
+                    catch e
+                        # Ошибка при получении списка файлов в квартальной директории
+                        # print("  ⚠️  Ошибка доступа к квартальной директории: ", e)
+                    endtry
+                endif
+            next month_dir_name
+        catch e
+            # Ошибка при получении списка месяцев для года
+            # print("  ⚠️  Пропущен год ", year_str, ": ", e)
+        endtry
+    endif
+next year_dir
+
+print("  ✓ Загружено файлов financial_summary: ", len(all_financial_summary_tables))
+print("  ✓ Загружено файлов regional_summary: ", len(all_regional_summary_tables))
+print("  ✓ Загружено файлов product_summary: ", len(all_product_summary_tables))
+print("  ✓ Загружено файлов employee_performance: ", len(all_employee_performance_tables))
+print()
+
+# Объединяем квартальные таблицы
+print("🔗 Объединение квартальных данных...")
+global financial_summary_all = merge_tables(all_financial_summary_tables)
+global regional_summary_all = merge_tables(all_regional_summary_tables)
+global product_summary_all = merge_tables(all_product_summary_tables)
+global employee_performance_all = merge_tables(all_employee_performance_tables)
+
+if financial_summary_all != null do
+    print("  ✓ Объединено финансовых сводов: ", len(financial_summary_all))
+endif
+if regional_summary_all != null do
+    print("  ✓ Объединено региональных сводов: ", len(regional_summary_all))
+endif
+if product_summary_all != null do
+    print("  ✓ Объединено продуктовых сводов: ", len(product_summary_all))
+endif
+if employee_performance_all != null do
+    print("  ✓ Объединено отчетов по сотрудникам: ", len(employee_performance_all))
+endif
+print()
+
+print("============================================================")
+print("✅ Загрузка данных завершена!")
+print("============================================================")
+print()
+print("📊 Итоговая статистика:")
+print("  • Справочники:")
+print("    - product_catalog: ", len(product_catalog), " строк")
+print("    - regions: ", len(regions), " строк")
+print("    - employees: ", len(employees), " строк")
+print("  • Ежемесячные данные:")
+if sales_all != null do
+    print("    - sales_all: ", len(sales_all), " строк")
+endif
+if inventory_all != null do
+    print("    - inventory_all: ", len(inventory_all), " строк")
+endif
+if refunds_all != null do
+    print("    - refunds_all: ", len(refunds_all), " строк")
+endif
+if marketing_spend_all != null do
+    print("    - marketing_spend_all: ", len(marketing_spend_all), " строк")
+endif
+print("  • Квартальные агрегаты:")
+if financial_summary_all != null do
+    print("    - financial_summary_all: ", len(financial_summary_all), " строк")
+endif
+if regional_summary_all != null do
+    print("    - regional_summary_all: ", len(regional_summary_all), " строк")
+endif
+if product_summary_all != null do
+    print("    - product_summary_all: ", len(product_summary_all), " строк")
+endif
+if employee_performance_all != null do
+    print("    - employee_performance_all: ", len(employee_performance_all), " строк")
+endif
+print()
+print("💡 Для экспорта в SQLite используйте: datacode load_model_data.dc --build_model")
+print()

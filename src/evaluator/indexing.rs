@@ -28,7 +28,15 @@ impl<'a> IndexingHandler<'a> {
             },
             (Value::Table(table), Value::String(column_name)) => {
                 let table_borrowed = table.borrow();
-                self.index_table_column(&*table_borrowed, column_name)
+                // Специальная обработка для 'rows'
+                if column_name == "rows" {
+                    let rows: Vec<Value> = table_borrowed.rows.iter()
+                        .map(|row| Value::Array(row.clone()))
+                        .collect();
+                    Ok(Value::Array(rows))
+                } else {
+                    self.index_table_column(&*table_borrowed, column_name)
+                }
             },
             _ => Err(DataCodeError::type_error("indexable type", "other", self.evaluator.line())),
         }
@@ -52,7 +60,7 @@ impl<'a> IndexingHandler<'a> {
         
         if actual_idx < 0 || actual_idx >= len {
             Err(DataCodeError::runtime_error(
-                &format!("Array index {} out of bounds (length: {})", idx, len),
+                &format!("Array index {} out of bounds (len: {})", idx, len),
                 self.evaluator.line()
             ))
         } else {
@@ -79,7 +87,7 @@ impl<'a> IndexingHandler<'a> {
         
         if actual_idx < 0 || actual_idx >= len {
             Err(DataCodeError::runtime_error(
-                &format!("String index {} out of bounds (length: {})", idx, len),
+                &format!("String index {} out of bounds (len: {})", idx, len),
                 self.evaluator.line()
             ))
         } else {
@@ -178,7 +186,18 @@ impl<'a> MemberAccessHandler<'a> {
     /// Доступ к свойствам таблицы
     fn access_table_member(&self, table: &crate::value::Table, member: &str) -> Result<Value> {
         match member {
-            "rows" => Ok(Value::Number(table.rows.len() as f64)),
+            "rows" => {
+                // Возвращаем массив строк (каждая строка - массив значений)
+                let rows: Vec<Value> = table.rows.iter()
+                    .map(|row| Value::Array(row.clone()))
+                    .collect();
+                Ok(Value::Object({
+                    let mut obj = std::collections::HashMap::new();
+                    obj.insert("rows".to_string(), Value::Array(rows));
+                    obj.insert("len".to_string(), Value::Number(table.rows.len() as f64));
+                    obj
+                }))
+            }
             "columns" => Ok(Value::Number(table.columns.len() as f64)),
             "column_names" => {
                 let names: Vec<Value> = table.column_names.iter()
@@ -204,7 +223,7 @@ impl<'a> MemberAccessHandler<'a> {
     /// Доступ к свойствам массива
     fn access_array_member(&self, arr: &[Value], member: &str) -> Result<Value> {
         match member {
-            "length" | "len" => Ok(Value::Number(arr.len() as f64)),
+            "len" => Ok(Value::Number(arr.len() as f64)),
             "first" => {
                 if arr.is_empty() {
                     Ok(Value::Null)
@@ -229,7 +248,7 @@ impl<'a> MemberAccessHandler<'a> {
     /// Доступ к свойствам строки
     fn access_string_member(&self, s: &str, member: &str) -> Result<Value> {
         match member {
-            "length" | "len" => Ok(Value::Number(s.chars().count() as f64)),
+            "len" => Ok(Value::Number(s.chars().count() as f64)),
             "upper" => Ok(Value::String(s.to_uppercase())),
             "lower" => Ok(Value::String(s.to_lowercase())),
             "trim" => Ok(Value::String(s.trim().to_string())),
@@ -242,11 +261,14 @@ impl<'a> MemberAccessHandler<'a> {
 }
 
 /// Трейт для индексируемых типов
+#[allow(dead_code)]
 pub trait Indexable {
     /// Получить элемент по индексу
+    #[allow(dead_code)]
     fn get_by_index(&self, index: &Value) -> Result<Value>;
     
     /// Проверить, поддерживает ли тип индексацию
+    #[allow(dead_code)]
     fn supports_indexing(&self) -> bool;
 }
 
@@ -274,11 +296,14 @@ impl Indexable for Value {
 }
 
 /// Трейт для типов с членами
+#[allow(dead_code)]
 pub trait HasMembers {
     /// Получить член по имени
+    #[allow(dead_code)]
     fn get_member(&self, member: &str) -> Result<Value>;
     
     /// Получить список всех членов
+    #[allow(dead_code)]
     fn get_member_names(&self) -> Vec<String>;
 }
 
@@ -292,7 +317,7 @@ impl HasMembers for Value {
             }
             Value::Array(arr) => {
                 match member {
-                    "length" | "len" => Ok(Value::Number(arr.len() as f64)),
+                    "len" => Ok(Value::Number(arr.len() as f64)),
                     _ => Err(DataCodeError::runtime_error("Unknown array member", 0)),
                 }
             }
@@ -303,8 +328,8 @@ impl HasMembers for Value {
     fn get_member_names(&self) -> Vec<String> {
         match self {
             Value::Object(obj) => obj.keys().cloned().collect(),
-            Value::Array(_) => vec!["length".to_string(), "len".to_string()],
-            Value::String(_) => vec!["length".to_string(), "len".to_string(), "upper".to_string(), "lower".to_string()],
+            Value::Array(_) => vec!["len".to_string()],
+            Value::String(_) => vec!["len".to_string(), "upper".to_string(), "lower".to_string()],
             _ => vec![],
         }
     }
@@ -382,7 +407,7 @@ mod tests {
         
         let arr = vec![Value::Number(1.0), Value::Number(2.0), Value::Number(3.0)];
         
-        let result = handler.access_array_member(&arr, "length").unwrap();
+        let result = handler.access_array_member(&arr, "len").unwrap();
         assert_eq!(result, Value::Number(3.0));
         
         let result = handler.access_array_member(&arr, "first").unwrap();
@@ -397,7 +422,7 @@ mod tests {
         let evaluator = create_test_evaluator();
         let handler = MemberAccessHandler::new(&evaluator);
         
-        let result = handler.access_string_member("Hello", "length").unwrap();
+        let result = handler.access_string_member("Hello", "len").unwrap();
         assert_eq!(result, Value::Number(5.0));
         
         let result = handler.access_string_member("Hello", "upper").unwrap();
@@ -423,9 +448,9 @@ mod tests {
     fn test_has_members_trait() {
         let arr = Value::Array(vec![Value::Number(1.0)]);
         let members = arr.get_member_names();
-        assert!(members.contains(&"length".to_string()));
+        assert!(members.contains(&"len".to_string()));
         
-        let result = arr.get_member("length").unwrap();
+        let result = arr.get_member("len").unwrap();
         assert_eq!(result, Value::Number(1.0));
     }
 }

@@ -4,6 +4,7 @@ pub mod memoization;
 
 pub use memoization::{
     OperationCache,
+    FunctionCache,
     TableId,
     FilterExpr,
     CacheEntry,

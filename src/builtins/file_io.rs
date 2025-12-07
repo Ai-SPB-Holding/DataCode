@@ -28,12 +28,14 @@ impl OptimizedCsvReader {
     }
     
     /// Установить размер буфера
+    #[allow(dead_code)]
     pub fn with_buffer_size(mut self, size: usize) -> Self {
         self._buffer_size = size;
         self
     }
     
     /// Установить размер чанка
+    #[allow(dead_code)]
     pub fn with_chunk_size(mut self, size: usize) -> Self {
         self._chunk_size = size;
         self
@@ -190,6 +192,7 @@ impl OptimizedExcelReader {
         Self
     }
 
+    #[allow(dead_code)]
     pub fn read_excel_optimized(&self, _path: &Path) -> Result<Table> {
         Err(DataCodeError::runtime_error("Excel support temporarily disabled", 0))
     }
@@ -202,6 +205,7 @@ impl Default for OptimizedExcelReader {
 }
 
 /// Кэш для файлов (упрощенная версия без потокобезопасности)
+#[allow(dead_code)]
 pub struct FileCache {
     cache: Mutex<HashMap<PathBuf, Table>>,
     max_size: usize,
@@ -209,6 +213,7 @@ pub struct FileCache {
 
 impl FileCache {
     /// Создать новый кэш файлов
+    #[allow(dead_code)]
     pub fn new(max_size: usize) -> Self {
         Self {
             cache: Mutex::new(HashMap::new()),
@@ -217,12 +222,14 @@ impl FileCache {
     }
 
     /// Получить таблицу из кэша
+    #[allow(dead_code)]
     pub fn get(&self, path: &Path) -> Option<Table> {
         let cache = self.cache.lock().unwrap();
         cache.get(path).cloned()
     }
 
     /// Сохранить таблицу в кэш
+    #[allow(dead_code)]
     pub fn insert(&self, path: PathBuf, table: Table) {
         let mut cache = self.cache.lock().unwrap();
 
@@ -238,12 +245,14 @@ impl FileCache {
     }
     
     /// Очистить кэш
+    #[allow(dead_code)]
     pub fn clear(&self) {
         let mut cache = self.cache.lock().unwrap();
         cache.clear();
     }
     
     /// Получить размер кэша
+    #[allow(dead_code)]
     pub fn size(&self) -> usize {
         let cache = self.cache.lock().unwrap();
         cache.len()
@@ -256,6 +265,7 @@ impl FileCache {
 // }
 
 /// Высокоуровневая функция для оптимизированного чтения файлов
+#[allow(dead_code)]
 pub fn read_file_optimized(path: &Path) -> Result<Table> {
     // Кэш временно отключен
 

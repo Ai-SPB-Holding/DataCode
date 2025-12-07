@@ -9,13 +9,13 @@ print()
 print('1️⃣ Основной пример: for i, data in enum(array)')
 print('===============================================')
 
-global customer_numbers = [1001, 1002, 'invalid', 1004, '1005x']
+global customer_numbers = [1001, 1002, 'invalid', 1004.56, '1005x']
 print('Данные CustomerNo:', customer_numbers)
 print()
 
 print('Проверка типов с помощью for i, data in enum():')
 for i, data in enum(customer_numbers) do
-    if not isinstance(data, 'number') do
+    if not isinstance(data, num) do
         print('Строка', i, ': Некорректный CustomerNo =', data)
     else
         print('Строка', i, ': Корректный CustomerNo =', data)
@@ -67,16 +67,16 @@ print('Смешанные данные:', mixed_data)
 
 print('Анализ типов по позициям:')
 for position, value in enum(mixed_data) do
-    if isinstance(value, 'number') do
+    if isinstance(value, int) do
         print('Позиция', position, ': Число =', value)
     else
-        if isinstance(value, 'string') do
+        if isinstance(value, str) do
             print('Позиция', position, ': Строка =', value)
         else
-            if isinstance(value, 'bool') do
+            if isinstance(value, bool) do
                 print('Позиция', position, ': Булево =', value)
             else
-                if isinstance(value, 'null') do
+                if isinstance(value, null) do
                     print('Позиция', position, ': Null значение')
                 else
                     print('Позиция', position, ': Неизвестный тип =', value)
@@ -147,7 +147,7 @@ print('Попытка распаковки в две переменные:')
 global processed_count = 0
 
 for item in wrong_data do
-    global item_length = length(item)
+    global item_length = len(item)
     
     if item_length == 2 do
         # Можем безопасно распаковать
@@ -160,7 +160,7 @@ for item in wrong_data do
     endif
 next item
 
-print('Обработано элементов:', processed_count, 'из', length(wrong_data))
+print('Обработано элементов:', processed_count, 'из', len(wrong_data))
 print()
 
 # 8. Вложенные циклы с множественными переменными
@@ -177,11 +177,11 @@ print('Обход матрицы:')
 
 for row_idx, row in enum(matrix) do
     print('Строка', row_idx, ':')
-    
     for col_idx, pair in enum(row) do
-        for number, letter in [pair] do
-            print('  [', row_idx, ',', col_idx, '] =', number, ',', letter)
-        next number
+    print(pair)
+        for number_row, letter in pair do
+            print('  [', row_idx, ',', col_idx, '] =', number_row, ',', letter)
+        next number_row
     next col_idx
 next row_idx
 print()
@@ -207,7 +207,7 @@ for row_num, row in enum(csv_data) do
         print('---')
     else
         # Данные
-        for name, age, city in [row] do
+        for name, age, city in row do
             print('Запись', row_num, ':', name, '(', age, 'лет) из', city)
         next name
     endif
