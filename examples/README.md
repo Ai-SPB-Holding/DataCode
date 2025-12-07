@@ -1,262 +1,262 @@
 # DataCode Examples 📚
 
-Этот каталог содержит профессионально организованные примеры программ на языке DataCode, демонстрирующие все возможности языка от базовых концепций до продвинутых техник.
+This directory contains professionally organized example programs in DataCode language, demonstrating all language capabilities from basic concepts to advanced techniques.
 
-> **DataCode** - это простой интерактивный язык программирования для быстрой обработки данных с поддержкой табличных функций, пользовательских функций, циклов и условных конструкций.
+> **DataCode** - a simple interactive programming language for fast data processing with support for table functions, user-defined functions, loops, and conditional constructs.
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
 ```bash
-# Запуск простейшего примера
-cargo run examples/01-основы/simple.dc
+# Run simplest example
+cargo run examples/01-basics/simple.dc
 
-# Расширенный Hello World
-cargo run examples/01-основы/hello.dc
+# Extended Hello World
+cargo run examples/01-basics/hello.dc
 
-# Интерактивный режим
+# Interactive mode
 cargo run
 DataCode> print('Hello, DataCode!')
 ```
 
-## 📁 Организация примеров
+## 📁 Example Organization
 
-Примеры организованы в тематические разделы для удобного изучения:
+Examples are organized into thematic sections for convenient learning:
 
-### 🚀 [01-основы](01-основы/) - Основы языка
-**Начните изучение здесь!** Базовые концепции и простейшие примеры.
+### 🚀 [01-basics](01-basics/) - Language Basics
+**Start learning here!** Basic concepts and simplest examples.
 
-- **`simple.dc`** - Простейший пример с переменными и арифметикой
-- **`hello.dc`** - Расширенный Hello World с основными возможностями
+- **`simple.dc`** - Simplest example with variables and arithmetic
+- **`hello.dc`** - Extended Hello World with main capabilities
 
-**[📖 Подробная документация](01-основы/README.md)**
+**[📖 Detailed Documentation](01-basics/README.md)**
 
-### 🔧 [02-синтаксис-языка](02-синтаксис-языка/) - Синтаксические конструкции
-Изучите основные конструкции языка: функции, условия, массивы.
+### 🔧 [02-language-syntax](02-language-syntax/) - Syntax Constructs
+Learn main language constructs: functions, conditions, arrays.
 
-- **`functions.dc`** - Пользовательские функции с параметрами
-- **`conditionals.dc`** - Условные конструкции (if/else/endif)
-- **`arrays_example.dc`** - Работа с массивами и индексирование
-- **`complex_expressions.dc`** - Сложные выражения и операторы
-- **`loops.dc`** - Базовые вычисления и операции
+- **`functions.dc`** - User-defined functions with parameters
+- **`conditionals.dc`** - Conditional constructs (if/else/endif)
+- **`arrays_example.dc`** - Working with arrays and indexing
+- **`complex_expressions.dc`** - Complex expressions and operators
+- **`loops.dc`** - Basic calculations and operations
 
-**[📖 Подробная документация](02-синтаксис-языка/README.md)**
+**[📖 Detailed Documentation](02-language-syntax/README.md)**
 
-### 🎯 [03-продвинутые-возможности](03-продвинутые-возможности/) - Продвинутые техники
-Рекурсия, обработка ошибок и функциональное программирование.
+### 🎯 [03-advanced-features](03-advanced-features/) - Advanced Techniques
+Recursion, error handling, and functional programming.
 
-- **`recursion.dc`** - Рекурсивные функции (интенсивные вычисления)
-- **`simple_recursion.dc`** - Простые примеры рекурсии
-- **`error_handling.dc`** - Обработка ошибок и валидация
-- **`functional_methods_demo.dc`** - Функциональные методы
+- **`recursion.dc`** - Recursive functions (intensive calculations)
+- **`simple_recursion.dc`** - Simple recursion examples
+- **`error_handling.dc`** - Error handling and validation
+- **`functional_methods_demo.dc`** - Functional methods
 
-**[📖 Подробная документация](03-продвинутые-возможности/README.md)**
+**[📖 Detailed Documentation](03-advanced-features/README.md)**
 
-### 📊 [04-обработка-данных](04-обработка-данных/) - Работа с данными
-Мощные возможности для обработки табличных данных и CSV файлов.
+### 📊 [04-data-processing](04-data-processing/) - Data Processing
+Powerful capabilities for processing tabular data and CSV files.
 
-- **`table_demo.dc`** - Комплексная работа с таблицами
-- **`data_filtering_demo.dc`** - Фильтрация данных
-- **`filter_demo_basic.dc`** - Базовая фильтрация
-- **`filter_demo_simple.dc`** - Простая фильтрация
-- **`enum_demo.dc`** - Перечисление с индексами
-- **`enum_table_example.dc`** - Перечисление табличных данных
+- **`table_demo.dc`** - Comprehensive table work
+- **`data_filtering_demo.dc`** - Data filtering
+- **`filter_demo_basic.dc`** - Basic filtering
+- **`filter_demo_simple.dc`** - Simple filtering
+- **`enum_demo.dc`** - Enumeration with indices
+- **`enum_table_example.dc`** - Tabular data enumeration
 
-**Файлы данных**: `sample_data.csv`, `clean_data.csv`, `simple.csv`
+**Data files**: `sample_data.csv`, `clean_data.csv`, `simple.csv`
 
-**[📖 Подробная документация](04-обработка-данных/README.md)**
+**[📖 Detailed Documentation](04-data-processing/README.md)**
 
-### 🔢 [05-типы-данных](05-типы-данных/) - Система типов
-Изучите типы данных, проверку типов и преобразования.
+### 🔢 [05-data-types](05-data-types/) - Type System
+Learn about data types, type checking, and conversions.
 
-- **`type_checking_demo.dc`** - Функция isinstance() и проверка типов
-- **`type_conversion_guide.dc`** - Преобразование типов
-- **`multiple_variables_demo.dc`** - Работа с множественными переменными
-- **`simple_multiple_vars_demo.dc`** - Простые множественные переменные
+- **`type_checking_demo.dc`** - isinstance() function and type checking
+- **`type_conversion_guide.dc`** - Type conversion
+- **`multiple_variables_demo.dc`** - Working with multiple variables
+- **`simple_multiple_vars_demo.dc`** - Simple multiple variables
 
-**[📖 Подробная документация](05-типы-данных/README.md)**
+**[📖 Detailed Documentation](05-data-types/README.md)**
 
-### 🛠️ [06-инструменты-разработки](06-инструменты-разработки/) - Инструменты разработчика
-Отладка, тестирование производительности и интерактивная разработка.
+### 🛠️ [06-developer-tools](06-developer-tools/) - Developer Tools
+Debugging, performance testing, and interactive development.
 
-- **`debug_mode_test.dc`** - Режим отладки и диагностика
-- **`interactive_demo.dc`** - Примеры для REPL режима
-- **`stress_benchmark.dc`** - Тестирование производительности ⚠️
+- **`debug_mode_test.dc`** - Debug mode and diagnostics
+- **`interactive_demo.dc`** - Examples for REPL mode
+- **`stress_benchmark.dc`** - Performance testing ⚠️
 
-**[📖 Подробная документация](06-инструменты-разработки/README.md)**
+**[📖 Detailed Documentation](06-developer-tools/README.md)**
 
-### 🎪 [07-демонстрации](07-демонстрации/) - Комплексные демонстрации
-Полные демонстрации всех возможностей языка.
+### 🎪 [07-demonstrations](07-demonstrations/) - Comprehensive Demonstrations
+Full demonstrations of all language capabilities.
 
-- **`showcase.dc`** - Полная демонстрация всех возможностей DataCode
+- **`showcase.dc`** - Complete demonstration of all DataCode capabilities
 
-**[📖 Подробная документация](07-демонстрации/README.md)**
+**[📖 Detailed Documentation](07-demonstrations/README.md)**
 
-## 🎯 Как запускать примеры
+## 🎯 How to Run Examples
 
-### Выполнение файлов
+### File Execution
 ```bash
-# Основы
-cargo run examples/01-основы/simple.dc
-cargo run examples/01-основы/hello.dc
+# Basics
+cargo run examples/01-basics/simple.dc
+cargo run examples/01-basics/hello.dc
 
-# Синтаксис языка
-cargo run examples/02-синтаксис-языка/functions.dc
-cargo run examples/02-синтаксис-языка/conditionals.dc
+# Language syntax
+cargo run examples/02-language-syntax/functions.dc
+cargo run examples/02-language-syntax/conditionals.dc
 
-# Обработка данных
-cargo run examples/04-обработка-данных/table_demo.dc
+# Data processing
+cargo run examples/04-data-processing/table_demo.dc
 
-# Полная демонстрация
-cargo run examples/07-демонстрации/showcase.dc
+# Full demonstration
+cargo run examples/07-demonstrations/showcase.dc
 
-# Или если DataCode установлен как системная команда
-datacode examples/01-основы/hello.dc
-datacode examples/04-обработка-данных/table_demo.dc
+# Or if DataCode is installed as system command
+datacode examples/01-basics/hello.dc
+datacode examples/04-data-processing/table_demo.dc
 ```
 
-### Интерактивный режим (REPL)
+### Interactive Mode (REPL)
 ```bash
-# Запуск интерактивного режима
+# Start interactive mode
 cargo run
 
-# В REPL можно вводить команды построчно:
+# In REPL you can enter commands line by line:
 DataCode> global x = 42
 DataCode> print(x)
 DataCode> global function square(n) do return n * n endfunction
 DataCode> print(square(5))
 ```
 
-## Возможности языка
+## Language Capabilities
 
-### ✅ Реализованные возможности
+### ✅ Implemented Features
 
-**Основные конструкции:**
-- **Переменные**: `global var = value`, `local var = value`
-- **Типы данных**: числа, строки, булевы значения, массивы, таблицы, пути
-- **Арифметические операции**: `+`, `-`, `*`, `/`
-- **Логические операции**: `and`, `or`, `not`
-- **Операторы сравнения**: `>`, `<`, `>=`, `<=`, `==`, `!=`
-- **Условные конструкции**: `if condition do ... else ... endif`
-- **Пользовательские функции**: `global/local function name(params) do ... endfunction`
-- **Циклы**: `for item in array do ... next item`
-- **Рекурсия**: функции могут вызывать сами себя
-- **Комментарии**: `# Это комментарий`
+**Main Constructs:**
+- **Variables**: `global var = value`, `local var = value`
+- **Data types**: numbers, strings, booleans, arrays, tables, paths
+- **Arithmetic operations**: `+`, `-`, `*`, `/`
+- **Logical operations**: `and`, `or`, `not`
+- **Comparison operators**: `>`, `<`, `>=`, `<=`, `==`, `!=`
+- **Conditional constructs**: `if condition do ... else ... endif`
+- **User-defined functions**: `global/local function name(params) do ... endfunction`
+- **Loops**: `for item in array do ... next item`
+- **Recursion**: functions can call themselves
+- **Comments**: `# This is a comment`
 
-**Встроенные функции (40+ функций):**
-- **Базовые**: `print()`, `now()`
-- **Математические**: `abs()`, `sqrt()`, `pow()`, `min()`, `max()`, `round()`
-- **Строковые**: `length()`, `upper()`, `lower()`, `trim()`, `split()`, `join()`, `contains()`
-- **Массивы**: `push()`, `pop()`, `unique()`, `reverse()`, `sort()`, `sum()`, `average()`, `count()`
-- **Файловые**: `getcwd()`, `path()`, `read_file()` (поддержка .txt, .csv, .xlsx)
-- **Табличные**: `table()`, `show_table()`, `table_info()`, `table_head()`, `table_tail()`, `table_select()`, `table_sort()`
+**Built-in Functions (40+ functions):**
+- **Basic**: `print()`, `now()`
+- **Mathematical**: `abs()`, `sqrt()`, `pow()`, `min()`, `max()`, `round()`
+- **String**: `length()`, `upper()`, `lower()`, `trim()`, `split()`, `join()`, `contains()`
+- **Arrays**: `push()`, `pop()`, `unique()`, `reverse()`, `sort()`, `sum()`, `average()`, `count()`
+- **File**: `getcwd()`, `path()`, `read_file()` (supports .txt, .csv, .xlsx)
+- **Table**: `table()`, `show_table()`, `table_info()`, `table_head()`, `table_tail()`, `table_select()`, `table_sort()`
 
-**Работа с данными:**
-- **CSV/Excel файлы**: автоматическое создание таблиц с типизацией
-- **Гибкая типизация**: автоматическое определение типов с предупреждениями
-- **Красивый вывод таблиц**: ASCII форматирование с рамками
+**Data Processing:**
+- **CSV/Excel files**: automatic table creation with typing
+- **Flexible typing**: automatic type detection with warnings
+- **Beautiful table output**: ASCII formatting with borders
 
-### 🔄 Ограничения
+### 🔄 Limitations
 
-- **Синтаксис массивов**: нет литералов `[1, 2, 3]` (используйте функции создания)
-- **Индексация**: нет доступа по индексу `arr[0]`
-- **Объекты**: нет синтаксиса `{key: value}`
-- **Вложенные условия**: требуют осторожного использования
-- **Циклы while**: только `for...in` циклы
+- **Array syntax**: no literals `[1, 2, 3]` (use creation functions)
+- **Indexing**: no index access `arr[0]`
+- **Objects**: no syntax `{key: value}`
+- **Nested conditions**: require careful use
+- **While loops**: only `for...in` loops
 
-## Структура примеров
+## Example Structure
 
-Каждый пример содержит:
-- 📝 Комментарии, объясняющие код
-- 🎯 Демонстрацию конкретной возможности
-- ✅ Проверку результатов
-- 💡 Советы по использованию
+Each example contains:
+- 📝 Comments explaining the code
+- 🎯 Demonstration of specific capability
+- ✅ Result verification
+- 💡 Usage tips
 
-## 📈 Рекомендуемый порядок изучения
+## 📈 Recommended Learning Order
 
-### Этап 1: Основы (обязательно для всех)
-1. **[01-основы/simple.dc](01-основы/simple.dc)** - начните здесь
-2. **[01-основы/hello.dc](01-основы/hello.dc)** - базовые возможности
+### Stage 1: Basics (required for everyone)
+1. **[01-basics/simple.dc](01-basics/simple.dc)** - start here
+2. **[01-basics/hello.dc](01-basics/hello.dc)** - basic capabilities
 
-### Этап 2: Синтаксис языка
-3. **[02-синтаксис-языка/functions.dc](02-синтаксис-языка/functions.dc)** - пользовательские функции
-4. **[02-синтаксис-языка/conditionals.dc](02-синтаксис-языка/conditionals.dc)** - условная логика
-5. **[02-синтаксис-языка/arrays_example.dc](02-синтаксис-языка/arrays_example.dc)** - массивы
-6. **[02-синтаксис-языка/complex_expressions.dc](02-синтаксис-языка/complex_expressions.dc)** - сложные выражения
+### Stage 2: Language Syntax
+3. **[02-language-syntax/functions.dc](02-language-syntax/functions.dc)** - user-defined functions
+4. **[02-language-syntax/conditionals.dc](02-language-syntax/conditionals.dc)** - conditional logic
+5. **[02-language-syntax/arrays_example.dc](02-language-syntax/arrays_example.dc)** - arrays
+6. **[02-language-syntax/complex_expressions.dc](02-language-syntax/complex_expressions.dc)** - complex expressions
 
-### Этап 3: Типы данных
-7. **[05-типы-данных/type_checking_demo.dc](05-типы-данных/type_checking_demo.dc)** - проверка типов
-8. **[05-типы-данных/multiple_variables_demo.dc](05-типы-данных/multiple_variables_demo.dc)** - множественные переменные
+### Stage 3: Data Types
+7. **[05-data-types/type_checking_demo.dc](05-data-types/type_checking_demo.dc)** - type checking
+8. **[05-data-types/multiple_variables_demo.dc](05-data-types/multiple_variables_demo.dc)** - multiple variables
 
-### Этап 4: Обработка данных
-9. **[04-обработка-данных/table_demo.dc](04-обработка-данных/table_demo.dc)** - работа с таблицами
-10. **[04-обработка-данных/filter_demo_simple.dc](04-обработка-данных/filter_demo_simple.dc)** - фильтрация
-11. **[04-обработка-данных/enum_demo.dc](04-обработка-данных/enum_demo.dc)** - перечисление
+### Stage 4: Data Processing
+9. **[04-data-processing/table_demo.dc](04-data-processing/table_demo.dc)** - working with tables
+10. **[04-data-processing/filter_demo_simple.dc](04-data-processing/filter_demo_simple.dc)** - filtering
+11. **[04-data-processing/enum_demo.dc](04-data-processing/enum_demo.dc)** - enumeration
 
-### Этап 5: Продвинутые возможности
-12. **[03-продвинутые-возможности/simple_recursion.dc](03-продвинутые-возможности/simple_recursion.dc)** - простая рекурсия
-13. **[03-продвинутые-возможности/error_handling.dc](03-продвинутые-возможности/error_handling.dc)** - обработка ошибок
-14. **[03-продвинутые-возможности/recursion.dc](03-продвинутые-возможности/recursion.dc)** - сложная рекурсия
+### Stage 5: Advanced Capabilities
+12. **[03-advanced-features/simple_recursion.dc](03-advanced-features/simple_recursion.dc)** - simple recursion
+13. **[03-advanced-features/error_handling.dc](03-advanced-features/error_handling.dc)** - error handling
+14. **[03-advanced-features/recursion.dc](03-advanced-features/recursion.dc)** - complex recursion
 
-### Этап 6: Инструменты и демонстрации
-15. **[06-инструменты-разработки/interactive_demo.dc](06-инструменты-разработки/interactive_demo.dc)** - REPL режим
-16. **[07-демонстрации/showcase.dc](07-демонстрации/showcase.dc)** - полная демонстрация
+### Stage 6: Tools and Demonstrations
+15. **[06-developer-tools/interactive_demo.dc](06-developer-tools/interactive_demo.dc)** - REPL mode
+16. **[07-demonstrations/showcase.dc](07-demonstrations/showcase.dc)** - full demonstration
 
-## Советы по программированию на DataCode
+## DataCode Programming Tips
 
-### 🎯 Лучшие практики
+### 🎯 Best Practices
 
-- Используйте `global` для переменных верхнего уровня
-- Используйте `local` для переменных внутри функций
-- Добавляйте комментарии для объяснения сложной логики
-- Проверяйте граничные случаи в функциях
-- Используйте описательные имена переменных и функций
+- Use `global` for top-level variables
+- Use `local` for variables inside functions
+- Add comments to explain complex logic
+- Check edge cases in functions
+- Use descriptive names for variables and functions
 
-### ⚠️ Частые ошибки
+### ⚠️ Common Mistakes
 
-- Забыть `do` после условий и функций
-- Не закрыть `endif` или `endfunction`
-- Использовать неопределенные переменные
-- Неправильное количество аргументов функции
-- Попытка использовать локальные переменные вне функции
+- Forgetting `do` after conditions and functions
+- Not closing `endif` or `endfunction`
+- Using undefined variables
+- Wrong number of function arguments
+- Attempting to use local variables outside function
 
-### 🚀 Производительность
+### 🚀 Performance
 
-- Избегайте глубокой рекурсии (>100 уровней)
-- Используйте локальные переменные в функциях
-- Кэшируйте результаты сложных вычислений
-- Для больших таблиц используйте `table_head()` и `table_tail()` вместо `show_table()`
-- CSV файлы автоматически типизируются при загрузке
+- Avoid deep recursion (>100 levels)
+- Use local variables in functions
+- Cache results of complex calculations
+- For large tables use `table_head()` and `table_tail()` instead of `show_table()`
+- CSV files are automatically typed when loaded
 
-## 📚 Дополнительная документация
+## 📚 Additional Documentation
 
-### Документация по разделам
-- **[01-основы/README.md](01-основы/README.md)** - 🚀 Документация по основам языка
-- **[02-синтаксис-языка/README.md](02-синтаксис-языка/README.md)** - 🔧 Синтаксические конструкции
-- **[03-продвинутые-возможности/README.md](03-продвинутые-возможности/README.md)** - 🎯 Продвинутые техники
-- **[04-обработка-данных/README.md](04-обработка-данных/README.md)** - 📊 Работа с данными
-- **[05-типы-данных/README.md](05-типы-данных/README.md)** - 🔢 Система типов
-- **[06-инструменты-разработки/README.md](06-инструменты-разработки/README.md)** - 🛠️ Инструменты разработчика
-- **[07-демонстрации/README.md](07-демонстрации/README.md)** - 🎪 Комплексные демонстрации
+### Section Documentation
+- **[01-basics/README.md](01-basics/README.md)** - 🚀 Language basics documentation
+- **[02-language-syntax/README.md](02-language-syntax/README.md)** - 🔧 Syntax constructs
+- **[03-advanced-features/README.md](03-advanced-features/README.md)** - 🎯 Advanced techniques
+- **[04-data-processing/README.md](04-data-processing/README.md)** - 📊 Data processing
+- **[05-data-types/README.md](05-data-types/README.md)** - 🔢 Type system
+- **[06-developer-tools/README.md](06-developer-tools/README.md)** - 🛠️ Developer tools
+- **[07-demonstrations/README.md](07-demonstrations/README.md)** - 🎪 Comprehensive demonstrations
 
-### Дополнительные материалы
-- **[INDEX.md](INDEX.md)** - 📋 Быстрый индекс всех примеров с навигацией по новой структуре
-- **[04-обработка-данных/TABLE_EXAMPLES.md](04-обработка-данных/TABLE_EXAMPLES.md)** - Подробное техническое руководство по работе с таблицами
+### Additional Materials
+- **[INDEX.md](INDEX.md)** - 📋 Quick index of all examples with navigation by new structure
+- **[04-data-processing/TABLE_EXAMPLES.md](04-data-processing/TABLE_EXAMPLES.md)** - Detailed technical guide for working with tables
 
-### Основная документация проекта
-- **[../README.md](../README.md)** - Основная документация проекта DataCode
-- **[../docs/DEMO_RESULTS.md](../docs/DEMO_RESULTS.md)** - Техническая документация по реализации табличных функций
-- **[../IMPLEMENTATION_REPORT.md](../IMPLEMENTATION_REPORT.md)** - Отчет о реализованных возможностях
+### Main Project Documentation
+- **[../README.md](../README.md)** - Main DataCode project documentation
+- **[../docs/DEMO_RESULTS.md](../docs/DEMO_RESULTS.md)** - Technical documentation on table function implementation
+- **[../IMPLEMENTATION_REPORT.md](../IMPLEMENTATION_REPORT.md)** - Report on implemented features
 
-## 🔗 Полезные ссылки
+## 🔗 Useful Links
 
-- **Репозиторий**: [DataCode на GitHub](https://github.com/igornet0/DataCode)
-- **Установка**: Инструкции в основном README.md
-- **Тесты**: Папка `tests/` содержит автоматические тесты всех функций
+- **Repository**: [DataCode on GitHub](https://github.com/igornet0/DataCode)
+- **Installation**: Instructions in main README.md
+- **Tests**: `tests/` folder contains automatic tests for all functions
 
-## Обратная связь
+## Feedback
 
-Если вы нашли ошибку в примерах или хотите предложить улучшение, создайте issue в репозитории проекта.
+If you found an error in examples or want to suggest an improvement, create an issue in the project repository.
 
 ---
 
-**DataCode** - простой и мощный язык для быстрой обработки данных! 🧠✨
+**DataCode** - simple and powerful language for fast data processing! 🧠✨

@@ -1,33 +1,33 @@
-# Тестовые запросы для WebSocket сервера DataCode
+# Test Requests for DataCode WebSocket Server
 
-## Запуск сервера
+## Starting the Server
 
 ```bash
 datacode --websocket --host 0.0.0.0 --port 8899
 ```
 
-## Примеры тестовых запросов
+## Test Request Examples
 
-### 1. Простой запрос через wscat
+### 1. Simple Request via wscat
 
 ```bash
-# Установите wscat: npm install -g wscat
+# Install wscat: npm install -g wscat
 wscat -c ws://127.0.0.1:8899
 
-# Затем отправьте:
+# Then send:
 {"code": "print('Hello, World!')"}
 ```
 
-### 2. Тест через curl (если установлен websocat)
+### 2. Test via curl (if websocat is installed)
 
 ```bash
-# Установите websocat: cargo install websocat
+# Install websocat: cargo install websocat
 echo '{"code": "print(\"Hello from curl!\")"}' | websocat ws://127.0.0.1:8899
 ```
 
-### 3. JavaScript/Node.js тест
+### 3. JavaScript/Node.js Test
 
-Создайте файл `test_websocket.js`:
+Create file `test_websocket.js`:
 
 ```javascript
 const WebSocket = require('ws');
@@ -35,40 +35,40 @@ const WebSocket = require('ws');
 const ws = new WebSocket('ws://127.0.0.1:8899');
 
 ws.on('open', function open() {
-    console.log('✅ Подключено к серверу');
+    console.log('✅ Connected to server');
     
-    // Тест 1: Простой вывод
+    // Test 1: Simple output
     const test1 = {
         code: "print('Hello, World!')"
     };
-    console.log('\n📤 Отправка теста 1:', JSON.stringify(test1));
+    console.log('\n📤 Sending test 1:', JSON.stringify(test1));
     ws.send(JSON.stringify(test1));
 });
 
 ws.on('message', function message(data) {
     const response = JSON.parse(data);
-    console.log('\n📥 Получен ответ:');
+    console.log('\n📥 Received response:');
     console.log('  Success:', response.success);
     console.log('  Output:', response.output);
     if (response.error) {
         console.log('  Error:', response.error);
     }
     
-    // Тест 2: Переменные
+    // Test 2: Variables
     if (!ws.test2Sent) {
         ws.test2Sent = true;
         const test2 = {
             code: "global x = 10\nglobal y = 20\nprint('Sum:', x + y)"
         };
-        console.log('\n📤 Отправка теста 2:', JSON.stringify(test2));
+        console.log('\n📤 Sending test 2:', JSON.stringify(test2));
         ws.send(JSON.stringify(test2));
     } else if (!ws.test3Sent) {
-        // Тест 3: Цикл
+        // Test 3: Loop
         ws.test3Sent = true;
         const test3 = {
             code: "for i in [1, 2, 3] do\n    print('Number:', i)\nnext i"
         };
-        console.log('\n📤 Отправка теста 3:', JSON.stringify(test3));
+        console.log('\n📤 Sending test 3:', JSON.stringify(test3));
         ws.send(JSON.stringify(test3));
     } else {
         ws.close();
@@ -76,22 +76,22 @@ ws.on('message', function message(data) {
 });
 
 ws.on('error', function error(err) {
-    console.error('❌ Ошибка:', err.message);
+    console.error('❌ Error:', err.message);
 });
 
 ws.on('close', function close() {
-    console.log('\n🔌 Соединение закрыто');
+    console.log('\n🔌 Connection closed');
 });
 ```
 
-Запуск:
+Run:
 ```bash
 node test_websocket.js
 ```
 
-### 4. Python тест
+### 4. Python Test
 
-Создайте файл `test_websocket.py`:
+Create file `test_websocket.py`:
 
 ```python
 import asyncio
@@ -102,59 +102,59 @@ async def test_websocket():
     uri = "ws://127.0.0.1:8899"
     
     async with websockets.connect(uri) as websocket:
-        print("✅ Подключено к серверу")
+        print("✅ Connected to server")
         
-        # Тест 1: Простой вывод
+        # Test 1: Simple output
         test1 = {
             "code": "print('Hello, World!')"
         }
-        print(f"\n📤 Отправка теста 1: {json.dumps(test1)}")
+        print(f"\n📤 Sending test 1: {json.dumps(test1)}")
         await websocket.send(json.dumps(test1))
         
         response = await websocket.recv()
         result = json.loads(response)
-        print(f"\n📥 Получен ответ:")
+        print(f"\n📥 Received response:")
         print(f"  Success: {result['success']}")
         print(f"  Output: {result['output']}")
         if result.get('error'):
             print(f"  Error: {result['error']}")
         
-        # Тест 2: Переменные
+        # Test 2: Variables
         test2 = {
             "code": "global x = 10\nglobal y = 20\nprint('Sum:', x + y)"
         }
-        print(f"\n📤 Отправка теста 2: {json.dumps(test2)}")
+        print(f"\n📤 Sending test 2: {json.dumps(test2)}")
         await websocket.send(json.dumps(test2))
         
         response = await websocket.recv()
         result = json.loads(response)
-        print(f"\n📥 Получен ответ:")
+        print(f"\n📥 Received response:")
         print(f"  Success: {result['success']}")
         print(f"  Output: {result['output']}")
         
-        # Тест 3: Функция
+        # Test 3: Function
         test3 = {
             "code": "global function greet(name) do\n    return 'Hello, ' + name + '!'\nendfunction\nprint(greet('DataCode'))"
         }
-        print(f"\n📤 Отправка теста 3: {json.dumps(test3)}")
+        print(f"\n📤 Sending test 3: {json.dumps(test3)}")
         await websocket.send(json.dumps(test3))
         
         response = await websocket.recv()
         result = json.loads(response)
-        print(f"\n📥 Получен ответ:")
+        print(f"\n📥 Received response:")
         print(f"  Success: {result['success']}")
         print(f"  Output: {result['output']}")
         
-        # Тест 4: Ошибка (для проверки обработки ошибок)
+        # Test 4: Error (to check error handling)
         test4 = {
             "code": "print(undefined_variable)"
         }
-        print(f"\n📤 Отправка теста 4 (ожидаем ошибку): {json.dumps(test4)}")
+        print(f"\n📤 Sending test 4 (expecting error): {json.dumps(test4)}")
         await websocket.send(json.dumps(test4))
         
         response = await websocket.recv()
         result = json.loads(response)
-        print(f"\n📥 Получен ответ:")
+        print(f"\n📥 Received response:")
         print(f"  Success: {result['success']}")
         print(f"  Output: {result['output']}")
         if result.get('error'):
@@ -164,50 +164,50 @@ if __name__ == "__main__":
     asyncio.run(test_websocket())
 ```
 
-Запуск:
+Run:
 ```bash
 pip install websockets
 python test_websocket.py
 ```
 
-### 5. Bash скрипт с использованием websocat
+### 5. Bash Script Using websocat
 
-Создайте файл `test_websocket.sh`:
+Create file `test_websocket.sh`:
 
 ```bash
 #!/bin/bash
 
 SERVER="ws://127.0.0.1:8899"
 
-echo "🧪 Тестирование WebSocket сервера DataCode"
+echo "🧪 Testing DataCode WebSocket Server"
 echo "=========================================="
 echo ""
 
-# Тест 1: Простой вывод
-echo "📤 Тест 1: Простой вывод"
+# Test 1: Simple output
+echo "📤 Test 1: Simple output"
 echo '{"code": "print(\"Hello, World!\")"}' | websocat $SERVER
 echo ""
 
-# Тест 2: Переменные
-echo "📤 Тест 2: Переменные"
+# Test 2: Variables
+echo "📤 Test 2: Variables"
 echo '{"code": "global x = 10\nglobal y = 20\nprint(\"Sum:\", x + y)"}' | websocat $SERVER
 echo ""
 
-# Тест 3: Цикл
-echo "📤 Тест 3: Цикл"
+# Test 3: Loop
+echo "📤 Test 3: Loop"
 echo '{"code": "for i in [1, 2, 3] do\n    print(\"Number:\", i)\nnext i"}' | websocat $SERVER
 echo ""
 
-echo "✅ Тестирование завершено"
+echo "✅ Testing completed"
 ```
 
-Запуск:
+Run:
 ```bash
 chmod +x test_websocket.sh
 ./test_websocket.sh
 ```
 
-### 6. Простые JSON запросы для копирования
+### 6. Simple JSON Requests for Copying
 
 ```json
 {"code": "print('Hello, World!')"}
@@ -229,9 +229,9 @@ chmod +x test_websocket.sh
 {"code": "print(undefined_variable)"}
 ```
 
-## Ожидаемые ответы
+## Expected Responses
 
-### Успешное выполнение:
+### Successful Execution:
 ```json
 {
   "success": true,
@@ -240,12 +240,11 @@ chmod +x test_websocket.sh
 }
 ```
 
-### Ошибка выполнения:
+### Execution Error:
 ```json
 {
   "success": false,
   "output": "",
-  "error": "Ошибка: переменная 'undefined_variable' не определена"
+  "error": "Error: variable 'undefined_variable' is not defined"
 }
 ```
-

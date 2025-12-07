@@ -1,49 +1,49 @@
-# 🎯 DataCode - Результаты реализации табличных функций
+# 🎯 DataCode - Table Function Implementation Results
 
-## ✅ Что было успешно реализовано
+## ✅ What Was Successfully Implemented
 
-### 1. Новый тип данных Table
-- Добавлен enum `Value::Table(Table)` для представления табличных данных
-- Создана структура `Table` с колонками, строками и метаданными
-- Реализована структура `TableColumn` для хранения информации о типах колонок
+### 1. New Table Data Type
+- Added enum `Value::Table(Table)` for representing tabular data
+- Created `Table` structure with columns, rows, and metadata
+- Implemented `TableColumn` structure for storing column type information
 
-### 2. Гибкая типизация данных
-- Enum `DataType` с поддержкой: Integer, Float, String, Bool, Date, Null, Mixed
-- Автоматическое определение типа колонки на основе большинства значений
-- Генерация предупреждений о неоднородности данных
-- Интеллектуальное распознавание дат в различных форматах
+### 2. Flexible Data Typing
+- Enum `DataType` with support for: Integer, Float, String, Bool, Date, Null, Mixed
+- Automatic column type detection based on majority of values
+- Generation of warnings about data heterogeneity
+- Intelligent date recognition in various formats
 
-### 3. Встроенные функции для работы с таблицами
+### 3. Built-in Table Functions
 
-#### Создание таблиц:
-- `table(data, headers)` - создание таблицы из массива массивов или объектов
-- Автоматическая типизация при создании
-- Поддержка смешанных типов данных с предупреждениями
+#### Table Creation:
+- `table(data, headers)` - creating table from array of arrays or objects
+- Automatic typing when creating
+- Support for mixed data types with warnings
 
-#### Просмотр данных:
-- `show_table(table)` - красивый вывод таблицы в ASCII формате
-- `table_info(table)` - детальная информация о таблице и типах колонок
-- `table_head(table, n)` - показ первых n строк (по умолчанию 5)
-- `table_tail(table, n)` - показ последних n строк (по умолчанию 5)
+#### Data Viewing:
+- `show_table(table)` - beautiful table output in ASCII format
+- `table_info(table)` - detailed information about table and column types
+- `table_head(table, n)` - show first n rows (default 5)
+- `table_tail(table, n)` - show last n rows (default 5)
 
-#### Операции с данными:
-- `table_select(table, columns)` - выбор определенных колонок
-- `table_sort(table, column, ascending)` - сортировка по колонке
-- Поддержка сортировки различных типов данных
+#### Data Operations:
+- `table_select(table, columns)` - select specific columns
+- `table_sort(table, column, ascending)` - sort by column
+- Support for sorting various data types
 
-### 4. Интеграция с файловой системой
-- Модифицирована функция `read_file()` для автоматического создания таблиц
-- CSV файлы автоматически преобразуются в объекты Table
-- Excel файлы (.xlsx) также поддерживаются
-- Интеллектуальный парсинг значений с определением типов
+### 4. File System Integration
+- Modified `read_file()` function for automatic table creation
+- CSV files are automatically converted to Table objects
+- Excel files (.xlsx) are also supported
+- Intelligent value parsing with type detection
 
-### 5. Форматирование вывода
-- Красивые ASCII таблицы с рамками
-- Автоматическое выравнивание колонок
-- Умное форматирование чисел (целые без дробной части)
-- Обрезка больших таблиц с информацией о количестве строк
+### 5. Output Formatting
+- Beautiful ASCII tables with borders
+- Automatic column alignment
+- Smart number formatting (integers without fractional part)
+- Truncation of large tables with row count information
 
-## 📊 Пример вывода таблицы
+## 📊 Example Table Output
 
 ```
 ┌────┬─────────────────┬─────┬─────────┬─────────────┬────────┐
@@ -55,72 +55,72 @@
 └────┴─────────────────┴─────┴─────────┴─────────────┴────────┘
 ```
 
-## ⚠️ Пример предупреждений о типизации
+## ⚠️ Example Typing Warnings
 
 ```
-⚠️ Колонка 'id' содержит неоднородные данные: 25.0% значений не соответствуют основному типу Integer
-⚠️ Колонка 'progress' содержит неоднородные данные: 25.0% значений не соответствуют основному типу Float
+⚠️ Column 'id' contains heterogeneous data: 25.0% of values do not match main type Integer
+⚠️ Column 'progress' contains heterogeneous data: 25.0% of values do not match main type Float
 ```
 
-## 📋 Информация о таблице
+## 📋 Table Information
 
 ```
-📊 Информация о таблице:
-   Строк: 10
-   Колонок: 6
+📊 Table Information:
+   Rows: 10
+   Columns: 6
 
-📋 Колонки:
-   • id (Integer) - 10 значений
-   • name (String) - 10 значений  
-   • age (Integer) - 10 значений
-   • salary (Float) - 10 значений
-     Распределение типов:
+📋 Columns:
+   • id (Integer) - 10 values
+   • name (String) - 10 values  
+   • age (Integer) - 10 values
+   • salary (Float) - 10 values
+     Type Distribution:
        Float: 7 (70.0%)
        Integer: 3 (30.0%)
-   • department (String) - 10 значений
-   • active (Bool) - 10 значений
+   • department (String) - 10 values
+   • active (Bool) - 10 values
 ```
 
-## 🔧 Технические детали
+## 🔧 Technical Details
 
-### Архитектура
-- Все функции реализованы в `src/builtins.rs`
-- Типы данных определены в `src/value.rs`
-- Поддержка в интерпретаторе и evaluator
+### Architecture
+- All functions implemented in `src/builtins.rs`
+- Data types defined in `src/value.rs`
+- Support in interpreter and evaluator
 
-### Производительность
-- Эффективное хранение данных в векторах
-- Ленивая типизация при добавлении строк
-- Оптимизированное форматирование вывода
+### Performance
+- Efficient data storage in vectors
+- Lazy typing when adding rows
+- Optimized output formatting
 
-### Безопасность типов
-- Строгая проверка типов в Rust
-- Graceful обработка ошибок
-- Информативные сообщения об ошибках
+### Type Safety
+- Strict type checking in Rust
+- Graceful error handling
+- Informative error messages
 
-## 🚧 Ограничения текущей реализации
+## 🚧 Current Implementation Limitations
 
-1. **Парсер массивов**: Текущий парсер DataCode не поддерживает синтаксис массивов `[1, 2, 3]`
-2. **Фильтрация**: Функция `table_filter()` не была полностью реализована
-3. **Агрегация**: Нет функций группировки и агрегации данных
-4. **Индексация**: Нет поддержки индексов для быстрого поиска
+1. **Array Parser**: Current DataCode parser does not support array syntax `[1, 2, 3]`
+2. **Filtering**: `table_filter()` function was not fully implemented
+3. **Aggregation**: No grouping and data aggregation functions
+4. **Indexing**: No index support for fast search
 
-## 💡 Возможности для развития
+## 💡 Development Opportunities
 
-1. **Расширение парсера** для поддержки массивов и объектов
-2. **SQL-подобные запросы** для фильтрации и группировки
-3. **Экспорт данных** в различные форматы
-4. **Визуализация** простых графиков в терминале
-5. **Статистические функции** (среднее, медиана, стандартное отклонение)
+1. **Parser Extension** for array and object support
+2. **SQL-like Queries** for filtering and grouping
+3. **Data Export** to various formats
+4. **Visualization** of simple charts in terminal
+5. **Statistical Functions** (mean, median, standard deviation)
 
-## 🎯 Заключение
+## 🎯 Conclusion
 
-Реализация табличных функций в DataCode успешно добавляет мощные возможности для работы с данными:
+Table function implementation in DataCode successfully adds powerful data processing capabilities:
 
-- ✅ Автоматическая типизация с предупреждениями
-- ✅ Красивый вывод таблиц
-- ✅ Базовые операции с данными
-- ✅ Интеграция с файловой системой
-- ✅ Расширяемая архитектура
+- ✅ Automatic typing with warnings
+- ✅ Beautiful table output
+- ✅ Basic data operations
+- ✅ File system integration
+- ✅ Extensible architecture
 
-Это значительно улучшает возможности DataCode для анализа и обработки данных, делая язык более подходящим для задач data science и аналитики.
+This significantly improves DataCode capabilities for data analysis and processing, making the language more suitable for data science and analytics tasks.

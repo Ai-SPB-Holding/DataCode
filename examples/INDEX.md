@@ -1,120 +1,120 @@
 # 📋 DataCode Examples Index
 
-Быстрый индекс всех примеров с кратким описанием и ссылками для удобной навигации по профессионально организованной структуре примеров.
+Quick index of all examples with brief descriptions and links for convenient navigation through the professionally organized example structure.
 
-## 🎯 Рекомендуемый порядок изучения
+## 🎯 Recommended Learning Order
 
-| № | Файл | Описание | Сложность | Раздел |
+| # | File | Description | Difficulty | Section |
 |---|------|----------|-----------|--------|
-| 1 | [01-основы/simple.dc](01-основы/simple.dc) | Переменные и арифметика | ⭐ | Основы |
-| 2 | [01-основы/hello.dc](01-основы/hello.dc) | Базовые возможности языка | ⭐ | Основы |
-| 3 | [02-синтаксис-языка/functions.dc](02-синтаксис-языка/functions.dc) | Пользовательские функции | ⭐⭐ | Синтаксис |
-| 4 | [02-синтаксис-языка/conditionals.dc](02-синтаксис-языка/conditionals.dc) | Условные конструкции | ⭐⭐ | Синтаксис |
-| 5 | [02-синтаксис-языка/loops.dc](02-синтаксис-языка/loops.dc) | Циклы for...in | ⭐⭐ | Синтаксис |
-| 6 | [02-синтаксис-языка/arrays_example.dc](02-синтаксис-языка/arrays_example.dc) | Работа с массивами | ⭐⭐ | Синтаксис |
-| 7 | [05-типы-данных/type_checking_demo.dc](05-типы-данных/type_checking_demo.dc) | Проверка типов isinstance() | ⭐⭐ | Типы |
-| 8 | [04-обработка-данных/table_demo.dc](04-обработка-данных/table_demo.dc) | Работа с таблицами и CSV | ⭐⭐⭐ | Данные |
-| 9 | [04-обработка-данных/filter_demo_simple.dc](04-обработка-данных/filter_demo_simple.dc) | Простая фильтрация | ⭐⭐ | Данные |
-| 10 | [04-обработка-данных/enum_demo.dc](04-обработка-данных/enum_demo.dc) | Перечисление с индексами | ⭐⭐ | Данные |
-| 11 | [03-продвинутые-возможности/simple_recursion.dc](03-продвинутые-возможности/simple_recursion.dc) | Простая рекурсия | ⭐⭐ | Продвинутые |
-| 12 | [03-продвинутые-возможности/error_handling.dc](03-продвинутые-возможности/error_handling.dc) | Обработка ошибок | ⭐⭐⭐ | Продвинутые |
-| 13 | [02-синтаксис-языка/complex_expressions.dc](02-синтаксис-языка/complex_expressions.dc) | Сложные выражения | ⭐⭐⭐ | Синтаксис |
-| 14 | [03-продвинутые-возможности/recursion.dc](03-продвинутые-возможности/recursion.dc) | Рекурсивные функции | ⭐⭐⭐ | Продвинутые |
-| 15 | [06-инструменты-разработки/interactive_demo.dc](06-инструменты-разработки/interactive_demo.dc) | REPL функции | ⭐⭐ | Инструменты |
-| 16 | [07-демонстрации/showcase.dc](07-демонстрации/showcase.dc) | Все возможности языка | ⭐⭐⭐⭐ | Демонстрации |
+| 1 | [01-basics/simple.dc](01-basics/simple.dc) | Variables and arithmetic | ⭐ | Basics |
+| 2 | [01-basics/hello.dc](01-basics/hello.dc) | Basic language capabilities | ⭐ | Basics |
+| 3 | [02-language-syntax/functions.dc](02-language-syntax/functions.dc) | User-defined functions | ⭐⭐ | Syntax |
+| 4 | [02-language-syntax/conditionals.dc](02-language-syntax/conditionals.dc) | Conditional constructs | ⭐⭐ | Syntax |
+| 5 | [02-language-syntax/loops.dc](02-language-syntax/loops.dc) | For...in loops | ⭐⭐ | Syntax |
+| 6 | [02-language-syntax/arrays_example.dc](02-language-syntax/arrays_example.dc) | Working with arrays | ⭐⭐ | Syntax |
+| 7 | [05-data-types/type_checking_demo.dc](05-data-types/type_checking_demo.dc) | Type checking isinstance() | ⭐⭐ | Types |
+| 8 | [04-data-processing/table_demo.dc](04-data-processing/table_demo.dc) | Working with tables and CSV | ⭐⭐⭐ | Data |
+| 9 | [04-data-processing/filter_demo_simple.dc](04-data-processing/filter_demo_simple.dc) | Simple filtering | ⭐⭐ | Data |
+| 10 | [04-data-processing/enum_demo.dc](04-data-processing/enum_demo.dc) | Enumeration with indices | ⭐⭐ | Data |
+| 11 | [03-advanced-features/simple_recursion.dc](03-advanced-features/simple_recursion.dc) | Simple recursion | ⭐⭐ | Advanced |
+| 12 | [03-advanced-features/error_handling.dc](03-advanced-features/error_handling.dc) | Error handling | ⭐⭐⭐ | Advanced |
+| 13 | [02-language-syntax/complex_expressions.dc](02-language-syntax/complex_expressions.dc) | Complex expressions | ⭐⭐⭐ | Syntax |
+| 14 | [03-advanced-features/recursion.dc](03-advanced-features/recursion.dc) | Recursive functions | ⭐⭐⭐ | Advanced |
+| 15 | [06-developer-tools/interactive_demo.dc](06-developer-tools/interactive_demo.dc) | REPL functions | ⭐⭐ | Tools |
+| 16 | [07-demonstrations/showcase.dc](07-demonstrations/showcase.dc) | All language capabilities | ⭐⭐⭐⭐ | Demonstrations |
 
-## 📊 По разделам (новая организация)
+## 📊 By Section (New Organization)
 
-### 🚀 [01-основы/](01-основы/) - Основы языка
-- [`simple.dc`](01-основы/simple.dc) - Первые шаги с переменными
-- [`hello.dc`](01-основы/hello.dc) - Расширенный Hello World
+### 🚀 [01-basics/](01-basics/) - Language Basics
+- [`simple.dc`](01-basics/simple.dc) - First steps with variables
+- [`hello.dc`](01-basics/hello.dc) - Extended Hello World
 
-### 🔧 [02-синтаксис-языка/](02-синтаксис-языка/) - Синтаксические конструкции
-- [`functions.dc`](02-синтаксис-языка/functions.dc) - Пользовательские функции
-- [`conditionals.dc`](02-синтаксис-языка/conditionals.dc) - Условные конструкции if/else/endif
-- [`loops.dc`](02-синтаксис-языка/loops.dc) - Циклы for...in
-- [`arrays_example.dc`](02-синтаксис-языка/arrays_example.dc) - Массивы и индексирование
-- [`basic_calculations.dc`](02-синтаксис-языка/basic_calculations.dc) - Базовые вычисления
-- [`complex_expressions.dc`](02-синтаксис-языка/complex_expressions.dc) - Сложные выражения
+### 🔧 [02-language-syntax/](02-language-syntax/) - Syntax Constructs
+- [`functions.dc`](02-language-syntax/functions.dc) - User-defined functions
+- [`conditionals.dc`](02-language-syntax/conditionals.dc) - Conditional constructs if/else/endif
+- [`loops.dc`](02-language-syntax/loops.dc) - For...in loops
+- [`arrays_example.dc`](02-language-syntax/arrays_example.dc) - Arrays and indexing
+- [`basic_calculations.dc`](02-language-syntax/basic_calculations.dc) - Basic calculations
+- [`complex_expressions.dc`](02-language-syntax/complex_expressions.dc) - Complex expressions
 
-### 🎯 [03-продвинутые-возможности/](03-продвинутые-возможности/) - Продвинутые техники
-- [`simple_recursion.dc`](03-продвинутые-возможности/simple_recursion.dc) - Простая рекурсия
-- [`recursion.dc`](03-продвинутые-возможности/recursion.dc) - Сложные рекурсивные алгоритмы
-- [`error_handling.dc`](03-продвинутые-возможности/error_handling.dc) - Обработка ошибок
-- [`functional_methods_demo.dc`](03-продвинутые-возможности/functional_methods_demo.dc) - Функциональные методы
+### 🎯 [03-advanced-features/](03-advanced-features/) - Advanced Techniques
+- [`simple_recursion.dc`](03-advanced-features/simple_recursion.dc) - Simple recursion
+- [`recursion.dc`](03-advanced-features/recursion.dc) - Complex recursive algorithms
+- [`error_handling.dc`](03-advanced-features/error_handling.dc) - Error handling
+- [`functional_methods_demo.dc`](03-advanced-features/functional_methods_demo.dc) - Functional methods
 
-### 📊 [04-обработка-данных/](04-обработка-данных/) - Работа с данными
-- [`table_demo.dc`](04-обработка-данных/table_demo.dc) - Комплексная работа с таблицами
-- [`filter_demo_simple.dc`](04-обработка-данных/filter_demo_simple.dc) - Простая фильтрация
-- [`filter_demo_basic.dc`](04-обработка-данных/filter_demo_basic.dc) - Базовая фильтрация
-- [`data_filtering_demo.dc`](04-обработка-данных/data_filtering_demo.dc) - Продвинутая фильтрация
-- [`enum_demo.dc`](04-обработка-данных/enum_demo.dc) - Перечисление с индексами
-- [`enum_table_example.dc`](04-обработка-данных/enum_table_example.dc) - Перечисление таблиц
+### 📊 [04-data-processing/](04-data-processing/) - Data Processing
+- [`table_demo.dc`](04-data-processing/table_demo.dc) - Comprehensive table work
+- [`filter_demo_simple.dc`](04-data-processing/filter_demo_simple.dc) - Simple filtering
+- [`filter_demo_basic.dc`](04-data-processing/filter_demo_basic.dc) - Basic filtering
+- [`data_filtering_demo.dc`](04-data-processing/data_filtering_demo.dc) - Advanced filtering
+- [`enum_demo.dc`](04-data-processing/enum_demo.dc) - Enumeration with indices
+- [`enum_table_example.dc`](04-data-processing/enum_table_example.dc) - Table enumeration
 
-### 🔢 [05-типы-данных/](05-типы-данных/) - Система типов
-- [`type_checking_demo.dc`](05-типы-данных/type_checking_demo.dc) - Проверка типов isinstance()
-- [`type_conversion_guide.dc`](05-типы-данных/type_conversion_guide.dc) - Преобразование типов
-- [`multiple_variables_demo.dc`](05-типы-данных/multiple_variables_demo.dc) - Множественные переменные
-- [`simple_multiple_vars_demo.dc`](05-типы-данных/simple_multiple_vars_demo.dc) - Простые множественные переменные
+### 🔢 [05-data-types/](05-data-types/) - Type System
+- [`type_checking_demo.dc`](05-data-types/type_checking_demo.dc) - Type checking isinstance()
+- [`type_conversion_guide.dc`](05-data-types/type_conversion_guide.dc) - Type conversion
+- [`multiple_variables_demo.dc`](05-data-types/multiple_variables_demo.dc) - Multiple variables
+- [`simple_multiple_vars_demo.dc`](05-data-types/simple_multiple_vars_demo.dc) - Simple multiple variables
 
-### 🛠️ [06-инструменты-разработки/](06-инструменты-разработки/) - Инструменты разработчика
-- [`interactive_demo.dc`](06-инструменты-разработки/interactive_demo.dc) - Примеры для REPL
-- [`debug_mode_test.dc`](06-инструменты-разработки/debug_mode_test.dc) - Режим отладки
-- [`stress_benchmark.dc`](06-инструменты-разработки/stress_benchmark.dc) - Тестирование производительности ⚠️
+### 🛠️ [06-developer-tools/](06-developer-tools/) - Developer Tools
+- [`interactive_demo.dc`](06-developer-tools/interactive_demo.dc) - Examples for REPL
+- [`debug_mode_test.dc`](06-developer-tools/debug_mode_test.dc) - Debug mode
+- [`stress_benchmark.dc`](06-developer-tools/stress_benchmark.dc) - Performance testing ⚠️
 
-### 🎪 [07-демонстрации/](07-демонстрации/) - Комплексные демонстрации
-- [`showcase.dc`](07-демонстрации/showcase.dc) - Полная демонстрация всех возможностей
+### 🎪 [07-demonstrations/](07-demonstrations/) - Comprehensive Demonstrations
+- [`showcase.dc`](07-demonstrations/showcase.dc) - Complete demonstration of all capabilities
 
-## 📚 Документация
+## 📚 Documentation
 
-### Основная документация
-- **[README.md](README.md)** - Главная страница примеров с полным описанием
-- **[../README.md](../README.md)** - Основная документация проекта DataCode
+### Main Documentation
+- **[README.md](README.md)** - Main examples page with full description
+- **[../README.md](../README.md)** - Main DataCode project documentation
 
-### Документация по разделам
-- **[01-основы/README.md](01-основы/README.md)** - 🚀 Документация по основам языка
-- **[02-синтаксис-языка/README.md](02-синтаксис-языка/README.md)** - 🔧 Синтаксические конструкции
-- **[03-продвинутые-возможности/README.md](03-продвинутые-возможности/README.md)** - 🎯 Продвинутые техники
-- **[04-обработка-данных/README.md](04-обработка-данных/README.md)** - 📊 Работа с данными
-- **[05-типы-данных/README.md](05-типы-данных/README.md)** - 🔢 Система типов
-- **[06-инструменты-разработки/README.md](06-инструменты-разработки/README.md)** - 🛠️ Инструменты разработчика
-- **[07-демонстрации/README.md](07-демонстрации/README.md)** - 🎪 Комплексные демонстрации
+### Section Documentation
+- **[01-basics/README.md](01-basics/README.md)** - 🚀 Language basics documentation
+- **[02-language-syntax/README.md](02-language-syntax/README.md)** - 🔧 Syntax constructs
+- **[03-advanced-features/README.md](03-advanced-features/README.md)** - 🎯 Advanced techniques
+- **[04-data-processing/README.md](04-data-processing/README.md)** - 📊 Data processing
+- **[05-data-types/README.md](05-data-types/README.md)** - 🔢 Type system
+- **[06-developer-tools/README.md](06-developer-tools/README.md)** - 🛠️ Developer tools
+- **[07-demonstrations/README.md](07-demonstrations/README.md)** - 🎪 Comprehensive demonstrations
 
-## 🚀 Быстрый запуск
+## 🚀 Quick Start
 
 ```bash
-# Начните с простого примера
-cargo run examples/01-основы/simple.dc
+# Start with simple example
+cargo run examples/01-basics/simple.dc
 
-# Расширенный Hello World
-cargo run examples/01-основы/hello.dc
+# Extended Hello World
+cargo run examples/01-basics/hello.dc
 
-# Попробуйте интерактивный режим
+# Try interactive mode
 cargo run
 DataCode> print('Hello, DataCode!')
 
-# Изучите функции
-cargo run examples/02-синтаксис-языка/functions.dc
+# Study functions
+cargo run examples/02-language-syntax/functions.dc
 
-# Работа с таблицами и данными
-cargo run examples/04-обработка-данных/table_demo.dc
+# Working with tables and data
+cargo run examples/04-data-processing/table_demo.dc
 
-# Полная демонстрация всех возможностей
-cargo run examples/07-демонстрации/showcase.dc
+# Complete demonstration of all capabilities
+cargo run examples/07-demonstrations/showcase.dc
 ```
 
-## 💡 Советы по изучению
+## 💡 Learning Tips
 
-- **Новичкам**: начните с раздела `01-основы/` (`simple.dc` → `hello.dc`)
-- **Программистам**: переходите к `02-синтаксис-языка/` (`functions.dc` → `conditionals.dc`)
-- **Для работы с данными**: изучите раздел `04-обработка-данных/` и его подробную документацию
-- **Для изучения всех возможностей**: завершите изучение разделом `07-демонстрации/showcase.dc`
-- **Для отладки и разработки**: используйте инструменты из `06-инструменты-разработки/`
+- **Beginners**: start with section `01-basics/` (`simple.dc` → `hello.dc`)
+- **Programmers**: move to `02-language-syntax/` (`functions.dc` → `conditionals.dc`)
+- **For data work**: study section `04-data-processing/` and its detailed documentation
+- **To learn all capabilities**: complete learning with section `07-demonstrations/showcase.dc`
+- **For debugging and development**: use tools from `06-developer-tools/`
 
-## 🎓 Структурированное обучение
+## 🎓 Structured Learning
 
-Следуйте рекомендуемому порядку разделов:
-**01-основы** → **02-синтаксис-языка** → **05-типы-данных** → **04-обработка-данных** → **03-продвинутые-возможности** → **06-инструменты-разработки** → **07-демонстрации**
+Follow the recommended section order:
+**01-basics** → **02-language-syntax** → **05-data-types** → **04-data-processing** → **03-advanced-features** → **06-developer-tools** → **07-demonstrations**
 
 ---
-*Обновлено: 2025-07-15 | Профессиональная организация примеров DataCode*
+*Updated: 2025-07-15 | Professional DataCode examples organization*

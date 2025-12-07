@@ -1,37 +1,37 @@
 # DataCode WebSocket Server
 
-WebSocket сервер для удаленного выполнения кода DataCode.
+WebSocket server for remote execution of DataCode code.
 
-## Запуск сервера
+## Starting the Server
 
 ```bash
-# Запуск на адресе по умолчанию (127.0.0.1:8080)
+# Start on default address (127.0.0.1:8080)
 datacode --websocket
 
-# Запуск с указанием хоста и порта через флаги
+# Start with host and port specified via flags
 datacode --websocket --host 0.0.0.0 --port 8899
 
-# Запуск на кастомном адресе через переменную окружения
+# Start on custom address via environment variable
 DATACODE_WS_ADDRESS=0.0.0.0:3000 datacode --websocket
 
-# Комбинация: флаги имеют приоритет над переменной окружения
+# Combination: flags take priority over environment variable
 DATACODE_WS_ADDRESS=127.0.0.1:8080 datacode --websocket --host 0.0.0.0 --port 8899
-# Результат: сервер запустится на 0.0.0.0:8899
+# Result: server will start on 0.0.0.0:8899
 ```
 
-## Протокол
+## Protocol
 
-### Подключение
+### Connection
 
-Подключитесь к WebSocket серверу по адресу `ws://127.0.0.1:8080` (или указанному адресу).
+Connect to WebSocket server at address `ws://127.0.0.1:8080` (or specified address).
 
-### Формат запроса
+### Request Format
 
-WebSocket сервер поддерживает несколько типов запросов. Все запросы должны содержать поле `type` для указания типа операции.
+WebSocket server supports several request types. All requests must contain `type` field to specify operation type.
 
-#### Выполнение кода
+#### Code Execution
 
-Отправьте JSON сообщение с типом `execute` и полем `code`:
+Send JSON message with type `execute` and `code` field:
 
 ```json
 {
@@ -40,7 +40,7 @@ WebSocket сервер поддерживает несколько типов з
 }
 ```
 
-**Обратная совместимость:** Старый формат без поля `type` также поддерживается:
+**Backward Compatibility:** Old format without `type` field is also supported:
 
 ```json
 {
@@ -48,9 +48,9 @@ WebSocket сервер поддерживает несколько типов з
 }
 ```
 
-#### Подключение к SMB шаре
+#### Connecting to SMB Share
 
-Для подключения к SMB (Samba/CIFS) шаре используйте тип `smb_connect`:
+To connect to SMB (Samba/CIFS) share, use type `smb_connect`:
 
 ```json
 {
@@ -63,27 +63,27 @@ WebSocket сервер поддерживает несколько типов з
 }
 ```
 
-**Параметры:**
-- `ip` - IP адрес или имя SMB сервера
-- `login` - имя пользователя
-- `password` - пароль пользователя
-- `domain` - домен (обычно `WORKGROUP` или имя домена, может быть пустой строкой)
-- `share_name` - имя SMB шары
+**Parameters:**
+- `ip` - IP address or name of SMB server
+- `login` - username
+- `password` - user password
+- `domain` - domain (usually `WORKGROUP` or domain name, can be empty string)
+- `share_name` - name of SMB share
 
-**Ответ:**
+**Response:**
 ```json
 {
   "success": true,
-  "message": "Успешно подключено к SMB шаре 'share_name'",
+  "message": "Successfully connected to SMB share 'share_name'",
   "error": null
 }
 ```
 
-### Формат ответа
+### Response Format
 
-Сервер вернет JSON с результатом выполнения:
+Server will return JSON with execution result:
 
-**Успешное выполнение:**
+**Successful Execution:**
 ```json
 {
   "success": true,
@@ -92,16 +92,16 @@ WebSocket сервер поддерживает несколько типов з
 }
 ```
 
-**Ошибка выполнения:**
+**Execution Error:**
 ```json
 {
   "success": false,
   "output": "",
-  "error": "Ошибка: переменная 'x' не определена"
+  "error": "Error: variable 'x' is not defined"
 }
 ```
 
-## Примеры использования
+## Usage Examples
 
 ### JavaScript/Node.js
 
@@ -150,41 +150,41 @@ async def execute_code():
 asyncio.run(execute_code())
 ```
 
-### cURL (через wscat)
+### cURL (via wscat)
 
 ```bash
-# Установите wscat: npm install -g wscat
+# Install wscat: npm install -g wscat
 wscat -c ws://127.0.0.1:8080
-# Затем отправьте:
+# Then send:
 {"type": "execute", "code": "print('Hello!')"}
 ```
 
-## SMB Connection (Подключение к SMB шаре)
+## SMB Connection (Connecting to SMB Share)
 
-WebSocket сервер поддерживает подключение к SMB (Samba/CIFS) шаре для работы с файлами на удаленных серверах.
+WebSocket server supports connection to SMB (Samba/CIFS) share for working with files on remote servers.
 
-### Требования
+### Requirements
 
-**Для Linux/Mac:**
+**For Linux/Mac:**
 ```bash
 brew install samba  # macOS
-# или
+# or
 sudo apt-get install samba-client  # Ubuntu/Debian
 ```
 
-**Для Windows:** SMB клиент встроен в систему.
+**For Windows:** SMB client is built into the system.
 
-### Использование lib:// протокола
+### Using lib:// Protocol
 
-После успешного подключения к SMB шаре через запрос `smb_connect`, вы можете использовать специальный протокол `lib://` в DataCode скриптах:
+After successfully connecting to SMB share via `smb_connect` request, you can use special `lib://` protocol in DataCode scripts:
 
 ```
 lib://share_name/path/to/file
 ```
 
-Где `share_name` - имя подключенной SMB шары, а `path/to/file` - путь к файлу на шаре.
+Where `share_name` is the name of connected SMB share, and `path/to/file` is the path to file on the share.
 
-### Пример работы с SMB
+### SMB Work Example
 
 ```python
 import asyncio
@@ -193,7 +193,7 @@ import json
 
 async def smb_example():
     async with websockets.connect("ws://localhost:8899") as websocket:
-        # 1. Подключение к SMB
+        # 1. Connect to SMB
         connect_request = {
             "type": "smb_connect",
             "ip": "192.168.1.100",
@@ -206,7 +206,7 @@ async def smb_example():
         response = json.loads(await websocket.recv())
         print("SMB Connect:", response)
         
-        # 2. Выполнение DataCode скрипта с использованием SMB
+        # 2. Execute DataCode script using SMB
         code = """
         local files = list_files(path("lib://data/reports"))
         for file in files do
@@ -225,24 +225,24 @@ async def smb_example():
 asyncio.run(smb_example())
 ```
 
-### Поддерживаемые операции
+### Supported Operations
 
-После подключения к SMB шаре доступны следующие операции в DataCode:
+After connecting to SMB share, the following operations are available in DataCode:
 
-- **list_files(path("lib://share_name/dir"))** - получить список файлов
-- **read_file(path("lib://share_name/file.csv"))** - прочитать файл (поддерживаются CSV, XLSX, TXT)
+- **list_files(path("lib://share_name/dir"))** - get list of files
+- **read_file(path("lib://share_name/file.csv"))** - read file (CSV, XLSX, TXT supported)
 
-Подробнее см. `examples/08-websocket/README.md`.
+For more details see `examples/08-websocket/README.md`.
 
-## Особенности
+## Features
 
-1. **Изоляция сессий**: Каждый клиент получает свой собственный интерпретатор. Переменные и функции, определенные одним клиентом, не видны другим.
+1. **Session Isolation**: Each client gets its own interpreter. Variables and functions defined by one client are not visible to others.
 
-2. **Перехват вывода**: Все вызовы `print()` перехватываются и отправляются клиенту в поле `output`.
+2. **Output Interception**: All `print()` calls are intercepted and sent to client in `output` field.
 
-3. **Обработка ошибок**: Ошибки выполнения возвращаются в поле `error`, а `success` устанавливается в `false`.
+3. **Error Handling**: Execution errors are returned in `error` field, and `success` is set to `false`.
 
-4. **Многострочный код**: Поддерживается выполнение многострочного кода:
+4. **Multiline Code**: Multiline code execution is supported:
 
 ```json
 {
@@ -251,18 +251,17 @@ asyncio.run(smb_example())
 }
 ```
 
-5. **SMB подключения**: Каждый клиент имеет свой набор SMB подключений, которые автоматически закрываются при отключении клиента.
+5. **SMB Connections**: Each client has its own set of SMB connections, which are automatically closed when client disconnects.
 
-## Веб-клиент
+## Web Client
 
-Откройте файл `examples/websocket_client_example.html` в браузере для интерактивного тестирования WebSocket сервера.
+Open file `examples/08-websocket/websocket_client_example.html` in browser for interactive WebSocket server testing.
 
-## Безопасность
+## Security
 
-⚠️ **Внимание**: Текущая реализация не включает аутентификацию или ограничения доступа. Не используйте на публичных серверах без дополнительной защиты!
+⚠️ **Warning**: Current implementation does not include authentication or access restrictions. Do not use on public servers without additional protection!
 
-## Ограничения
+## Limitations
 
-- Интерпретатор не является потокобезопасным (`Send`), поэтому каждый клиент обрабатывается в отдельной локальной задаче
-- Переменные и функции не сохраняются между запросами от одного клиента (каждый запрос выполняется в том же интерпретаторе, но состояние может быть изменено)
-
+- Interpreter is not thread-safe (`Send`), so each client is processed in a separate local task
+- Variables and functions are not preserved between requests from one client (each request executes in the same interpreter, but state may be changed)

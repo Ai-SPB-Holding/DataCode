@@ -1,49 +1,49 @@
-# Быстрый тест WebSocket сервера
+# Quick WebSocket Server Test
 
-## 1. Запустите сервер
+## 1. Start the Server
 
 ```bash
 datacode --websocket --host 0.0.0.0 --port 8899
 ```
 
-## 2. Откройте веб-клиент
+## 2. Open Web Client
 
-Откройте файл `examples/08-websocket/websocket_client_example.html` в браузере и подключитесь к `ws://127.0.0.1:8899`
+Open file `examples/08-websocket/websocket_client_example.html` in browser and connect to `ws://127.0.0.1:8899`
 
-## 3. Или используйте готовые скрипты
+## 3. Or Use Ready Scripts
 
-### Node.js (требуется: npm install ws)
+### Node.js (requires: npm install ws)
 ```bash
 node examples/08-websocket/test_websocket.js
 ```
 
-### Python (требуется: pip install websockets)
+### Python (requires: pip install websockets)
 ```bash
 python examples/08-websocket/test_websocket.py
 ```
 
-### Bash (требуется: cargo install websocat)
+### Bash (requires: cargo install websocat)
 ```bash
 ./examples/08-websocket/test_websocket.sh
 ```
 
-## 4. Или отправьте запрос вручную
+## 4. Or Send Request Manually
 
-### Через wscat:
+### Via wscat:
 ```bash
 npm install -g wscat
 wscat -c ws://127.0.0.1:8899
-# Затем введите:
+# Then enter:
 {"code": "print('Hello, World!')"}
 ```
 
-### Через websocat:
+### Via websocat:
 ```bash
 cargo install websocat
 echo '{"code": "print(\"Hello, World!\")"}' | websocat ws://127.0.0.1:8899
 ```
 
-## Готовые JSON запросы для копирования:
+## Ready JSON Requests for Copying:
 
 ```json
 {"code": "print('Hello, World!')"}
@@ -61,7 +61,7 @@ echo '{"code": "print(\"Hello, World!\")"}' | websocat ws://127.0.0.1:8899
 {"code": "global function greet(name) do\n    return 'Hello, ' + name + '!'\nendfunction\nprint(greet('DataCode'))"}
 ```
 
-## Ожидаемый ответ:
+## Expected Response:
 
 ```json
 {
@@ -70,4 +70,3 @@ echo '{"code": "print(\"Hello, World!\")"}' | websocat ws://127.0.0.1:8899
   "error": null
 }
 ```
-

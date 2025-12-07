@@ -1,25 +1,25 @@
-# WebSocket Примеры для DataCode
+# WebSocket Examples for DataCode
 
-Эта папка содержит примеры использования WebSocket сервера DataCode.
+This folder contains examples for using the DataCode WebSocket server.
 
-## Файлы
+## Files
 
-- **test_websocket.js** - Node.js клиент для тестирования WebSocket сервера
-- **test_websocket.py** - Python клиент для тестирования WebSocket сервера  
-- **test_websocket.sh** - Bash скрипт для тестирования (требуется websocat)
-- **websocket_client_example.html** - HTML клиент с веб-интерфейсом
-- **websocket_requests.json** - JSON файл с примерами запросов
-- **websocket_test_requests.md** - Документация по тестированию WebSocket
-- **test_smb_connection.py** - Python клиент для тестирования SMB подключения через WebSocket
-- **test_smb_load_data.dc** - Пример DataCode скрипта для работы с файлами на SMB шаре
+- **test_websocket.js** - Node.js client for testing WebSocket server
+- **test_websocket.py** - Python client for testing WebSocket server  
+- **test_websocket.sh** - Bash script for testing (requires websocat)
+- **websocket_client_example.html** - HTML client with web interface
+- **websocket_requests.json** - JSON file with request examples
+- **websocket_test_requests.md** - WebSocket testing documentation
+- **test_smb_connection.py** - Python client for testing SMB connection via WebSocket
+- **test_smb_load_data.dc** - Example DataCode script for working with files on SMB share
 
-## Запуск сервера
+## Starting the Server
 
 ```bash
 datacode --websocket --host 0.0.0.0 --port 8899
 ```
 
-## Использование
+## Usage
 
 ### Node.js
 ```bash
@@ -37,16 +37,16 @@ python3 test_websocket.py
 ### Bash
 ```bash
 cd examples/08-websocket
-cargo install websocat  # если еще не установлен
+cargo install websocat  # if not already installed
 bash test_websocket.sh
 ```
 
-### HTML клиент
-Откройте `websocket_client_example.html` в браузере.
+### HTML Client
+Open `websocket_client_example.html` in browser.
 
-## Формат запросов
+## Request Format
 
-Все запросы отправляются в формате JSON:
+All requests are sent in JSON format:
 
 ```json
 {
@@ -54,7 +54,7 @@ bash test_websocket.sh
 }
 ```
 
-## Формат ответов
+## Response Format
 
 ```json
 {
@@ -64,48 +64,48 @@ bash test_websocket.sh
 }
 ```
 
-## Примеры кода
+## Code Examples
 
-### Простой вывод
+### Simple Output
 ```json
 {"code": "print('Hello, World!')"}
 ```
 
-### Переменные
+### Variables
 ```json
 {"code": "global x = 10\nglobal y = 20\nprint('Sum:', x + y)"}
 ```
 
-### Цикл
+### Loop
 ```json
 {"code": "for i in [1, 2, 3] do\n    print('Number:', i)\nnext i"}
 ```
 
-### Функция
+### Function
 ```json
 {"code": "global function greet(name) do\n    return 'Hello, ' + name + '!'\nendfunction\nprint(greet('DataCode'))"}
 ```
 
-## SMB Connection (Подключение к SMB шаре)
+## SMB Connection (Connecting to SMB Share)
 
-WebSocket сервер поддерживает подключение к SMB (Samba/CIFS) шаре для работы с файлами на удаленных серверах.
+WebSocket server supports connection to SMB (Samba/CIFS) share for working with files on remote servers.
 
-### Требования
+### Requirements
 
-**Для Linux/Mac:**
+**For Linux/Mac:**
 ```bash
-# Установка smbclient (Samba)
+# Install smbclient (Samba)
 brew install samba  # macOS
-# или
+# or
 sudo apt-get install samba-client  # Ubuntu/Debian
 ```
 
-**Для Windows:**
-SMB клиент встроен в систему, дополнительная установка не требуется.
+**For Windows:**
+SMB client is built into the system, no additional installation required.
 
-### Подключение к SMB шаре
+### Connecting to SMB Share
 
-Для подключения к SMB шаре отправьте запрос с типом `smb_connect`:
+To connect to SMB share, send a request with type `smb_connect`:
 
 ```json
 {
@@ -118,74 +118,74 @@ SMB клиент встроен в систему, дополнительная 
 }
 ```
 
-**Параметры:**
-- `ip` - IP адрес или имя SMB сервера
-- `login` - имя пользователя для подключения
-- `password` - пароль пользователя
-- `domain` - домен (обычно `WORKGROUP` для Windows или имя домена, может быть пустой строкой)
-- `share_name` - имя SMB шары для подключения
+**Parameters:**
+- `ip` - IP address or name of SMB server
+- `login` - username for connection
+- `password` - user password
+- `domain` - domain (usually `WORKGROUP` for Windows or domain name, can be empty string)
+- `share_name` - name of SMB share to connect to
 
-**Ответ сервера:**
+**Server Response:**
 ```json
 {
   "success": true,
-  "message": "Успешно подключено к SMB шаре 'share_name'",
+  "message": "Successfully connected to SMB share 'share_name'",
   "error": null
 }
 ```
 
-При ошибке:
+On error:
 ```json
 {
   "success": false,
   "message": "",
-  "error": "Ошибка подключения к SMB: ..."
+  "error": "SMB connection error: ..."
 }
 ```
 
-### Использование lib:// протокола в DataCode
+### Using lib:// Protocol in DataCode
 
-После успешного подключения к SMB шаре, вы можете использовать специальный протокол `lib://` в DataCode скриптах для доступа к файлам на шаре.
+After successfully connecting to SMB share, you can use special `lib://` protocol in DataCode scripts to access files on the share.
 
-**Формат пути:**
+**Path format:**
 ```
 lib://share_name/path/to/file
 ```
 
-Где:
-- `share_name` - имя подключенной SMB шары
-- `path/to/file` - путь к файлу или директории на шаре
+Where:
+- `share_name` - name of connected SMB share
+- `path/to/file` - path to file or directory on the share
 
-### Пример использования
+### Usage Example
 
-#### 1. Подключение и выполнение скрипта (Python)
+#### 1. Connection and Script Execution (Python)
 
-Используйте `test_smb_connection.py` для подключения к SMB и выполнения DataCode скрипта:
+Use `test_smb_connection.py` to connect to SMB and execute DataCode script:
 
 ```bash
 cd examples/08-websocket
 python3 test_smb_connection.py test_smb_load_data.dc
 ```
 
-Скрипт автоматически:
-1. Подключается к WebSocket серверу
-2. Отправляет запрос на подключение к SMB шаре
-3. Выполняет DataCode скрипт из указанного файла
+The script automatically:
+1. Connects to WebSocket server
+2. Sends request to connect to SMB share
+3. Executes DataCode script from specified file
 
-**Настройка параметров подключения:**
+**Connection Parameter Configuration:**
 
-Отредактируйте переменные в начале `test_smb_connection.py`:
+Edit variables at the beginning of `test_smb_connection.py`:
 ```python
 username = "your_username"
 password = "your_password"
-smb_server = "192.168.1.100"  # IP или имя сервера
-smb_share = "share_name"      # Имя SMB шары
-domain = "WORKGROUP"          # Домен (может быть пустой строкой)
+smb_server = "192.168.1.100"  # IP or server name
+smb_share = "share_name"      # SMB share name
+domain = "WORKGROUP"          # Domain (can be empty string)
 ```
 
-#### 2. Пример DataCode скрипта для работы с SMB
+#### 2. Example DataCode Script for Working with SMB
 
-Пример из `test_smb_load_data.dc`:
+Example from `test_smb_load_data.dc`:
 
 ```datacode
 local path = path("lib://Stream/my_dir")
@@ -202,46 +202,46 @@ for path_dir in list_files(path) do
 next path_dir
 ```
 
-**Что делает скрипт:**
-1. Создает путь к директории на SMB шаре: `lib://Stream/my_dir`
-2. Перебирает все файлы в директории
-3. Для каждого подкаталога перебирает файлы
-4. Если имя файла содержит 'data', читает его с помощью `read_file`
-5. Выводит информацию о загруженной таблице
+**What the script does:**
+1. Creates path to directory on SMB share: `lib://Stream/my_dir`
+2. Iterates through all files in directory
+3. For each subdirectory iterates through files
+4. If filename contains 'data', reads it using `read_file`
+5. Outputs information about loaded table
 
-### Поддерживаемые операции с SMB
+### Supported SMB Operations
 
-После подключения к SMB шаре через WebSocket, в DataCode скриптах доступны следующие операции:
+After connecting to SMB share via WebSocket, the following operations are available in DataCode scripts:
 
 #### list_files
-Получить список файлов в директории на SMB шаре:
+Get list of files in directory on SMB share:
 ```datacode
 local files = list_files(path("lib://share_name/directory"))
 ```
 
 #### read_file
-Прочитать файл с SMB шары:
+Read file from SMB share:
 ```datacode
 local data = read_file(path("lib://share_name/path/to/file.csv"))
 ```
 
-Поддерживаемые форматы файлов:
-- **CSV** - автоматически парсится в таблицу
-- **XLSX** - автоматически парсится в таблицу (поддержка листов)
-- **TXT** - читается как текстовая строка
+Supported file formats:
+- **CSV** - automatically parsed into table
+- **XLSX** - automatically parsed into table (sheet support)
+- **TXT** - read as text string
 
-**Параметры read_file для CSV/XLSX:**
+**read_file parameters for CSV/XLSX:**
 ```datacode
-# CSV с указанием строки заголовка
+# CSV with header row specification
 read_file(path("lib://share/file.csv"), 0)
 
-# XLSX с указанием листа
+# XLSX with sheet specification
 read_file(path("lib://share/file.xlsx"), 0, "Sheet1")
 ```
 
-### Работа с путями
+### Working with Paths
 
-Пути на SMB шаре можно комбинировать с помощью оператора `/`:
+Paths on SMB share can be combined using `/` operator:
 
 ```datacode
 local base_path = path("lib://share_name")
@@ -249,14 +249,14 @@ local file_path = base_path / "subdirectory" / "file.csv"
 local data = read_file(file_path)
 ```
 
-### Важные замечания
+### Important Notes
 
-1. **Подключение сохраняется на время сессии** - SMB подключение активно до отключения клиента от WebSocket сервера
-2. **Отдельное подключение для каждого клиента** - каждый WebSocket клиент имеет свой собственный набор SMB подключений
-3. **Безопасность** - пароли передаются в открытом виде в JSON запросах, используйте защищенное соединение (WSS) в production
-4. **Производительность** - операции с SMB медленнее, чем с локальной файловой системой, учитывайте это при работе с большими файлами
+1. **Connection persists for session** - SMB connection is active until client disconnects from WebSocket server
+2. **Separate connection for each client** - each WebSocket client has its own set of SMB connections
+3. **Security** - passwords are transmitted in plain text in JSON requests, use secure connection (WSS) in production
+4. **Performance** - SMB operations are slower than local file system, consider this when working with large files
 
-### Полный пример работы с SMB
+### Complete SMB Work Example
 
 ```python
 import asyncio
@@ -265,7 +265,7 @@ import json
 
 async def smb_example():
     async with websockets.connect("ws://localhost:8899") as websocket:
-        # 1. Подключение к SMB
+        # 1. Connect to SMB
         connect_request = {
             "type": "smb_connect",
             "ip": "192.168.1.100",
@@ -278,7 +278,7 @@ async def smb_example():
         response = await websocket.recv()
         print("SMB Connect:", json.loads(response))
         
-        # 2. Выполнение DataCode скрипта
+        # 2. Execute DataCode script
         code = """
         local files = list_files(path("lib://data/reports"))
         for file in files do
@@ -296,4 +296,3 @@ async def smb_example():
 
 asyncio.run(smb_example())
 ```
-
