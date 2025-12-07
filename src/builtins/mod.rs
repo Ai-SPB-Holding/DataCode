@@ -35,6 +35,7 @@ pub mod string;
 pub mod table;
 pub mod filter;
 pub mod iteration;
+pub mod sqlite_export;
 
 // Re-exports for convenience
 

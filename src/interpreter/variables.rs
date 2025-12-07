@@ -42,13 +42,27 @@ impl VariableManager {
 
     /// Установить переменную
     pub fn set_variable(&mut self, name: String, value: Value, is_global: bool) {
-        if is_global || self.call_stack.is_empty() {
-            // Глобальная переменная или мы не в функции
+        if is_global {
+            // Явно объявленная глобальная переменная
             self.global_variables.insert(name, value);
-        } else {
+        } else if !self.call_stack.is_empty() {
             // Локальная переменная в функции
             if let Some(local_vars) = self.call_stack.last_mut() {
                 local_vars.insert(name, value);
+            }
+        } else if !self.loop_stack.is_empty() {
+            // Локальная переменная в цикле (вне функции)
+            if let Some(loop_vars) = self.loop_stack.last_mut() {
+                loop_vars.insert(name, value);
+            }
+        } else {
+            // Локальная переменная вне функций и циклов - создаем временную локальную область
+            // Используем loop_stack для хранения локальных переменных вне функций
+            if self.loop_stack.is_empty() {
+                self.loop_stack.push(HashMap::new());
+            }
+            if let Some(loop_vars) = self.loop_stack.last_mut() {
+                loop_vars.insert(name, value);
             }
         }
     }
@@ -77,10 +91,17 @@ impl VariableManager {
             return;
         }
 
-        // Если переменная не найдена, создаем как локальную (если в функции) или глобальную
-        if self.call_stack.is_empty() {
+        // Если переменная не найдена, создаем в соответствующей области видимости
+        if self.call_stack.is_empty() && self.loop_stack.is_empty() {
+            // Только если мы действительно в глобальной области
             self.global_variables.insert(name, value);
+        } else if !self.loop_stack.is_empty() {
+            // Локальная переменная в цикле или блоке
+            if let Some(loop_vars) = self.loop_stack.last_mut() {
+                loop_vars.insert(name, value);
+            }
         } else {
+            // В функции - локальная переменная
             if let Some(local_vars) = self.call_stack.last_mut() {
                 local_vars.insert(name, value);
             }

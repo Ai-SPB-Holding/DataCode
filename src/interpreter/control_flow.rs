@@ -79,6 +79,10 @@ impl ControlFlowHandler {
         
         interpreter.exception_stack.push(try_block);
 
+        // Создаем область видимости для try-catch блока (для локальных переменных)
+        // Это нужно сделать ДО выполнения try блока, чтобы локальные переменные из try попадали в эту область
+        interpreter.enter_loop_scope();
+
         // Выполняем основное тело
         let mut try_result = Ok(());
         for line in body {
@@ -99,6 +103,7 @@ impl ControlFlowHandler {
         if let Err(error) = try_result {
             if !try_block._catch_body.is_empty() {
                 // Устанавливаем переменную ошибки, если указана
+                // Теперь она попадет в loop_stack, так как мы уже вошли в область видимости
                 if let Some(var_name) = &try_block._catch_var {
                     let error_message = format!("{}", error);
                     interpreter.set_variable(
@@ -117,6 +122,10 @@ impl ControlFlowHandler {
         if let Some(finally_lines) = &try_block._finally_body {
             Self::execute_block(interpreter, finally_lines)?;
         }
+
+        // Выходим из области видимости try-catch блока (очищаем локальные переменные)
+        // Это удалит переменную e и другие локальные переменные из catch блока
+        interpreter.exit_loop_scope();
 
         Ok(())
     }

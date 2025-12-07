@@ -1523,6 +1523,10 @@ fn execute_try_statement_directly(interpreter: &mut Interpreter, try_lines: &[&s
 
     interpreter.push_try_block(try_block);
 
+    // Создаем область видимости для try-catch блока (для локальных переменных)
+    // Это нужно сделать ДО выполнения try блока, чтобы локальные переменные из try попадали в эту область
+    interpreter.enter_loop_scope();
+
     // Выполняем try блок с поддержкой вложенных try/catch
     let try_result = execute_block_with_try_support(interpreter, &try_body);
 
@@ -1533,12 +1537,13 @@ fn execute_try_statement_directly(interpreter: &mut Interpreter, try_lines: &[&s
         // Если у текущего блока есть catch секция, обрабатываем исключение локально
         if !catch_body.is_empty() {
             // Устанавливаем переменную ошибки, если указана
+            // Теперь она попадет в loop_stack, так как мы уже вошли в область видимости
             if let Some(var_name) = &catch_var {
                 let error_message = match &error {
                     DataCodeError::UserException { message, .. } => message.clone(),
                     _ => format!("{}", error),
                 };
-                interpreter.set_variable(var_name.clone(), Value::String(error_message), true);
+                interpreter.set_variable(var_name.clone(), Value::String(error_message), false);
             }
 
             // Выполняем catch блок с поддержкой вложенных try/catch
@@ -1562,6 +1567,10 @@ fn execute_try_statement_directly(interpreter: &mut Interpreter, try_lines: &[&s
             final_error = Some(finally_err);
         }
     }
+
+    // Выходим из области видимости try-catch блока (очищаем локальные переменные)
+    // Это удалит переменную e и другие локальные переменные из catch блока
+    interpreter.exit_loop_scope();
 
     // Если есть ошибка, пробрасываем ее дальше для обработки внешними блоками
     if let Some(error) = final_error {

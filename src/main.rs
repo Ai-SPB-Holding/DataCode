@@ -25,11 +25,32 @@ fn main() {
 
         // Проверяем наличие флага --debug или --verbose
         let debug_mode = args.contains(&"--debug".to_string()) || args.contains(&"--verbose".to_string());
+        
+        // Проверяем наличие флага --build_model
+        let build_model = args.contains(&"--build_model".to_string());
+        
+        // Определяем имя выходного файла для SQLite (если указан --build_model)
+        let mut sqlite_output = None;
+        if build_model {
+            // Ищем аргумент после --build_model
+            for i in 0..args.len() {
+                if args[i] == "--build_model" && i + 1 < args.len() && !args[i + 1].starts_with("--") && !args[i + 1].ends_with(".dc") {
+                    sqlite_output = Some(args[i + 1].clone());
+                    break;
+                }
+            }
+            // Если не указан, проверяем переменную окружения
+            if sqlite_output.is_none() {
+                if let Ok(env_path) = std::env::var("DATACODE_SQLITE_OUTPUT") {
+                    sqlite_output = Some(env_path);
+                }
+            }
+        }
 
-        // Находим файл .dc или команду (исключая флаги)
+        // Находим файл .dc или команду (исключая флаги и аргументы после --build_model)
         let mut file_or_command = None;
         for arg in &args[1..] {
-            if !arg.starts_with("--") {
+            if !arg.starts_with("--") && arg != sqlite_output.as_ref().unwrap_or(&String::new()) {
                 file_or_command = Some(arg);
                 break;
             }
@@ -38,7 +59,7 @@ fn main() {
         if let Some(arg) = file_or_command {
             // Проверяем, является ли аргумент файлом .dc
             if arg.ends_with(".dc") {
-                run_file(arg, debug_mode);
+                run_file(arg, debug_mode, build_model, sqlite_output);
             } else {
                 match arg.as_str() {
                     "repl" | "-i" => {
@@ -87,7 +108,7 @@ fn main() {
     }
 }
 
-fn run_file(file_path: &str, debug_mode: bool) {
+fn run_file(file_path: &str, debug_mode: bool, build_model: bool, sqlite_output: Option<String>) {
     use interpreter::Interpreter;
 
     println!("🧠 DataCode File Executor");
@@ -95,6 +116,9 @@ fn run_file(file_path: &str, debug_mode: bool) {
     println!("📁 Executing file: {}", file_path);
     if debug_mode {
         println!("🔍 Debug mode: ON");
+    }
+    if build_model {
+        println!("🗄️  SQLite export: ON");
     }
     println!();
 
@@ -140,6 +164,41 @@ fn run_file(file_path: &str, debug_mode: bool) {
                 println!("📊 Final Variables:");
                 for (name, value) in vars {
                     println!("  {} = {:?}", name, value);
+                }
+            }
+
+            // Экспортируем в SQLite если указан флаг --build_model
+            if build_model {
+                println!();
+                println!("🗄️  Exporting to SQLite...");
+                
+                // Очищаем локальные области видимости перед экспортом
+                // Это гарантирует, что в экспорт попадут только глобальные переменные
+                while interpreter.variable_manager.loop_depth() > 0 {
+                    interpreter.exit_loop_scope();
+                }
+                while interpreter.variable_manager.function_depth() > 0 {
+                    interpreter.exit_function_scope();
+                }
+                
+                // Определяем имя выходного файла
+                let output_path = sqlite_output.unwrap_or_else(|| {
+                    // По умолчанию: {имя_скрипта}.db
+                    let file_stem = Path::new(file_path)
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("output");
+                    format!("{}.db", file_stem)
+                });
+
+                match crate::builtins::sqlite_export::export_tables_to_sqlite(&interpreter, &output_path) {
+                    Ok(()) => {
+                        println!("✅ SQLite database created successfully: {}", output_path);
+                    }
+                    Err(e) => {
+                        println!("❌ Failed to export to SQLite: {}", e);
+                        std::process::exit(1);
+                    }
                 }
             }
         }
@@ -300,6 +359,8 @@ fn show_help() {
     println!("  datacode                   # Start interactive REPL (default)");
     println!("  datacode main.dc           # Execute DataCode file");
     println!("  datacode main.dc --debug   # Execute with debug info (shows variable types)");
+    println!("  datacode main.dc --build_model  # Execute and export tables to SQLite");
+    println!("  datacode main.dc --build_model output.db  # Export to specific file");
     println!("  datacode --repl            # Start interactive REPL");
     println!("  datacode --demo            # Run demonstration");
     println!("  datacode --websocket       # Start WebSocket server for remote code execution");
@@ -316,6 +377,14 @@ fn show_help() {
     println!("  • Example: departments = Array([String(\"Engineering\"), String(\"Marketing\")])");
     println!("  • Useful for development and debugging");
     println!("  • Flags: --debug or --verbose");
+    println!();
+    println!("SQLite Export (--build_model):");
+    println!("  • Exports all tables from global variables to SQLite database");
+    println!("  • Automatically detects foreign key relationships");
+    println!("  • Creates metadata table _datacode_variables with all variable info");
+    println!("  • Default output: <script_name>.db");
+    println!("  • Custom output: --build_model output.db");
+    println!("  • Environment variable: DATACODE_SQLITE_OUTPUT=path.db");
     println!();
     println!("WebSocket Server:");
     println!("  • Start server: datacode --websocket");
