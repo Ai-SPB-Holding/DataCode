@@ -1,6 +1,0 @@
-global t = table([[1, "A"]], ["id", "name"])
-local headers = table_headers(t)
-print("headers = ", headers)
-print("typeof(headers) = ", typeof(headers))
-print("contains(headers, 'id') = ", contains(headers, "id"))
-print("contains(headers, 'name') = ", contains(headers, "name"))

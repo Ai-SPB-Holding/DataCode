@@ -1,8 +1,0 @@
-global t = table([[1, "A"]], ["id", "name"])
-print("Table:", t)
-print("Table type:", typeof(t))
-local col = t["id"]
-print("Column:", col)
-print("Column type:", typeof(col))
-relate(t["id"], t["id"])
-print("Relate called")

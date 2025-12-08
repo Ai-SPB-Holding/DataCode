@@ -1,9 +1,0 @@
-# Минимальный тест функции relate()
-
-global table1 = table([[1, "A"], [2, "B"]], ["id", "name"])
-global table2 = table([[1, "X"], [2, "Y"]], ["id", "value"])
-
-print("Создаю связь...")
-relate(table1["id"], table2["id"])
-print("Связь создана")
-
