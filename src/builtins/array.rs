@@ -15,7 +15,11 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                 String(s) => Ok(Number(s.len() as f64)),
                 Currency(c) => Ok(Number(c.len() as f64)),
                 Table(table) => Ok(Number(table.borrow().rows.len() as f64)),
-                _ => Err(DataCodeError::type_error("Array, String, Currency, or Table", "other", line)),
+                TableColumn(table, _column_name) => {
+                    // Для TableColumn возвращаем количество строк в таблице
+                    Ok(Number(table.borrow().rows.len() as f64))
+                }
+                _ => Err(DataCodeError::type_error("Array, String, Currency, Table, or TableColumn", "other", line)),
             }
         }
         
@@ -171,22 +175,32 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             if args.len() != 1 {
                 return Err(DataCodeError::wrong_argument_count("unique", 1, args.len(), line));
             }
-            match &args[0] {
-                Array(arr) => {
-                    let mut unique_items = Vec::new();
-                    let mut seen = std::collections::HashSet::new();
-                    
-                    for item in arr {
-                        let key = format!("{:?}", item);
-                        if seen.insert(key) {
-                            unique_items.push(item.clone());
-                        }
-                    }
-                    
-                    Ok(Array(unique_items))
+            // Извлекаем массив из TableColumn, если необходимо
+            let arr = match &args[0] {
+                Array(arr) => arr.clone(),
+                TableColumn(table, column_name) => {
+                    let table_borrowed = table.borrow();
+                    let column_values = table_borrowed.get_column_values(column_name)
+                        .ok_or_else(|| DataCodeError::runtime_error(
+                            &format!("Column '{}' not found in table", column_name),
+                            line
+                        ))?;
+                    column_values.iter().map(|v| (*v).clone()).collect()
                 }
-                _ => Err(DataCodeError::type_error("Array", "other", line)),
+                _ => return Err(DataCodeError::type_error("Array or TableColumn", "other", line)),
+            };
+            
+            let mut unique_items = Vec::new();
+            let mut seen = std::collections::HashSet::new();
+            
+            for item in arr {
+                let key = format!("{:?}", item);
+                if seen.insert(key) {
+                    unique_items.push(item.clone());
+                }
             }
+            
+            Ok(Array(unique_items))
         }
         
         "array" => {
@@ -200,41 +214,62 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             if args.len() != 1 {
                 return Err(DataCodeError::wrong_argument_count("sum", 1, args.len(), line));
             }
-            match &args[0] {
-                Array(arr) => {
-                    let mut total = 0.0;
-                    for item in arr {
-                        match item {
-                            Number(n) => total += n,
-                            _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
-                        }
-                    }
-                    Ok(Number(total))
+            // Извлекаем массив из TableColumn, если необходимо
+            let arr = match &args[0] {
+                Array(arr) => arr.clone(),
+                TableColumn(table, column_name) => {
+                    let table_borrowed = table.borrow();
+                    let column_values = table_borrowed.get_column_values(column_name)
+                        .ok_or_else(|| DataCodeError::runtime_error(
+                            &format!("Column '{}' not found in table", column_name),
+                            line
+                        ))?;
+                    column_values.iter().map(|v| (*v).clone()).collect()
                 }
-                _ => Err(DataCodeError::type_error("Array", "other", line)),
+                _ => return Err(DataCodeError::type_error("Array or TableColumn", "other", line)),
+            };
+            
+            let mut total = 0.0;
+            for item in arr {
+                match item {
+                    Number(n) => total += n,
+                    _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                }
             }
+            Ok(Number(total))
         }
         
         "average" => {
             if args.len() != 1 {
                 return Err(DataCodeError::wrong_argument_count("average", 1, args.len(), line));
             }
-            match &args[0] {
-                Array(arr) => {
-                    if arr.is_empty() {
-                        return Err(DataCodeError::runtime_error("Cannot calculate average of empty array", line));
-                    }
-                    let mut total = 0.0;
-                    for item in arr {
-                        match item {
-                            Number(n) => total += n,
-                            _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
-                        }
-                    }
-                    Ok(Number(total / arr.len() as f64))
+            // Извлекаем массив из TableColumn, если необходимо
+            let arr = match &args[0] {
+                Array(arr) => arr.clone(),
+                TableColumn(table, column_name) => {
+                    let table_borrowed = table.borrow();
+                    let column_values = table_borrowed.get_column_values(column_name)
+                        .ok_or_else(|| DataCodeError::runtime_error(
+                            &format!("Column '{}' not found in table", column_name),
+                            line
+                        ))?;
+                    column_values.iter().map(|v| (*v).clone()).collect()
                 }
-                _ => Err(DataCodeError::type_error("Array", "other", line)),
+                _ => return Err(DataCodeError::type_error("Array or TableColumn", "other", line)),
+            };
+            
+            if arr.is_empty() {
+                return Err(DataCodeError::runtime_error("Cannot calculate average of empty array", line));
             }
+            let arr_len = arr.len();
+            let mut total = 0.0;
+            for item in arr {
+                match item {
+                    Number(n) => total += n,
+                    _ => return Err(DataCodeError::type_error("Array of Numbers", "other", line)),
+                }
+            }
+            Ok(Number(total / arr_len as f64))
         }
         
         "count" => {

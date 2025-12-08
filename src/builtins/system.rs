@@ -30,6 +30,13 @@ fn format_value_for_print(value: &Value) -> String {
             let table_borrowed = table.borrow();
             format!("Table({} rows, {} columns)", table_borrowed.rows.len(), table_borrowed.column_names.len())
         }
+        TableColumn(_table, column) => {
+            format!("Column({})", column)
+        }
+        TableIndexer(table) => {
+            let table_borrowed = table.borrow();
+            format!("TableIndexer({} rows, {} columns)", table_borrowed.rows.len(), table_borrowed.column_names.len())
+        }
         Null => "null".to_string(),
         Path(p) => p.display().to_string(),
         PathPattern(p) => format!("Pattern({})", p.display()),
@@ -49,10 +56,25 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
         }
         
         "print" => {
+            // if std::env::var("DATACODE_DEBUG").is_ok() {
+            //     eprintln!("🔍 DEBUG print function: Received {} arguments", args.len());
+            // }
+            
             let parts: Vec<std::string::String> = args.into_iter()
-                .map(|v| format_value_for_print(&v))
+                .enumerate()
+                .map(|(idx, v)| {
+                    let formatted = format_value_for_print(&v);
+                    // if std::env::var("DATACODE_DEBUG").is_ok() {
+                    //     eprintln!("🔍 DEBUG print function: Argument {} formatted to: '{}'", idx, formatted);
+                    // }
+                    formatted
+                })
                 .collect();
             let output = parts.join(" ");
+            
+            // if std::env::var("DATACODE_DEBUG").is_ok() {
+            //     eprintln!("🔍 DEBUG print function: Final output: '{}'", output);
+            // }
             
             // Используем OutputCapture, который сам решает, куда писать
             // Если перехват активен - пишет в буфер, иначе в stdout
@@ -354,11 +376,38 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
             }
         }
 
+        "typeof" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("typeof", 1, args.len(), line));
+            }
+            let type_name = match &args[0] {
+                Number(n) => {
+                    if n.fract() == 0.0 {
+                        "int"
+                    } else {
+                        "float"
+                    }
+                }
+                String(_) => "string",
+                Bool(_) => "bool",
+                Array(_) => "array",
+                Object(_) => "object",
+                Table(_) => "table",
+                TableColumn(_, _) => "tablecolumn",
+                TableIndexer(_) => "tableindexer",
+                Currency(_) => "currency",
+                Null => "null",
+                Path(_) => "path",
+                PathPattern(_) => "pathpattern",
+            };
+            Ok(String(type_name.to_string()))
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
 
 /// Check if a function name belongs to system functions
 pub fn is_system_function(name: &str) -> bool {
-    matches!(name, "now" | "print" | "getcwd" | "isinstance" | "isset" | "str" | "int" | "float" | "bool" | "date" | "money")
+    matches!(name, "now" | "print" | "getcwd" | "isinstance" | "isset" | "str" | "int" | "float" | "bool" | "date" | "money" | "typeof")
 }

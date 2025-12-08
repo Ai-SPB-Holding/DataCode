@@ -1,0 +1,200 @@
+# Тест функции relate() с реальными данными из load_model_data
+
+print("============================================================")
+print("Тест relate() с реальными данными из model_data")
+print("============================================================")
+print()
+
+# Базовый путь к данным
+global base_path = getcwd() / "model_data"
+global docs_path = base_path / "docs"
+
+print("📂 Загрузка справочников...")
+# Загружаем справочники
+global product_catalog = read_file(docs_path / "product_catalog.csv")
+global regions_table = read_file(docs_path / "regions.csv")
+global employees_table = read_file(docs_path / "employees.csv")
+
+print("  ✓ Загружено продуктов: ", len(product_catalog))
+print("  ✓ Загружено регионов: ", len(regions_table))
+print("  ✓ Загружено сотрудников: ", len(employees_table))
+print()
+
+# Загружаем один месяц продаж для тестирования
+print("📊 Загрузка данных продаж...")
+global sales_path = base_path / "2025" / "01" / "sales_2025_01.csv"
+global sales_data = read_file(sales_path)
+print("  ✓ Загружено продаж: ", len(sales_data), " строк")
+print()
+
+# Проверяем структуру таблиц
+print("📋 Структура таблиц:")
+print("  product_catalog: ", table_headers(product_catalog))
+print("  regions: ", table_headers(regions_table))
+print("  employees: ", table_headers(employees_table))
+print("  sales_data: ", table_headers(sales_data))
+print()
+
+# Инициализируем переменные для связей как null
+global relation_product_sales = null
+global relation_region_sales = null
+global relation_employee_sales = null
+
+# Тест 1: Связь product_catalog ↔ sales_data по product_id
+print("🔗 Тест 1: Связь product_catalog ↔ sales_data по product_id")
+try
+    # Проверяем наличие колонок
+    local product_headers = table_headers(product_catalog)
+    local sales_headers = table_headers(sales_data)
+    
+    if contains(product_headers, "product_id") and contains(sales_headers, "product_id") do
+        global relation_product_sales = relate(product_catalog["product_id"], sales_data["product_id"])
+        print("  ✓ Связь создана успешно")
+        print("    product_catalog.product_id ↔ sales_data.product_id")
+        print("    Тип: String → String")
+    else
+        print("  ⚠️  Колонка product_id не найдена в одной из таблиц")
+        print("    product_catalog колонки: ", product_headers)
+        print("    sales_data колонки: ", sales_headers)
+    endif
+catch e
+    print("  ✗ Ошибка создания связи: ", e)
+endtry
+print()
+
+# Тест 2: Связь regions ↔ sales_data по region
+print("🔗 Тест 2: Связь regions ↔ sales_data по region")
+try
+    local region_headers = table_headers(regions_table)
+    local sales_headers2 = table_headers(sales_data)
+    
+    # Ищем колонку region в обеих таблицах
+    # В regions может быть region_code, region_id или region
+    # В sales_data есть region
+    local region_col = null
+    if contains(region_headers, "region_code") do
+        region_col = "region_code"
+    else if contains(region_headers, "region_id") do
+        region_col = "region_id"
+    else if contains(region_headers, "region") do
+        region_col = "region"
+    endif
+    
+    if region_col != null and contains(sales_headers2, "region") do
+        global relation_region_sales = relate(regions_table[region_col], sales_data["region"])
+        print("  ✓ Связь создана успешно")
+        print("    regions.", region_col, " ↔ sales_data.region")
+        print("    Тип: String → String")
+    else
+        if region_col == null do
+            print("  ⚠️  Колонка region не найдена в regions")
+            print("    Доступные колонки: ", region_headers)
+        endif
+        if not contains(sales_headers2, "region") do
+            print("  ⚠️  Колонка region не найдена в sales_data")
+        endif
+    endif
+catch e
+    print("  ✗ Ошибка создания связи: ", e)
+endtry
+print()
+
+# Тест 3: Связь employees ↔ sales_data по employee_id
+print("🔗 Тест 3: Связь employees ↔ sales_data по employee_id")
+try
+    local employee_headers = table_headers(employees_table)
+    local sales_headers3 = table_headers(sales_data)
+    
+    if contains(employee_headers, "employee_id") and contains(sales_headers3, "employee_id") do
+        global relation_employee_sales = relate(employees_table["employee_id"], sales_data["employee_id"])
+        print("  ✓ Связь создана успешно")
+        print("    employees.employee_id ↔ sales_data.employee_id")
+        print("    Тип: String → String")
+    else
+        print("  ⚠️  Колонка employee_id не найдена в одной из таблиц")
+    endif
+catch e
+    print("  ✗ Ошибка создания связи: ", e)
+endtry
+print()
+
+# Тест 4: Множественная связь (3+ поля)
+print("🔗 Тест 4: Множественная связь между несколькими таблицами")
+try
+    # Создаем цепочку связей: product_catalog → sales → employees
+    local relations_found = 0
+    if relation_product_sales != null do
+        print("  ✓ Связь 1: product_catalog ↔ sales_data")
+        relations_found = relations_found + 1
+    endif
+    if relation_employee_sales != null do
+        print("  ✓ Связь 2: employees ↔ sales_data")
+        relations_found = relations_found + 1
+    endif
+    if relation_region_sales != null do
+        print("  ✓ Связь 3: regions ↔ sales_data")
+        relations_found = relations_found + 1
+    endif
+    
+    if relations_found > 0 do
+        print("  ✓ Множественные связи созданы успешно")
+        print("    Все связи проходят через таблицу sales_data")
+        print("    Всего создано связей: ", relations_found)
+    else
+        print("  ⚠️  Не создано ни одной связи")
+    endif
+catch e
+    print("  ✗ Ошибка создания множественных связей: ", e)
+endtry
+print()
+
+# Тест 5: Проверка несовместимых типов
+print("🔗 Тест 5: Проверка несовместимых типов (ожидается ошибка)")
+try
+    # Пытаемся связать String с Number
+    local sales_headers4 = table_headers(sales_data)
+    if contains(sales_headers4, "product_id") and contains(sales_headers4, "units") do
+        global relation_wrong = relate(sales_data["product_id"], sales_data["units"])
+        print("  ✗ Ошибка: связь между несовместимыми типами не должна быть создана")
+    else
+        print("  ⚠️  Необходимые колонки не найдены для теста")
+    endif
+catch e
+    print("  ✓ Ошибка корректно обработана: ", e)
+    print("    Типы несовместимы: String (product_id) ≠ Number (units)")
+endtry
+print()
+
+# Итоговая статистика
+print("============================================================")
+print("📊 Итоговая статистика")
+print("============================================================")
+print()
+
+global relations_count = 0
+if relation_product_sales != null do
+    relations_count = relations_count + 1
+endif
+if relation_region_sales != null do
+    relations_count = relations_count + 1
+endif
+if relation_employee_sales != null do
+    relations_count = relations_count + 1
+endif
+
+print("  Загружено таблиц: 4")
+print("    - product_catalog: ", len(product_catalog), " строк")
+print("    - regions: ", len(regions_table), " строк")
+print("    - employees: ", len(employees_table), " строк")
+print("    - sales_data: ", len(sales_data), " строк")
+print()
+print("  Создано связей: ", relations_count)
+print()
+print("  Типы связей:")
+print("    - String → String: ", relations_count, " связей")
+print()
+
+print("============================================================")
+print("✅ Тесты завершены")
+print("============================================================")
+

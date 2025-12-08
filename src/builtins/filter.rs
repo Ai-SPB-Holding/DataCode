@@ -416,6 +416,13 @@ fn format_value_for_table(value: &Value) -> String {
             let table_borrowed = table.borrow();
             format!("Table({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
         },
+        Value::TableColumn(_table, column) => {
+            format!("Column({})", column)
+        },
+        Value::TableIndexer(table) => {
+            let table_borrowed = table.borrow();
+            format!("TableIndexer({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
+        },
         Value::Path(p) => p.to_string_lossy().to_string(),
         Value::PathPattern(p) => format!("{}*", p.to_string_lossy()),
     }

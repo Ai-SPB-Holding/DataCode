@@ -1,0 +1,141 @@
+# Example 4: Loading Quarterly Aggregated Data
+# Demonstrates how to load and process quarterly summary data from nested directories
+
+print("============================================================")
+print("Example 4: Loading Quarterly Aggregated Data")
+print("============================================================")
+print()
+
+global base_path = getcwd() / "model_data"
+
+print("📂 Loading quarterly data from nested directory structure")
+print("  Base path: ", base_path)
+print()
+
+# Collect quarterly summary tables
+global all_financial_summary = []
+global all_regional_summary = []
+global all_product_summary = []
+global all_employee_performance = []
+
+# Get list of year directories
+global year_dirs = list_files(base_path)
+print("  Found ", len(year_dirs), " items in base directory")
+print()
+
+# Process each year
+for year_dir in year_dirs do
+    # Skip non-directory items
+    if year_dir != "docs" and year_dir != "__pycache__" and year_dir != "generate_model_data.py" and not contains(year_dir, ".") do
+        local year_path = base_path / year_dir
+        
+        # Get list of month directories
+        local month_dirs = list_files(year_path)
+        
+        # Process each month
+        for month_dir_name in month_dirs do
+            if not contains(month_dir_name, ".") do
+                local month_path = year_path / month_dir_name
+                
+                # Get items in month directory
+                local month_items = list_files(month_path)
+                
+                # Look for quarterly directories (quarter_YYYY_QN)
+                for item in month_items do
+                    if contains(item, "quarter_") do
+                        local quarter_path = month_path / item
+                        
+                        print("  📁 Found quarterly directory: ", year_dir, "/", month_dir_name, "/", item)
+                        
+                        # Get files in quarterly directory
+                        try
+                            local quarter_files = list_files(quarter_path)
+                            
+                            # Process each file
+                            for quarter_file in quarter_files do
+                                try
+                                    local data = read_file(quarter_path / quarter_file)
+                                    
+                                    # Categorize files by name pattern
+                                    if contains(quarter_file, "financial_summary_") do
+                                        all_financial_summary = push(all_financial_summary, data)
+                                        print("    ✓ Loaded financial_summary: ", quarter_file)
+                                    endif
+                                    
+                                    if contains(quarter_file, "regional_summary_") do
+                                        all_regional_summary = push(all_regional_summary, data)
+                                        print("    ✓ Loaded regional_summary: ", quarter_file)
+                                    endif
+                                    
+                                    if contains(quarter_file, "product_summary_") do
+                                        all_product_summary = push(all_product_summary, data)
+                                        print("    ✓ Loaded product_summary: ", quarter_file)
+                                    endif
+                                    
+                                    if contains(quarter_file, "employee_performance_") do
+                                        all_employee_performance = push(all_employee_performance, data)
+                                        print("    ✓ Loaded employee_performance: ", quarter_file)
+                                    endif
+                                catch e
+                                    print("    ⚠️  Error loading ", quarter_file, ": ", e)
+                                endtry
+                            next quarter_file
+                        catch e
+                            print("    ⚠️  Error reading quarterly directory: ", e)
+                        endtry
+                    endif
+                next item
+            endif
+        next month_dir_name
+    endif
+next year_dir
+
+print()
+print("📊 Summary of loaded quarterly data:")
+print("  Financial summary files: ", len(all_financial_summary))
+print("  Regional summary files: ", len(all_regional_summary))
+print("  Product summary files: ", len(all_product_summary))
+print("  Employee performance files: ", len(all_employee_performance))
+print()
+
+# Merge quarterly tables
+print("🔗 Merging quarterly tables...")
+
+global financial_summary_all = null
+global regional_summary_all = null
+global product_summary_all = null
+global employee_performance_all = null
+
+if len(all_financial_summary) > 0 do
+    financial_summary_all = merge_tables(all_financial_summary)
+    if financial_summary_all != null do
+        print("  ✓ Merged financial summaries: ", len(financial_summary_all), " rows")
+    endif
+endif
+
+if len(all_regional_summary) > 0 do
+    regional_summary_all = merge_tables(all_regional_summary)
+    if regional_summary_all != null do
+        print("  ✓ Merged regional summaries: ", len(regional_summary_all), " rows")
+    endif
+endif
+
+if len(all_product_summary) > 0 do
+    product_summary_all = merge_tables(all_product_summary)
+    if product_summary_all != null do
+        print("  ✓ Merged product summaries: ", len(product_summary_all), " rows")
+    endif
+endif
+
+if len(all_employee_performance) > 0 do
+    employee_performance_all = merge_tables(all_employee_performance)
+    if employee_performance_all != null do
+        print("  ✓ Merged employee performance: ", len(employee_performance_all), " rows")
+    endif
+endif
+print()
+
+print("============================================================")
+print("✅ Example 4 completed")
+print("============================================================")
+

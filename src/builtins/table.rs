@@ -1,4 +1,5 @@
 use crate::value::{Value, Table as TableStruct, DataType, LazyTable};
+use crate::value::relations::{Relation, add_relation};
 use crate::error::{DataCodeError, Result};
 
 /// Вспомогательная функция для вывода с перехватом через WebSocket
@@ -20,6 +21,11 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
 
             match &args[0] {
                 Array(rows) => {
+                    let start_time = std::time::Instant::now();
+                    if std::env::var("DATACODE_DEBUG").is_ok() {
+                        eprintln!("🔍 DEBUG table_create: Начало создания таблицы, строк: {}", rows.len());
+                    }
+
                     let headers = if args.len() > 1 {
                         match &args[1] {
                             Array(header_values) => {
@@ -40,15 +46,26 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                         }
                     };
 
+                    if std::env::var("DATACODE_DEBUG").is_ok() {
+                        eprintln!("🔍 DEBUG table_create: Заголовки созданы ({} колонок), время: {:?}", headers.len(), start_time.elapsed());
+                    }
+
                     let mut table = TableStruct::new(headers);
 
                     // Phase 1 Optimization: Collect all rows first, then add in bulk
                     let mut processed_rows = Vec::with_capacity(rows.len());
+                    let process_start = std::time::Instant::now();
 
                     for (row_index, row_value) in rows.iter().enumerate() {
                         match row_value {
                             Array(row_data) => {
                                 processed_rows.push(row_data.clone());
+                                
+                                // Выводим прогресс каждые 5000 строк
+                                if std::env::var("DATACODE_DEBUG").is_ok() && (row_index + 1) % 5000 == 0 {
+                                    eprintln!("🔍 DEBUG table_create: Обработано строк: {}/{}, время: {:?}", 
+                                        row_index + 1, rows.len(), process_start.elapsed());
+                                }
                             }
                             _ => {
                                 return Err(DataCodeError::runtime_error(
@@ -59,9 +76,22 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                         }
                     }
 
+                    if std::env::var("DATACODE_DEBUG").is_ok() {
+                        eprintln!("🔍 DEBUG table_create: Все строки обработаны ({}), время обработки: {:?}", 
+                            processed_rows.len(), process_start.elapsed());
+                    }
+
                     // Use bulk add operation for better performance
-                    if let Err(e) = table.add_rows(processed_rows) {
-                        eprintln!("Warning: {}", e);
+                    // Skip invalid rows instead of failing completely
+                    let add_start = std::time::Instant::now();
+                    let (_added, skipped) = table.add_rows_skip_invalid(processed_rows);
+                    if skipped > 0 {
+                        eprintln!("Warning: Пропущено {} строк с неверным количеством колонок", skipped);
+                    }
+
+                    if std::env::var("DATACODE_DEBUG").is_ok() {
+                        eprintln!("🔍 DEBUG table_create: Строки добавлены в таблицу, время добавления: {:?}, общее время: {:?}", 
+                            add_start.elapsed(), start_time.elapsed());
                     }
 
                     Ok(Value::table(table))
@@ -173,6 +203,80 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             }
         }
 
+        "merge_tables" => {
+            if args.is_empty() {
+                return Err(DataCodeError::wrong_argument_count("merge_tables", 1, args.len(), line));
+            }
+
+            match &args[0] {
+                Array(tables) => {
+                    if tables.is_empty() {
+                        return Ok(Value::Null);
+                    }
+
+                    // Get headers from first table
+                    let first_table = match tables.first() {
+                        Some(Value::Table(table_rc)) => {
+                            let borrowed = table_rc.borrow();
+                            borrowed.column_names.clone()
+                        }
+                        _ => return Err(DataCodeError::type_error("Array of Tables", "other", line)),
+                    };
+
+                    // Collect all rows from all tables
+                    let mut all_rows = Vec::new();
+                    let mut skipped_rows = 0;
+                    let mut skipped_tables = 0;
+
+                    for (table_idx, table_value) in tables.iter().enumerate() {
+                        match table_value {
+                            Value::Table(table_rc) => {
+                                let table_borrowed = table_rc.borrow();
+                                
+                                // Skip tables with different headers instead of failing
+                                if table_borrowed.column_names != first_table {
+                                    skipped_tables += 1;
+                                    skipped_rows += table_borrowed.rows.len();
+                                    if std::env::var("DATACODE_DEBUG").is_ok() {
+                                        eprintln!("🔍 DEBUG merge_tables: Пропущена таблица {} с несовпадающими заголовками", table_idx + 1);
+                                    }
+                                    continue;
+                                }
+
+                                // Add all rows from this table
+                                for row in &table_borrowed.rows {
+                                    if row.len() == first_table.len() {
+                                        all_rows.push(row.clone());
+                                    } else {
+                                        skipped_rows += 1;
+                                    }
+                                }
+                            }
+                            _ => return Err(DataCodeError::type_error("Array of Tables", "other", line)),
+                        }
+                    }
+
+                    if skipped_tables > 0 {
+                        eprintln!("Warning: Пропущено {} таблиц с несовпадающими заголовками", skipped_tables);
+                    }
+                    if skipped_rows > 0 {
+                        eprintln!("Warning: Пропущено {} строк с неверным количеством колонок при объединении", skipped_rows);
+                    }
+
+                    // Create merged table
+                    let mut merged_table = TableStruct::new(first_table);
+                    let (_added, skipped) = merged_table.add_rows_skip_invalid(all_rows);
+                    
+                    if skipped > 0 {
+                        eprintln!("Warning: Дополнительно пропущено {} строк при создании объединенной таблицы", skipped);
+                    }
+
+                    Ok(Value::table(merged_table))
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+
         "table_select" => {
             if args.len() != 2 {
                 return Err(DataCodeError::wrong_argument_count("table_select", 2, args.len(), line));
@@ -236,6 +340,13 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
             }
         }
 
+        "relate" => {
+            if args.len() != 2 {
+                return Err(DataCodeError::wrong_argument_count("relate", 2, args.len(), line));
+            }
+            relate_columns(&args[0], &args[1], line)
+        }
+
         _ => Err(DataCodeError::function_not_found(name, line)),
     }
 }
@@ -244,7 +355,7 @@ pub fn call_table_function(name: &str, args: Vec<Value>, line: usize) -> Result<
 pub fn is_table_function(name: &str) -> bool {
     matches!(name,
         "table" | "table_create" | "show_table" | "table_info" | "table_head" | "table_tail" |
-        "table_headers" | "table_select" | "table_sort"
+        "table_headers" | "table_select" | "table_sort" | "merge_tables" | "relate"
     )
 }
 
@@ -370,6 +481,13 @@ fn format_value_for_table(value: &Value) -> String {
             let table_borrowed = table.borrow();
             format!("Table({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
         },
+        Value::TableColumn(_table, column) => {
+            format!("Column({})", column)
+        },
+        Value::TableIndexer(table) => {
+            let table_borrowed = table.borrow();
+            format!("TableIndexer({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
+        },
         Value::Path(p) => p.to_string_lossy().to_string(),
         Value::PathPattern(p) => format!("{}*", p.to_string_lossy()),
     }
@@ -493,6 +611,159 @@ fn compare_values(a: &Value, b: &Value) -> std::cmp::Ordering {
 }
 
 /// Фильтрация таблицы с выражением (простая реализация)
+/// Создать связь между двумя колонками таблиц
+fn relate_columns(col1: &Value, col2: &Value, line: usize) -> Result<Value> {
+    use Value::*;
+    
+    // Извлекаем информацию о колонках
+    let (table1, column1) = match col1 {
+        TableColumn(table, col) => (table.clone(), col.clone()),
+        Array(_) => {
+            // Если передан массив, пытаемся найти таблицу в контексте
+            // Для простоты, если передан массив, это ошибка
+            return Err(DataCodeError::runtime_error(
+                "relate() expects table columns (use table[\"column_name\"]), not arrays",
+                line
+            ));
+        }
+        _ => {
+            let found_type: &str = match col1 {
+                Value::Number(_) => "Number",
+                Value::String(_) => "String",
+                Value::Bool(_) => "Bool",
+                Value::Array(_) => "Array",
+                Value::Object(_) => "Object",
+                Value::Table(_) => "Table",
+                Value::Currency(_) => "Currency",
+                Value::Null => "Null",
+                Value::Path(_) => "Path",
+                Value::PathPattern(_) => "PathPattern",
+                _ => "Unknown",
+            };
+            return Err(DataCodeError::type_error(
+                "TableColumn",
+                found_type,
+                line
+            ));
+        }
+    };
+    
+    let (table2, column2) = match col2 {
+        TableColumn(table, col) => (table.clone(), col.clone()),
+        Array(_) => {
+            return Err(DataCodeError::runtime_error(
+                "relate() expects table columns (use table[\"column_name\"]), not arrays",
+                line
+            ));
+        }
+        _ => {
+            let found_type: &str = match col2 {
+                Value::Number(_) => "Number",
+                Value::String(_) => "String",
+                Value::Bool(_) => "Bool",
+                Value::Array(_) => "Array",
+                Value::Object(_) => "Object",
+                Value::Table(_) => "Table",
+                Value::Currency(_) => "Currency",
+                Value::Null => "Null",
+                Value::Path(_) => "Path",
+                Value::PathPattern(_) => "PathPattern",
+                _ => "Unknown",
+            };
+            return Err(DataCodeError::type_error(
+                "TableColumn",
+                found_type,
+                line
+            ));
+        }
+    };
+    
+    // Получаем информацию о типах колонок
+    let table1_borrowed = table1.borrow();
+    let table2_borrowed = table2.borrow();
+    
+    // Находим колонки в таблицах
+    let col1_info = table1_borrowed.get_column_by_name(&column1)
+        .ok_or_else(|| DataCodeError::runtime_error(
+            &format!("Column '{}' not found in first table", column1),
+            line
+        ))?;
+    
+    let col2_info = table2_borrowed.get_column_by_name(&column2)
+        .ok_or_else(|| DataCodeError::runtime_error(
+            &format!("Column '{}' not found in second table", column2),
+            line
+        ))?;
+    
+    // Проверяем совместимость типов
+    let type1 = &col1_info.inferred_type;
+    let type2 = &col2_info.inferred_type;
+    
+    if !type1.is_compatible_with(type2) {
+        return Err(DataCodeError::runtime_error(
+            &format!(
+                "Cannot relate columns with incompatible types: {} ({}) and {} ({})",
+                column1, type1.to_string(),
+                column2, type2.to_string()
+            ),
+            line
+        ));
+    }
+    
+    // Определяем тип связи (используем более общий тип)
+    let relation_type = if type1.is_numeric() && type2.is_numeric() {
+        // Если оба числовые, используем Float если хотя бы один Float
+        if matches!(type1, DataType::Float) || matches!(type2, DataType::Float) {
+            DataType::Float
+        } else {
+            DataType::Integer
+        }
+    } else {
+        // Используем первый тип, если он не Null
+        if matches!(type1, DataType::Null) {
+            type2.clone()
+        } else {
+            type1.clone()
+        }
+    };
+    
+    // Создаем связь
+    let relation = Relation::new(
+        table1.clone(),
+        column1.clone(),
+        table2.clone(),
+        column2.clone(),
+        relation_type.clone(),
+    );
+    
+    // Отладочный вывод до добавления
+    if std::env::var("DATACODE_DEBUG").is_ok() {
+        eprintln!("🔍 DEBUG relate_columns: Creating relation {}[{}] <-> {}[{}]",
+            column1, column2, column1, column2);
+        eprintln!("  Table1 Rc pointer: {:p}", table1.as_ptr());
+        eprintln!("  Table2 Rc pointer: {:p}", table2.as_ptr());
+    }
+    
+    // Добавляем связь в реестр (используем клон, чтобы сохранить relation для возврата)
+    add_relation(relation.clone());
+    
+    // Отладочный вывод после добавления
+    if std::env::var("DATACODE_DEBUG").is_ok() {
+        let relations_count = crate::value::relations::get_all_relations().len();
+        eprintln!("🔍 DEBUG relate_columns: Added relation, total relations in registry: {}", relations_count);
+    }
+    
+    // Возвращаем объект связи
+    let mut relation_obj = std::collections::HashMap::new();
+    relation_obj.insert("table1".to_string(), Value::Table(table1.clone()));
+    relation_obj.insert("column1".to_string(), Value::String(column1.clone()));
+    relation_obj.insert("table2".to_string(), Value::Table(table2.clone()));
+    relation_obj.insert("column2".to_string(), Value::String(column2.clone()));
+    relation_obj.insert("type".to_string(), Value::String(relation_type.to_string().to_string()));
+    
+    Ok(Value::Object(relation_obj))
+}
+
 fn filter_table_with_expression(table_rc: &std::rc::Rc<std::cell::RefCell<TableStruct>>,
                                condition: &str,
                                line: usize) -> Result<Value> {

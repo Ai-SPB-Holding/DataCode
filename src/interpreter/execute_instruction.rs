@@ -20,6 +20,20 @@ impl Interpreter {
             return Ok(ExecSignal::Value(Value::Null));
         }
 
+        // Обработка break (должна быть раньше проверки блочных конструкций)
+        if trimmed == "break" {
+            // Проверяем, что мы внутри цикла
+            if self.active_loop_count == 0 {
+                return Err(DataCodeError::syntax_error(
+                    "break statement must be inside a loop",
+                    self.current_line,
+                    0
+                ));
+            }
+            self.break_requested = true;
+            return Ok(ExecSignal::Value(Value::Null));
+        }
+        
         // Пропускаем ключевые слова блочных конструкций
         // Они обрабатываются на уровне выше через execute_block_directly
         if trimmed.starts_with("function ") || trimmed.starts_with("global function ") || trimmed.starts_with("local function ") ||
@@ -82,33 +96,90 @@ impl Interpreter {
         // Обработка print - ДОЛЖНА быть ПЕРЕД обработкой присваивания
         // чтобы избежать ложных срабатываний когда строка содержит '=' внутри аргументов print
         else if trimmed.starts_with("print(") {
-            // Парсим аргументы print
+            // Парсим аргументы print (поддержка нескольких аргументов через запятую)
             if let Some(args_str) = trimmed.strip_prefix("print(") {
                 if let Some(close_paren_pos) = args_str.rfind(')') {
                     let args_content = &args_str[..close_paren_pos];
                     
-                    // Парсим аргументы как выражение (может быть несколько через запятую)
-                    let mut parser = Parser::new(args_content);
-                    let expr = parser.parse_expression()?;
-                    let signal = self.evaluate_expression_signal(&expr)?;
+                    // Парсим аргументы (разделенные запятыми) - аналогично execute_line_simple
+                    let args: Vec<Value> = if args_content.trim().is_empty() {
+                        Vec::new()
+                    } else {
+                        // Разделяем по запятым, но учитываем вложенные скобки и кавычки
+                        let mut args_list = Vec::new();
+                        let mut current_arg = String::new();
+                        let mut depth = 0;
+                        let mut in_string = false;
+                        let mut string_char: Option<char> = None;
+                        
+                        for ch in args_content.chars() {
+                            match ch {
+                                '\'' | '"' if !in_string => {
+                                    // Начало строки
+                                    in_string = true;
+                                    string_char = Some(ch);
+                                    current_arg.push(ch);
+                                }
+                                ch if in_string && Some(ch) == string_char => {
+                                    // Конец строки
+                                    in_string = false;
+                                    string_char = None;
+                                    current_arg.push(ch);
+                                }
+                                '(' | '[' | '{' if !in_string => {
+                                    depth += 1;
+                                    current_arg.push(ch);
+                                }
+                                ')' | ']' | '}' if !in_string => {
+                                    depth -= 1;
+                                    current_arg.push(ch);
+                                }
+                                ',' if depth == 0 && !in_string => {
+                                    if !current_arg.trim().is_empty() {
+                                        args_list.push(current_arg.trim().to_string());
+                                    }
+                                    current_arg.clear();
+                                }
+                                _ => {
+                                    current_arg.push(ch);
+                                }
+                            }
+                        }
+                        
+                        if !current_arg.trim().is_empty() {
+                            args_list.push(current_arg.trim().to_string());
+                        }
+                        
+                        // Вычисляем каждый аргумент
+                        if args_list.is_empty() {
+                            return Err(DataCodeError::syntax_error(
+                                "print() requires at least one argument",
+                                self.current_line, 0
+                            ));
+                        }
+                        
+                        // Вычисляем каждый аргумент через eval_expr
+                        let mut evaluated_args = Vec::new();
+                        for arg in args_list {
+                            if arg.trim().is_empty() {
+                                return Err(DataCodeError::syntax_error(
+                                    "Empty argument in print()",
+                                    self.current_line, 0
+                                ));
+                            }
+                            
+                            // Используем eval_expr для вычисления каждого аргумента
+                            let value = self.eval_expr(&arg)?;
+                            evaluated_args.push(value);
+                        }
+                        
+                        evaluated_args
+                    };
                     
-                    match signal {
-                        ExecSignal::Value(v) => {
-                            // Выводим значение
-                            println!("{}", self.format_value_for_print(&v));
-                            Ok(ExecSignal::Value(Value::Null))
-                        }
-                        ExecSignal::Call { .. } => {
-                            // Вызов функции в print - возвращаем Call
-                            Ok(signal)
-                        }
-                        ExecSignal::Return(_) => {
-                            Err(DataCodeError::runtime_error(
-                                "Return statement cannot be used in print",
-                                self.current_line
-                            ))
-                        }
-                    }
+                    // Вызываем встроенную функцию print
+                    use crate::builtins::system::call_system_function;
+                    call_system_function("print", args, self.current_line)?;
+                    Ok(ExecSignal::Value(Value::Null))
                 } else {
                     Err(DataCodeError::syntax_error(
                         "Missing closing parenthesis in print",

@@ -6,6 +6,7 @@ pub mod table;
 pub mod conversions;
 pub mod operations;
 pub mod lazy;
+pub mod relations;
 
 // Реэкспорт основных типов для удобства использования
 pub use types::{Value, DataType};

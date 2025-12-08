@@ -36,6 +36,9 @@ impl ControlFlowHandler {
     ) -> Result<()> {
         let iterable_value = interpreter.evaluate_expression(iterable)?;
         
+        // Увеличиваем счетчик активных циклов
+        interpreter.active_loop_count += 1;
+        
         // НЕ создаём scope здесь - он будет создаваться для каждой итерации
 
         let result = match iterable_value {
@@ -46,11 +49,22 @@ impl ControlFlowHandler {
             },
             Value::String(s) => Self::iterate_over_string(interpreter, variables, &s, body),
             Value::Object(obj) => Self::iterate_over_object(interpreter, variables, &obj, body),
-            _ => Err(DataCodeError::runtime_error(
-                &format!("Cannot iterate over {:?}", iterable_value),
-                interpreter.current_line,
-            )),
+            _ => {
+                // Уменьшаем счетчик при ошибке
+                if interpreter.active_loop_count > 0 {
+                    interpreter.active_loop_count -= 1;
+                }
+                return Err(DataCodeError::runtime_error(
+                    &format!("Cannot iterate over {:?}", iterable_value),
+                    interpreter.current_line,
+                ));
+            },
         };
+
+        // Уменьшаем счетчик активных циклов после завершения цикла
+        if interpreter.active_loop_count > 0 {
+            interpreter.active_loop_count -= 1;
+        }
 
         result
     }
@@ -92,6 +106,8 @@ impl ControlFlowHandler {
             if interpreter.return_value.is_some() {
                 break;
             }
+            // Проверяем break (но break не должен прерывать try блок, только циклы)
+            // Поэтому здесь не проверяем break_requested
         }
 
         // Убираем блок из стека
@@ -134,6 +150,10 @@ impl ControlFlowHandler {
             execute_line(interpreter, line)?;
             // Проверяем return
             if interpreter.return_value.is_some() {
+                break;
+            }
+            // Проверяем break
+            if interpreter.break_requested {
                 break;
             }
         }
@@ -185,8 +205,11 @@ impl ControlFlowHandler {
                 // Удаляем scope этой итерации
                 interpreter.exit_loop_scope();
                 
-                // Если был return, выходим из цикла
-                if interpreter.return_value.is_some() {
+                // Если был return или break, выходим из цикла
+                if interpreter.return_value.is_some() || interpreter.break_requested {
+                    if interpreter.break_requested {
+                        interpreter.break_requested = false; // Сбрасываем флаг break
+                    }
                     break;
                 }
             }
@@ -203,8 +226,11 @@ impl ControlFlowHandler {
                 // Удаляем scope этой итерации
                 interpreter.exit_loop_scope();
                 
-                // Если был return, выходим из цикла
-                if interpreter.return_value.is_some() {
+                // Если был return или break, выходим из цикла
+                if interpreter.return_value.is_some() || interpreter.break_requested {
+                    if interpreter.break_requested {
+                        interpreter.break_requested = false; // Сбрасываем флаг break
+                    }
                     break;
                 }
             }
@@ -247,8 +273,11 @@ impl ControlFlowHandler {
             // Удаляем scope этой итерации
             interpreter.exit_loop_scope();
             
-            // Если был return, выходим из цикла
-            if interpreter.return_value.is_some() {
+            // Если был return или break, выходим из цикла
+            if interpreter.return_value.is_some() || interpreter.break_requested {
+                if interpreter.break_requested {
+                    interpreter.break_requested = false; // Сбрасываем флаг break
+                }
                 break;
             }
         }
@@ -283,8 +312,11 @@ impl ControlFlowHandler {
             // Удаляем scope этой итерации
             interpreter.exit_loop_scope();
 
-            // Если был return, выходим из цикла
-            if interpreter.return_value.is_some() {
+            // Если был return или break, выходим из цикла
+            if interpreter.return_value.is_some() || interpreter.break_requested {
+                if interpreter.break_requested {
+                    interpreter.break_requested = false; // Сбрасываем флаг break
+                }
                 break;
             }
         }
@@ -331,8 +363,11 @@ impl ControlFlowHandler {
                 // Удаляем scope этой итерации
                 interpreter.exit_loop_scope();
 
-                // Если был return, выходим из цикла
-                if interpreter.return_value.is_some() {
+                // Если был return или break, выходим из цикла
+                if interpreter.return_value.is_some() || interpreter.break_requested {
+                    if interpreter.break_requested {
+                        interpreter.break_requested = false; // Сбрасываем флаг break
+                    }
                     break;
                 }
             }
@@ -368,6 +403,8 @@ impl ControlFlowHandler {
         condition: &crate::parser::Expr,
         body: &[String],
     ) -> Result<()> {
+        // Увеличиваем счетчик активных циклов
+        interpreter.active_loop_count += 1;
         interpreter.enter_loop_scope();
 
         let mut iteration_count = 0;
@@ -384,6 +421,9 @@ impl ControlFlowHandler {
             iteration_count += 1;
             if iteration_count > MAX_ITERATIONS {
                 interpreter.exit_loop_scope();
+                if interpreter.active_loop_count > 0 {
+                    interpreter.active_loop_count -= 1;
+                }
                 return Err(DataCodeError::runtime_error(
                     "Infinite loop detected (exceeded maximum iterations)",
                     interpreter.current_line,
@@ -393,13 +433,20 @@ impl ControlFlowHandler {
             // Выполняем тело цикла
             Self::execute_block(interpreter, body)?;
 
-            // Если был return, выходим из цикла
-            if interpreter.return_value.is_some() {
+            // Если был return или break, выходим из цикла
+            if interpreter.return_value.is_some() || interpreter.break_requested {
+                if interpreter.break_requested {
+                    interpreter.break_requested = false; // Сбрасываем флаг break
+                }
                 break;
             }
         }
 
         interpreter.exit_loop_scope();
+        // Уменьшаем счетчик активных циклов
+        if interpreter.active_loop_count > 0 {
+            interpreter.active_loop_count -= 1;
+        }
         Ok(())
     }
 
@@ -414,6 +461,8 @@ impl ControlFlowHandler {
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
             Table(table) => !table.borrow().rows.is_empty(),
+            TableColumn(_, _) => true,
+            TableIndexer(table) => !table.borrow().rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
             PathPattern(_) => true,

@@ -6,6 +6,7 @@
 
 use crate::interpreter::Interpreter;
 use crate::value::{Value, Table, DataType, ValueOperations};
+use crate::value::relations::get_all_relations;
 use crate::error::{DataCodeError, Result};
 use rusqlite::{Connection, params};
 use std::collections::HashMap;
@@ -62,6 +63,9 @@ pub fn export_tables_to_sqlite(interpreter: &Interpreter, output_path: &str) -> 
 
     // Создаем таблицу метаданных о глобальных переменных
     create_metadata_table(&mut conn)?;
+    
+    // Создаем таблицу метаданных о связях
+    create_relations_metadata_table(&mut conn)?;
 
     // Экспортируем каждую таблицу (только глобальные таблицы)
     let mut table_names = Vec::new();
@@ -77,6 +81,9 @@ pub fn export_tables_to_sqlite(interpreter: &Interpreter, output_path: &str) -> 
 
     // Определяем и создаем зависимости между таблицами (только для глобальных таблиц)
     if !tables.is_empty() {
+        // Записываем метаданные о связях
+        write_relations_metadata(&mut conn, &tables, &table_names)?;
+        // Создаем внешние ключи
         create_foreign_keys(&mut conn, &tables, &table_names)?;
         // Создаем индексы для производительности
         create_indexes(&mut conn, &tables, &table_names)?;
@@ -167,6 +174,17 @@ fn write_variables_metadata(
             Value::String(_) => ("String", None, None, None),
             Value::Bool(_) => ("Bool", None, None, None),
             Value::Currency(_) => ("Currency", None, None, None),
+            Value::TableColumn(_, _) => ("TableColumn", None, None, None),
+            Value::TableIndexer(table) => {
+                let table_ref = table.borrow();
+                let sqlite_table_name = table_map.get(&var_name).map(|s| s.as_str());
+                (
+                    "TableIndexer",
+                    sqlite_table_name,
+                    Some(table_ref.row_count() as i64),
+                    Some(table_ref.column_count() as i64)
+                )
+            }
             Value::Null => ("Null", None, None, None),
             Value::Path(_) => ("Path", None, None, None),
             Value::PathPattern(_) => ("PathPattern", None, None, None),
@@ -395,7 +413,49 @@ fn create_foreign_keys(
     tables: &HashMap<String, Rc<RefCell<Table>>>,
     table_names: &[(String, String)]
 ) -> Result<()> {
-    // Находим первичные ключи для каждой таблицы
+    // Создаем маппинг от Rc таблицы к имени переменной и санитизированному имени
+    // Используем Rc::ptr_eq() для сравнения таблиц
+    let mut table_to_var: Vec<(Rc<RefCell<Table>>, String, String)> = Vec::new();
+    for (var_name, table) in tables {
+        let sanitized_name = table_names.iter()
+            .find(|(v, _)| v == var_name)
+            .map(|(_, t)| t.clone())
+            .unwrap_or_else(|| sanitize_table_name(var_name));
+        table_to_var.push((table.clone(), var_name.clone(), sanitized_name));
+    }
+
+    // Получаем все связи из реестра
+    let relations = get_all_relations();
+    
+    // Создаем внешние ключи на основе связей из реестра
+    for relation in &relations {
+        // Находим имена таблиц для связи, используя сравнение Rc через ptr_eq
+        let mut found_table1: Option<(String, String)> = None;
+        let mut found_table2: Option<(String, String)> = None;
+        
+        for (table_rc, var_name, sanitized_name) in &table_to_var {
+            if Rc::ptr_eq(table_rc, &relation.table1) {
+                found_table1 = Some((var_name.clone(), sanitized_name.clone()));
+            }
+            if Rc::ptr_eq(table_rc, &relation.table2) {
+                found_table2 = Some((var_name.clone(), sanitized_name.clone()));
+            }
+        }
+        
+        if let (Some((_, ref_table1_name)), Some((_, ref_table2_name))) = (found_table1, found_table2) {
+            // Создаем внешний ключ от table2 к table1 (table2.column2 -> table1.column1)
+            // Это стандартная практика: внешний ключ указывает на первичный ключ
+            create_foreign_key_constraint(
+                conn,
+                &ref_table2_name,
+                &relation.column2,
+                &ref_table1_name,
+                &relation.column1
+            )?;
+        }
+    }
+
+    // Дополнительно: находим первичные ключи для каждой таблицы (для обратной совместимости)
     let mut primary_keys: HashMap<String, String> = HashMap::new();
     
     for (var_name, table) in tables {
@@ -408,7 +468,8 @@ fn create_foreign_keys(
         }
     }
 
-    // Ищем внешние ключи
+    // Дополнительно: ищем внешние ключи по именам колонок (для обратной совместимости)
+    // Только если связь не была создана через реестр
     for (var_name, table) in tables {
         let table_ref = table.borrow();
         let sanitized_table_name = table_names.iter()
@@ -419,20 +480,32 @@ fn create_foreign_keys(
         // Ищем колонки с ID-подобными именами
         for col_name in &table_ref.column_names {
             if is_id_column(col_name) {
-                // Ищем таблицу с соответствующим первичным ключом
-                for (ref_table_name, ref_pk_col) in &primary_keys {
-                    if ref_table_name != &sanitized_table_name {
-                        // Проверяем совместимость типов и значений
-                        if let Some(fk_col) = table_ref.get_column_by_name(col_name) {
-                            if fk_col.inferred_type == DataType::Integer {
-                                // Создаем внешний ключ
-                                create_foreign_key_constraint(
-                                    conn,
-                                    &sanitized_table_name,
-                                    col_name,
-                                    ref_table_name,
-                                    ref_pk_col
-                                )?;
+                // Проверяем, не создана ли уже связь через реестр
+                let mut relation_exists = false;
+                for relation in &relations {
+                    if (Rc::ptr_eq(table, &relation.table1) && relation.column1 == *col_name) ||
+                       (Rc::ptr_eq(table, &relation.table2) && relation.column2 == *col_name) {
+                        relation_exists = true;
+                        break;
+                    }
+                }
+                
+                if !relation_exists {
+                    // Ищем таблицу с соответствующим первичным ключом
+                    for (ref_table_name, ref_pk_col) in &primary_keys {
+                        if ref_table_name != &sanitized_table_name {
+                            // Проверяем совместимость типов и значений
+                            if let Some(fk_col) = table_ref.get_column_by_name(col_name) {
+                                if fk_col.inferred_type == DataType::Integer {
+                                    // Создаем внешний ключ
+                                    create_foreign_key_constraint(
+                                        conn,
+                                        &sanitized_table_name,
+                                        col_name,
+                                        ref_table_name,
+                                        ref_pk_col
+                                    )?;
+                                }
                             }
                         }
                     }
@@ -494,14 +567,14 @@ fn create_foreign_key_constraint(
     conn: &mut Connection,
     table_name: &str,
     column_name: &str,
-    _ref_table_name: &str,
-    _ref_column_name: &str
+    ref_table_name: &str,
+    ref_column_name: &str
 ) -> Result<()> {
     // SQLite требует пересоздания таблицы для добавления внешнего ключа
-    // Это сложная операция, поэтому пока просто логируем
-    // В будущем можно реализовать полное пересоздание таблицы
+    // Это сложная операция, поэтому создаем индекс и записываем метаданные
+    // В будущем можно реализовать полное пересоздание таблицы с FOREIGN KEY
     
-    // Для упрощения, создаем индекс на внешнем ключе
+    // Создаем индекс на внешнем ключе для производительности
     let index_name = format!("idx_{}_{}", table_name, column_name);
     let sanitized_col = sanitize_column_name(column_name);
     
@@ -515,6 +588,136 @@ fn create_foreign_key_constraint(
         &format!("Failed to create index for foreign key: {}", e),
         0
     ))?;
+
+    // Примечание: В SQLite для добавления FOREIGN KEY к существующей таблице
+    // требуется пересоздание таблицы. Информация о связях хранится в таблице
+    // _datacode_relations для справки.
+
+    Ok(())
+}
+
+/// Создать таблицу метаданных о связях
+fn create_relations_metadata_table(conn: &mut Connection) -> Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS _datacode_relations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_table TEXT NOT NULL,
+            from_column TEXT NOT NULL,
+            to_table TEXT NOT NULL,
+            to_column TEXT NOT NULL,
+            relation_type TEXT,
+            created_at TEXT
+        )",
+        []
+    ).map_err(|e| DataCodeError::runtime_error(
+        &format!("Failed to create relations metadata table: {}", e),
+        0
+    ))?;
+
+    Ok(())
+}
+
+/// Записать метаданные о связях в таблицу
+fn write_relations_metadata(
+    conn: &mut Connection,
+    tables: &HashMap<String, Rc<RefCell<Table>>>,
+    table_names: &[(String, String)]
+) -> Result<()> {
+    // Создаем маппинг от Rc таблицы к имени переменной и санитизированному имени
+    let mut table_to_var: Vec<(Rc<RefCell<Table>>, String, String)> = Vec::new();
+    for (var_name, table) in tables {
+        let sanitized_name = table_names.iter()
+            .find(|(v, _)| v == var_name)
+            .map(|(_, t)| t.clone())
+            .unwrap_or_else(|| sanitize_table_name(var_name));
+        table_to_var.push((table.clone(), var_name.clone(), sanitized_name));
+    }
+
+    // Получаем все связи из реестра
+    let relations = get_all_relations();
+    let created_at = Utc::now().to_rfc3339();
+    
+    // Отладочный вывод (можно убрать после тестирования)
+    if std::env::var("DATACODE_DEBUG").is_ok() {
+        eprintln!("🔍 DEBUG: Found {} relations in registry", relations.len());
+        for (i, rel) in relations.iter().enumerate() {
+            eprintln!("  Relation {}: {}[{}] <-> {}[{}]", 
+                i, rel.column1, rel.column2, rel.column1, rel.column2);
+            eprintln!("    Relation table1 Rc pointer: {:p}", rel.table1.as_ptr());
+            eprintln!("    Relation table2 Rc pointer: {:p}", rel.table2.as_ptr());
+        }
+        eprintln!("🔍 DEBUG: Found {} tables to match", table_to_var.len());
+        for (table_rc, var_name, sanitized_name) in &table_to_var {
+            eprintln!("  Table {} ({}): Rc pointer = {:p}", var_name, sanitized_name, table_rc.as_ptr());
+        }
+    }
+    
+    // Записываем каждую связь в таблицу метаданных
+    let mut relations_written = 0;
+    for relation in &relations {
+        let mut found_table1: Option<(String, String)> = None;
+        let mut found_table2: Option<(String, String)> = None;
+        
+        for (table_rc, var_name, sanitized_name) in &table_to_var {
+            if Rc::ptr_eq(table_rc, &relation.table1) {
+                found_table1 = Some((var_name.clone(), sanitized_name.clone()));
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("    ✓ Matched table1 {} (ptr: {:p})", var_name, table_rc.as_ptr());
+                }
+            }
+            if Rc::ptr_eq(table_rc, &relation.table2) {
+                found_table2 = Some((var_name.clone(), sanitized_name.clone()));
+                if std::env::var("DATACODE_DEBUG").is_ok() {
+                    eprintln!("    ✓ Matched table2 {} (ptr: {:p})", var_name, table_rc.as_ptr());
+                }
+            }
+        }
+        
+        if std::env::var("DATACODE_DEBUG").is_ok() {
+            if found_table1.is_none() || found_table2.is_none() {
+                eprintln!("    ⚠️  Could not match tables:");
+                if found_table1.is_none() {
+                    eprintln!("      table1 (ptr: {:p}) not found", relation.table1.as_ptr());
+                }
+                if found_table2.is_none() {
+                    eprintln!("      table2 (ptr: {:p}) not found", relation.table2.as_ptr());
+                }
+            }
+        }
+        
+        if let (Some((_, ref_table1_name)), Some((_, ref_table2_name))) = (found_table1, found_table2) {
+            if std::env::var("DATACODE_DEBUG").is_ok() {
+                eprintln!("  ✓ Writing relation: {}[{}] -> {}[{}]", 
+                    ref_table2_name, relation.column2, ref_table1_name, relation.column1);
+            }
+            conn.execute(
+                "INSERT INTO _datacode_relations 
+                 (from_table, from_column, to_table, to_column, relation_type, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    ref_table2_name,  // from_table (таблица с внешним ключом)
+                    &relation.column2, // from_column
+                    ref_table1_name,   // to_table (таблица с первичным ключом)
+                    &relation.column1, // to_column
+                    relation.relation_type.to_string(),
+                    created_at
+                ]
+            ).map_err(|e| DataCodeError::runtime_error(
+                &format!("Failed to insert relation metadata: {}", e),
+                0
+            ))?;
+            relations_written += 1;
+        } else {
+            if std::env::var("DATACODE_DEBUG").is_ok() {
+                eprintln!("  ⚠️  Could not match relation: {}[{}] <-> {}[{}]", 
+                    relation.column1, relation.column2, relation.column1, relation.column2);
+            }
+        }
+    }
+    
+    if std::env::var("DATACODE_DEBUG").is_ok() {
+        eprintln!("🔍 DEBUG: Wrote {} relations to database", relations_written);
+    }
 
     Ok(())
 }

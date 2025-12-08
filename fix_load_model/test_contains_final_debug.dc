@@ -1,0 +1,91 @@
+# Финальный тест для диагностики проблемы
+# Проверяем, что именно возвращает list_files и как работает contains
+
+print("============================================================")
+print("Финальный тест: Диагностика проблемы contains")
+print("============================================================")
+
+global base_path = getcwd() / "fix_load_model" / "model_data"
+
+# Тест 1: Проверяем содержимое директории 2025/03
+print("Тест 1: Содержимое директории 2025/03")
+print()
+
+local test_path = base_path / "2025" / "03"
+local files_in_03 = list_files(test_path)
+
+print("  Элементов в 2025/03: ", len(files_in_03))
+print("  Элементы:")
+for item in files_in_03 do
+    print("    - ", item, " (тип: ", typeof(item), ")")
+    
+    # Проверяем contains
+    local has_quarter = contains(item, "quarter_")
+    local has_dot = contains(item, ".")
+    
+    print("      contains(item, 'quarter_'): ", has_quarter)
+    print("      contains(item, '.'): ", has_dot)
+    print("      not contains(item, 'quarter_'): ", not has_quarter)
+    print("      not contains(item, '.'): ", not has_dot)
+    print("      Условие (not contains(...) and not contains(...)): ", not has_quarter and not has_dot)
+    print()
+next item
+
+# Тест 2: Проверяем содержимое директории 2025
+print("Тест 2: Содержимое директории 2025")
+print()
+
+local files_in_2025 = list_files(base_path / "2025")
+
+print("  Элементов в 2025: ", len(files_in_2025))
+print("  Элементы:")
+for item in files_in_2025 do
+    print("    - ", item, " (тип: ", typeof(item), ")")
+    
+    # Проверяем contains
+    local has_quarter = contains(item, "quarter_")
+    local has_dot = contains(item, ".")
+    
+    print("      contains(item, 'quarter_'): ", has_quarter)
+    print("      contains(item, '.'): ", has_dot)
+    print("      not contains(item, 'quarter_'): ", not has_quarter)
+    print("      not contains(item, '.'): ", not has_dot)
+    print("      Условие (not contains(...) and not contains(...)): ", not has_quarter and not has_dot)
+    
+    # Проверяем реальное условие
+    if not contains(item, "quarter_") and not contains(item, ".") do
+        print("      ✅ УСЛОВИЕ ВЫПОЛНЕНО")
+    else
+        print("      ⚠️  УСЛОВИЕ НЕ ВЫПОЛНЕНО")
+    endif
+    print()
+next item
+
+# Тест 3: Прямая проверка строки "quarter_2025_Q1"
+print("Тест 3: Прямая проверка строки 'quarter_2025_Q1'")
+print()
+
+local test_string = "quarter_2025_Q1"
+print("  test_string = '", test_string, "'")
+print("  typeof(test_string): ", typeof(test_string))
+
+local has_quarter = contains(test_string, "quarter_")
+local has_dot = contains(test_string, ".")
+
+print("  contains('", test_string, "', 'quarter_'): ", has_quarter)
+print("  contains('", test_string, "', '.'): ", has_dot)
+print("  not contains('", test_string, "', 'quarter_'): ", not has_quarter)
+print("  not contains('", test_string, "', '.'): ", not has_dot)
+print("  Условие (not contains(...) and not contains(...)): ", not has_quarter and not has_dot)
+
+if not contains(test_string, "quarter_") and not contains(test_string, ".") do
+    print("  ✅ УСЛОВИЕ ВЫПОЛНЕНО - ЭТО НЕПРАВИЛЬНО!")
+else
+    print("  ⚠️  УСЛОВИЕ НЕ ВЫПОЛНЕНО - ЭТО ПРАВИЛЬНО")
+endif
+print()
+
+print("============================================================")
+print("✅ Тест завершен")
+print("============================================================")
+

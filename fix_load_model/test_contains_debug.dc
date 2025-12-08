@@ -1,0 +1,100 @@
+# Тест отладки проблемы с contains
+# Воспроизводим точную ситуацию из load_model_data.dc
+
+print("============================================================")
+print("Тест: Отладка проблемы contains в load_model_data.dc")
+print("============================================================")
+
+global base_path = getcwd() / "model_data"
+
+print("📂 Базовый путь: ", base_path)
+print()
+
+# Получаем список годов
+global year_dirs = []
+try
+    year_dirs = list_files(base_path)
+    print("  Найдено элементов в model_data: ", len(year_dirs))
+catch e
+    print("  ⚠️  Ошибка получения списка файлов: ", e)
+endtry
+print()
+
+# Обрабатываем каждую директорию года (как в оригинальном коде)
+for year_dir in year_dirs do
+    # Пропускаем файлы и служебные директории
+    if year_dir != '2025' do
+        next year_dir
+    endif
+
+    print("  🔍 Год ", year_dir)
+
+    if year_dir != "docs" and year_dir != "__pycache__" and year_dir != "generate_model_data.py" and not contains(year_dir, ".") do
+        
+        # Получаем список месяцев в году
+        local month_list = null
+        try
+            month_list = list_files(base_path / year_dir)
+            print("     Найдено элементов в году: ", len(month_list))
+        catch e
+            print("     ⚠️  Ошибка получения месяцев: ", e)
+            month_list = null
+        endtry
+        
+        # Обрабатываем каждую директорию месяца (ТОЧНО КАК В ОРИГИНАЛЕ)
+        for month_dir_name in month_list do
+            if month_dir_name != '03' do
+                next month_dir_name
+            endif
+
+            print("     🔍 Месяц ", month_dir_name)
+
+            for file_mounth in list_files(base_path / year_dir / month_dir_name) do
+                
+                print("        🔍 Файл ", file_mounth)
+                # ВОТ ПРОБЛЕМНОЕ УСЛОВИЕ
+                print("        Проверка условия: if not contains(file_mounth, 'quarter_') and not contains(file_mounth, '.')")
+                
+                # Детальная отладка
+                local check1 = contains(file_mounth, "quarter_")
+                local check2 = contains(file_mounth, ".")
+                local not_check1 = not check1
+                local not_check2 = not check2
+                local final_condition = not_check1 and not_check2
+                
+                print("        contains(file_mounth, 'quarter_'): ", check1)
+                print("        contains(file_mounth, '.'): ", check2)
+                print("        not contains(file_mounth, 'quarter_'): ", not_check1)
+                print("        not contains(file_mounth, '.'): ", not_check2)
+                print("        Итоговое условие (not check1 and not check2): ", final_condition)
+                print("        typeof(file_mounth): ", typeof(month_dir_name))
+                print("        file_mounth == 'quarter_2025_Q1': ", file_mounth == "quarter_2025_Q1")
+                
+                # Проверяем реальное условие
+                if contains(file_mounth, "quarter_") and not contains(file_mounth, ".") do
+                    print("        ✅ УСЛОВИЕ ВЫПОЛНЕНО - ВОШЕЛ В IF")
+                    
+                    # file_mounth должно быть "01", "02", ..., "12"
+                    for file in list_files(base_path / year_dir / month_dir_name / file_mounth) do
+                        print("             🔍 файл ", file)
+                    next file
+                else
+                    print("        ⚠️  УСЛОВИЕ НЕ ВЫПОЛНЕНО - НЕ ВОШЕЛ В IF")
+                    if check1 do
+                        print("        Причина: содержит 'quarter_'")
+                    endif
+                    if check2 do
+                        print("        Причина: содержит '.'")
+                    endif
+                    print("        Так и нужно")
+                endif
+                print()
+            next file_mounth
+        next month_dir_name
+    endif
+next year_dir
+
+print("============================================================")
+print("✅ Тест завершен")
+print("============================================================")
+

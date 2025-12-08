@@ -65,6 +65,13 @@ Quick index of all examples with brief descriptions and links for convenient nav
 ### 🎪 [07-demonstrations/](07-demonstrations/) - Comprehensive Demonstrations
 - [`showcase.dc`](07-demonstrations/showcase.dc) - Complete demonstration of all capabilities
 
+### 🗄️ [09-creat-database-model/](09-creat-database-model/) - Database Modeling
+- [`load_model_data.dc`](09-creat-database-model/load_model_data.dc) - Complete database model creation from CSV files
+- [`01-file-operations.dc`](09-creat-database-model/01-file-operations.dc) - Working with files and directories
+- [`02-merge-tables.dc`](09-creat-database-model/02-merge-tables.dc) - Merging multiple tables
+- [`03-create-relations.dc`](09-creat-database-model/03-create-relations.dc) - Creating relationships between tables
+- [`04-load-quarterly-data.dc`](09-creat-database-model/04-load-quarterly-data.dc) - Loading quarterly aggregated data
+
 ## 📚 Documentation
 
 ### Main Documentation
@@ -79,6 +86,7 @@ Quick index of all examples with brief descriptions and links for convenient nav
 - **[05-data-types/README.md](05-data-types/README.md)** - 🔢 Type system
 - **[06-developer-tools/README.md](06-developer-tools/README.md)** - 🛠️ Developer tools
 - **[07-demonstrations/README.md](07-demonstrations/README.md)** - 🎪 Comprehensive demonstrations
+- **[09-creat-database-model/README.md](09-creat-database-model/README.md)** - 🗄️ Database modeling and SQLite export
 
 ## 🚀 Quick Start
 
@@ -101,6 +109,9 @@ cargo run examples/04-data-processing/table_demo.dc
 
 # Complete demonstration of all capabilities
 cargo run examples/07-demonstrations/showcase.dc
+
+# Create database model from CSV files
+cargo run examples/09-creat-database-model/load_model_data.dc --build_model
 ```
 
 ## 💡 Learning Tips
@@ -108,13 +119,14 @@ cargo run examples/07-demonstrations/showcase.dc
 - **Beginners**: start with section `01-basics/` (`simple.dc` → `hello.dc`)
 - **Programmers**: move to `02-language-syntax/` (`functions.dc` → `conditionals.dc`)
 - **For data work**: study section `04-data-processing/` and its detailed documentation
+- **For database modeling**: explore section `09-creat-database-model/` to learn how to build SQLite databases from CSV files
 - **To learn all capabilities**: complete learning with section `07-demonstrations/showcase.dc`
 - **For debugging and development**: use tools from `06-developer-tools/`
 
 ## 🎓 Structured Learning
 
 Follow the recommended section order:
-**01-basics** → **02-language-syntax** → **05-data-types** → **04-data-processing** → **03-advanced-features** → **06-developer-tools** → **07-demonstrations**
+**01-basics** → **02-language-syntax** → **05-data-types** → **04-data-processing** → **03-advanced-features** → **09-creat-database-model** → **06-developer-tools** → **07-demonstrations**
 
 ---
 *Updated: 2025-07-15 | Professional DataCode examples organization*

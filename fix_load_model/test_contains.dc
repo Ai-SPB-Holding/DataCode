@@ -1,0 +1,5 @@
+global arr = ["product_id", "category"]
+print("arr = ", arr)
+print("contains(arr, 'product_id') = ", contains(arr, "product_id"))
+print("contains(arr, 'category') = ", contains(arr, "category"))
+print("contains(arr, 'nonexistent') = ", contains(arr, "nonexistent"))

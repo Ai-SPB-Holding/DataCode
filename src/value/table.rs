@@ -212,10 +212,19 @@ impl Table {
 
     /// Phase 1 Optimization: Add multiple rows efficiently
     pub fn add_rows(&mut self, rows: Vec<Vec<Value>>) -> Result<(), String> {
-        // Pre-allocate capacity for better performance
-        self.rows.reserve(rows.len());
+        let start_time = std::time::Instant::now();
+        let debug_mode = std::env::var("DATACODE_DEBUG").is_ok();
+        let total_rows = rows.len();
+        
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows: Начало добавления {} строк", total_rows);
+        }
 
-        for row in rows {
+        // Pre-allocate capacity for better performance
+        self.rows.reserve(total_rows);
+
+        let add_start = std::time::Instant::now();
+        for (row_idx, row) in rows.into_iter().enumerate() {
             if row.len() != self.column_names.len() {
                 return Err(format!(
                     "Количество значений в строке ({}) не соответствует количеству колонок ({})",
@@ -231,11 +240,90 @@ impl Table {
             }
 
             self.rows.push(row);
+            
+            // Выводим прогресс каждые 5000 строк
+            if debug_mode && (row_idx + 1) % 5000 == 0 {
+                eprintln!("🔍 DEBUG Table::add_rows: Добавлено строк: {}/{}, время: {:?}", 
+                    row_idx + 1, total_rows, add_start.elapsed());
+            }
+        }
+
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows: Все строки добавлены, время добавления: {:?}", add_start.elapsed());
         }
 
         // Finalize type inference after bulk operation
+        let inference_start = std::time::Instant::now();
         self.finalize_type_inference();
+        
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows: Типизация завершена, время типизации: {:?}, общее время: {:?}", 
+                inference_start.elapsed(), start_time.elapsed());
+        }
+        
         Ok(())
+    }
+
+    /// Add multiple rows, skipping rows with invalid column counts
+    /// Returns the number of skipped rows
+    pub fn add_rows_skip_invalid(&mut self, rows: Vec<Vec<Value>>) -> (usize, usize) {
+        let start_time = std::time::Instant::now();
+        let debug_mode = std::env::var("DATACODE_DEBUG").is_ok();
+        let total_rows = rows.len();
+        
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows_skip_invalid: Начало добавления {} строк", total_rows);
+        }
+
+        // Pre-allocate capacity for better performance
+        self.rows.reserve(total_rows);
+
+        let add_start = std::time::Instant::now();
+        let mut skipped = 0;
+        let mut added = 0;
+
+        for (row_idx, row) in rows.into_iter().enumerate() {
+            if row.len() != self.column_names.len() {
+                if debug_mode {
+                    eprintln!("🔍 DEBUG Table::add_rows_skip_invalid: Пропущена строка {}: {} колонок вместо {}", 
+                        row_idx + 1, row.len(), self.column_names.len());
+                }
+                skipped += 1;
+                continue;
+            }
+
+            // Update column type information
+            for (i, value) in row.iter().enumerate() {
+                if let Some(column) = self.columns.get_mut(i) {
+                    column.add_value(value);
+                }
+            }
+
+            self.rows.push(row);
+            added += 1;
+            
+            // Выводим прогресс каждые 5000 строк
+            if debug_mode && (row_idx + 1) % 5000 == 0 {
+                eprintln!("🔍 DEBUG Table::add_rows_skip_invalid: Добавлено строк: {}/{}, пропущено: {}, время: {:?}", 
+                    added, total_rows, skipped, add_start.elapsed());
+            }
+        }
+
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows_skip_invalid: Добавлено строк: {}, пропущено: {}, время добавления: {:?}", 
+                added, skipped, add_start.elapsed());
+        }
+
+        // Finalize type inference after bulk operation
+        let inference_start = std::time::Instant::now();
+        self.finalize_type_inference();
+        
+        if debug_mode {
+            eprintln!("🔍 DEBUG Table::add_rows_skip_invalid: Типизация завершена, время типизации: {:?}, общее время: {:?}", 
+                inference_start.elapsed(), start_time.elapsed());
+        }
+        
+        (added, skipped)
     }
 
     /// Phase 1 Optimization: Finalize type inference for all columns

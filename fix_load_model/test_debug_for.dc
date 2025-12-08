@@ -1,9 +1,0 @@
-# Отладочный тест
-try
-    for i in [1, 2, 3] do
-        print("i = ", i)
-    next i
-catch e
-    print("Ошибка: ", e)
-endtry
-

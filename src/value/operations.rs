@@ -112,6 +112,13 @@ impl ValueOperations for Value {
                 let table_borrowed = table.borrow();
                 format!("Table({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
             }
+            Value::TableColumn(_table, column) => {
+                format!("Column({})", column)
+            }
+            Value::TableIndexer(table) => {
+                let table_borrowed = table.borrow();
+                format!("TableIndexer({}x{})", table_borrowed.rows.len(), table_borrowed.columns.len())
+            }
             Value::Currency(s) => s.clone(),
             Value::Null => "null".to_string(),
             Value::Path(p) => p.to_string_lossy().to_string(),
@@ -366,6 +373,8 @@ pub fn to_boolean(value: &Value) -> bool {
         Array(arr) => !arr.is_empty(),
         Object(obj) => !obj.is_empty(),
         Table(table) => !table.borrow().rows.is_empty(),
+        TableColumn(_, _) => true,
+        TableIndexer(table) => !table.borrow().rows.is_empty(),
         Currency(s) => !s.is_empty(),
         Path(p) => p.as_os_str().len() > 0,
         PathPattern(p) => p.as_os_str().len() > 0,

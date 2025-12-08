@@ -64,6 +64,12 @@ pub struct Interpreter {
 
     /// Возвращаемое значение функции
     pub return_value: Option<Value>,
+    /// Флаг запроса прерывания цикла (break)
+    pub break_requested: bool,
+    /// Флаг запроса пропуска текущей итерации цикла (next/continue)
+    pub continue_requested: bool,
+    /// Счетчик активных циклов (для проверки правильности использования break)
+    pub active_loop_count: usize,
     /// Текущая строка для отслеживания ошибок
     pub current_line: usize,
     /// Стек блоков try/catch
@@ -94,6 +100,9 @@ impl Interpreter {
             variable_manager: VariableManager::new(),
             function_manager: UserFunctionManager::new(),
             return_value: None,
+            break_requested: false,
+            continue_requested: false,
+            active_loop_count: 0,
             current_line: 1,
             exception_stack: Vec::new(),
             recursion_depth: 0,
@@ -1874,6 +1883,8 @@ impl Interpreter {
         self.variable_manager.clear();
         self.function_manager.clear();
         self.return_value = None;
+        self.break_requested = false;
+        self.active_loop_count = 0;
         self.current_line = 1;
         self.exception_stack.clear();
         self.recursion_depth = 0;

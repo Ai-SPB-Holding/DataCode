@@ -1,0 +1,17 @@
+# Тест relate() после merge_tables()
+
+global table1_part1 = table([[1, "A"]], ["id", "name"])
+global table1_part2 = table([[2, "B"]], ["id", "name"])
+global table2_part1 = table([[1, "X"]], ["id", "value"])
+global table2_part2 = table([[2, "Y"]], ["id", "value"])
+
+print("Объединяю таблицы...")
+global table1 = merge_tables([table1_part1, table1_part2])
+global table2 = merge_tables([table2_part1, table2_part2])
+
+print("Создаю связь...")
+relate(table1["id"], table2["id"])
+print("Связь создана")
+
+print("Экспортирую...")
+

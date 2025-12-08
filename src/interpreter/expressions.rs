@@ -378,16 +378,52 @@ impl<'a> ExpressionEvaluator<'a> {
             }
             (Table(table), String(column_name)) => {
                 let table_borrowed = table.borrow();
-                if let Some(col_index) = table_borrowed.column_names.iter().position(|name| name == column_name) {
-                    let column_data: Vec<Value> = table_borrowed.rows.iter()
-                        .map(|row| row.get(col_index).cloned().unwrap_or(Null))
-                        .collect();
-                    Ok(Array(column_data))
+                if table_borrowed.column_names.iter().any(|name| name == column_name) {
+                    // Возвращаем TableColumn для использования в relate()
+                    // Это позволяет relate() работать с table["column_name"]
+                    Ok(Value::TableColumn(table.clone(), column_name.clone()))
                 } else {
                     Err(DataCodeError::runtime_error(
                         &format!("Column '{}' not found in table", column_name),
                         self.current_line,
                     ))
+                }
+            }
+            (TableIndexer(table), Number(n)) => {
+                // Индексация table.idx[i] - возвращаем строку таблицы
+                let table_borrowed = table.borrow();
+                let idx = *n as i64;
+                let len = table_borrowed.rows.len() as i64;
+                let actual_idx = if idx < 0 { len + idx } else { idx };
+                if actual_idx < 0 || actual_idx >= len {
+                    Err(DataCodeError::runtime_error(
+                        &format!("Table row index {} out of bounds (rows: {})", idx, len),
+                        self.current_line,
+                    ))
+                } else {
+                    // Возвращаем строку как массив
+                    Ok(Array(table_borrowed.rows[actual_idx as usize].clone()))
+                }
+            }
+            (TableColumn(table, column_name), Number(n)) => {
+                // Индексация TableColumn по номеру строки
+                let table_borrowed = table.borrow();
+                let col_index = table_borrowed.column_names.iter()
+                    .position(|name| name == column_name)
+                    .ok_or_else(|| DataCodeError::runtime_error(
+                        &format!("Column '{}' not found in table", column_name),
+                        self.current_line,
+                    ))?;
+                let row_idx = *n as i64;
+                let len = table_borrowed.rows.len() as i64;
+                let actual_idx = if row_idx < 0 { len + row_idx } else { row_idx };
+                if actual_idx < 0 || actual_idx >= len {
+                    Err(DataCodeError::runtime_error(
+                        &format!("Table row index {} out of bounds (rows: {})", row_idx, len),
+                        self.current_line,
+                    ))
+                } else {
+                    Ok(table_borrowed.rows[actual_idx as usize][col_index].clone())
                 }
             }
             (Object(obj), String(key)) => {
@@ -397,6 +433,12 @@ impl<'a> ExpressionEvaluator<'a> {
                         &format!("Key '{}' not found in object", key),
                         self.current_line,
                     ))
+            }
+            (Table(_), Number(_)) => {
+                Err(DataCodeError::runtime_error(
+                    "Cannot index table with number. Use table.idx[i] to access rows or table['column_name'] to access columns",
+                    self.current_line,
+                ))
             }
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot index {:?} with {:?}", object, index),
@@ -450,6 +492,52 @@ impl<'a> ExpressionEvaluator<'a> {
                     ))
                 }
             }
+            Table(table) => {
+                // Доступ к свойствам таблицы
+                let table_borrowed = table.borrow();
+                match member {
+                    "rows" => {
+                        // Возвращаем массив строк (каждая строка - массив значений)
+                        let rows: Vec<Value> = table_borrowed.rows.iter()
+                            .map(|row| Array(row.clone()))
+                            .collect();
+                        Ok(Object({
+                            let mut obj = std::collections::HashMap::new();
+                            obj.insert("rows".to_string(), Array(rows));
+                            obj.insert("len".to_string(), Number(table_borrowed.rows.len() as f64));
+                            obj
+                        }))
+                    }
+                    "columns" => Ok(Number(table_borrowed.columns.len() as f64)),
+                    "column_names" => {
+                        let names: Vec<Value> = table_borrowed.column_names.iter()
+                            .map(|name| String(name.clone()))
+                            .collect();
+                        Ok(Array(names))
+                    }
+                    "idx" => {
+                        // Возвращаем индексатор таблицы для table.idx[i]
+                        Ok(TableIndexer(table.clone()))
+                    }
+                    _ => {
+                        // Попробуем найти колонку с таким именем
+                        if table_borrowed.column_names.contains(&member.to_string()) {
+                            Ok(TableColumn(table.clone(), member.to_string()))
+                        } else {
+                            Err(DataCodeError::runtime_error(
+                                &format!("Table has no member or column '{}'", member),
+                                self.current_line,
+                            ))
+                        }
+                    }
+                }
+            }
+            TableIndexer(_) => {
+                Err(DataCodeError::runtime_error(
+                    &format!("TableIndexer does not support member access '{}'", member),
+                    self.current_line,
+                ))
+            }
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot access member '{}' on {:?}", member, object),
                 self.current_line,
@@ -468,6 +556,8 @@ impl<'a> ExpressionEvaluator<'a> {
             Array(arr) => !arr.is_empty(),
             Object(obj) => !obj.is_empty(),
             Table(table) => !table.borrow().rows.is_empty(),
+            TableColumn(_, _) => true,
+            TableIndexer(table) => !table.borrow().rows.is_empty(),
             Null => false,
             Path(p) => p.exists(),
             PathPattern(_) => true,

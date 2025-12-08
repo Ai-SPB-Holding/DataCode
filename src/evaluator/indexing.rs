@@ -22,7 +22,29 @@ impl<'a> IndexingHandler<'a> {
             (Value::Array(arr), Value::Number(n)) => self.index_array(arr, *n),
             (Value::String(s), Value::Number(n)) => self.index_string(s, *n),
             (Value::Object(obj), Value::String(key)) => self.index_object(obj, key),
-            (Value::Table(table), Value::Number(n)) => {
+            (Value::TableColumn(table, column_name), Value::Number(n)) => {
+                // Индексация TableColumn по номеру строки
+                let table_borrowed = table.borrow();
+                let col_index = table_borrowed.column_names.iter()
+                    .position(|name| name == column_name)
+                    .ok_or_else(|| DataCodeError::runtime_error(
+                        &format!("Column '{}' not found in table", column_name),
+                        self.evaluator.line()
+                    ))?;
+                let row_idx = *n as i64;
+                let len = table_borrowed.rows.len() as i64;
+                let actual_idx = if row_idx < 0 { len + row_idx } else { row_idx };
+                if actual_idx < 0 || actual_idx >= len {
+                    Err(DataCodeError::runtime_error(
+                        &format!("Table row index {} out of bounds (rows: {})", row_idx, len),
+                        self.evaluator.line()
+                    ))
+                } else {
+                    Ok(table_borrowed.rows[actual_idx as usize][col_index].clone())
+                }
+            },
+            (Value::TableIndexer(table), Value::Number(n)) => {
+                // Индексация table.idx[i] - возвращаем строку таблицы
                 let table_borrowed = table.borrow();
                 self.index_table_row(&*table_borrowed, *n)
             },
@@ -35,9 +57,18 @@ impl<'a> IndexingHandler<'a> {
                         .collect();
                     Ok(Value::Array(rows))
                 } else {
-                    self.index_table_column(&*table_borrowed, column_name)
+                    // Возвращаем TableColumn для использования в relate()
+                    // Для обратной совместимости можно также вернуть массив значений
+                    // Но для relate() нужен TableColumn
+                    self.index_table_column(table.clone(), column_name)
                 }
             },
+            (Value::Table(_), Value::Number(_)) => {
+                Err(DataCodeError::runtime_error(
+                    "Cannot index table with number. Use table.idx[i] to access rows or table['column_name'] to access columns",
+                    self.evaluator.line()
+                ))
+            }
             _ => Err(DataCodeError::type_error("indexable type", "other", self.evaluator.line())),
         }
     }
@@ -130,21 +161,21 @@ impl<'a> IndexingHandler<'a> {
     }
     
     /// Индексация таблицы по имени колонки
-    fn index_table_column(&self, table: &crate::value::Table, column_name: &str) -> Result<Value> {
-        // Находим индекс колонки
-        let col_index = table.column_names.iter()
+    fn index_table_column(&self, table: std::rc::Rc<std::cell::RefCell<crate::value::Table>>, column_name: &str) -> Result<Value> {
+        use crate::value::Value;
+        
+        // Проверяем, существует ли колонка
+        let table_borrowed = table.borrow();
+        let col_index = table_borrowed.column_names.iter()
             .position(|name| name == column_name)
             .ok_or_else(|| DataCodeError::runtime_error(
                 &format!("Column '{}' not found in table", column_name),
                 self.evaluator.line()
             ))?;
         
-        // Извлекаем все значения из этой колонки
-        let column_values: Vec<Value> = table.rows.iter()
-            .map(|row| row.get(col_index).cloned().unwrap_or(Value::Null))
-            .collect();
-        
-        Ok(Value::Array(column_values))
+        // Возвращаем TableColumn для использования в relate()
+        // Это позволяет relate() работать с table["column_name"]
+        Ok(Value::TableColumn(table.clone(), column_name.to_string()))
     }
 }
 
@@ -164,8 +195,14 @@ impl<'a> MemberAccessHandler<'a> {
         match object {
             Value::Object(obj) => self.access_object_member(obj, member),
             Value::Table(table) => {
-                let table_borrowed = table.borrow();
-                self.access_table_member(&*table_borrowed, member)
+                self.access_table_member(table.clone(), member)
+            },
+            Value::TableIndexer(table) => {
+                // TableIndexer также может иметь члены (например, для будущего расширения)
+                Err(DataCodeError::runtime_error(
+                    &format!("TableIndexer does not support member access '{}'", member),
+                    self.evaluator.line()
+                ))
             },
             Value::Array(arr) => self.access_array_member(arr, member),
             Value::String(s) => self.access_string_member(s, member),
@@ -184,32 +221,37 @@ impl<'a> MemberAccessHandler<'a> {
     }
     
     /// Доступ к свойствам таблицы
-    fn access_table_member(&self, table: &crate::value::Table, member: &str) -> Result<Value> {
+    fn access_table_member(&self, table: std::rc::Rc<std::cell::RefCell<crate::value::Table>>, member: &str) -> Result<Value> {
+        let table_borrowed = table.borrow();
         match member {
             "rows" => {
                 // Возвращаем массив строк (каждая строка - массив значений)
-                let rows: Vec<Value> = table.rows.iter()
+                let rows: Vec<Value> = table_borrowed.rows.iter()
                     .map(|row| Value::Array(row.clone()))
                     .collect();
                 Ok(Value::Object({
                     let mut obj = std::collections::HashMap::new();
                     obj.insert("rows".to_string(), Value::Array(rows));
-                    obj.insert("len".to_string(), Value::Number(table.rows.len() as f64));
+                    obj.insert("len".to_string(), Value::Number(table_borrowed.rows.len() as f64));
                     obj
                 }))
             }
-            "columns" => Ok(Value::Number(table.columns.len() as f64)),
+            "columns" => Ok(Value::Number(table_borrowed.columns.len() as f64)),
             "column_names" => {
-                let names: Vec<Value> = table.column_names.iter()
+                let names: Vec<Value> = table_borrowed.column_names.iter()
                     .map(|name| Value::String(name.clone()))
                     .collect();
                 Ok(Value::Array(names))
             }
+            "idx" => {
+                // Возвращаем индексатор таблицы для table.idx[i]
+                Ok(Value::TableIndexer(table.clone()))
+            }
             _ => {
                 // Попробуем найти колонку с таким именем
-                if table.column_names.contains(&member.to_string()) {
+                if table_borrowed.column_names.contains(&member.to_string()) {
                     let indexing_handler = IndexingHandler::new(self.evaluator);
-                    indexing_handler.index_table_column(table, member)
+                    indexing_handler.index_table_column(table.clone(), member)
                 } else {
                     Err(DataCodeError::runtime_error(
                         &format!("Table has no member or column '{}'", member),

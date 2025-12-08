@@ -137,6 +137,8 @@ impl<'a> FunctionCallHandler<'a> {
             Value::Array(_) => "array",
             Value::Object(_) => "object",
             Value::Table(_) => "table",
+            Value::TableColumn(_, _) => "tablecolumn",
+            Value::TableIndexer(_) => "tableindexer",
             Value::Currency(_) => "currency",
             Value::Path(_) => "path",
             Value::PathPattern(_) => "path_pattern",

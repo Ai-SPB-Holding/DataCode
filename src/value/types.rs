@@ -96,6 +96,8 @@ pub enum Value {
     Array(Vec<Value>),
     Object(HashMap<String, Value>),
     Table(Rc<RefCell<Table>>), // Оптимизированное хранение таблиц
+    TableColumn(Rc<RefCell<Table>>, String), // Колонка таблицы: (таблица, имя колонки)
+    TableIndexer(Rc<RefCell<Table>>), // Индексатор таблицы для table.idx[i]
     Currency(String), // Хранит оригинальную строку с валютой
     Null,
     Path(PathBuf),
@@ -252,6 +254,22 @@ impl Value {
             _ => None,
         }
     }
+    
+    /// Попытаться получить колонку таблицы
+    pub fn as_table_column(&self) -> Option<(Rc<RefCell<Table>>, String)> {
+        match self {
+            Value::TableColumn(table, column) => Some((table.clone(), column.clone())),
+            _ => None,
+        }
+    }
+    
+    /// Попытаться получить индексатор таблицы
+    pub fn as_table_indexer(&self) -> Option<Rc<RefCell<Table>>> {
+        match self {
+            Value::TableIndexer(table) => Some(table.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl PartialEq for Value {
@@ -266,6 +284,18 @@ impl PartialEq for Value {
                 // Сравниваем содержимое таблиц
                 let a_borrowed = a.borrow();
                 let b_borrowed = b.borrow();
+                *a_borrowed == *b_borrowed
+            },
+            (Value::TableColumn(a_table, a_col), Value::TableColumn(b_table, b_col)) => {
+                // Сравниваем таблицы и имена колонок
+                let a_borrowed = a_table.borrow();
+                let b_borrowed = b_table.borrow();
+                a_col == b_col && *a_borrowed == *b_borrowed
+            },
+            (Value::TableIndexer(a_table), Value::TableIndexer(b_table)) => {
+                // Сравниваем таблицы
+                let a_borrowed = a_table.borrow();
+                let b_borrowed = b_table.borrow();
                 *a_borrowed == *b_borrowed
             },
             (Value::Currency(a), Value::Currency(b)) => a == b,

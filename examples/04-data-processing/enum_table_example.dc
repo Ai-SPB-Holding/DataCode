@@ -36,12 +36,12 @@ global problem_indices = []
 global problem_values = []
 
 for pair in enum(customer_numbers) do
-    global idx = pair[0]
-    global val = pair[1]
+    local idx = pair[0]
+    local val = pair[1]
 
     if not isinstance(val, num) do
-        global problem_indices = push(problem_indices, idx)
-        global problem_values = push(problem_values, val)
+        problem_indices = push(problem_indices, idx)
+        problem_values = push(problem_values, val)
     endif
 next pair
 

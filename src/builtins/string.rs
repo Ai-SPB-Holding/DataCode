@@ -74,10 +74,16 @@ pub fn call_string_function(name: &str, args: Vec<Value>, line: usize) -> Result
                 return Err(DataCodeError::wrong_argument_count("contains", 2, args.len(), line));
             }
             match (&args[0], &args[1]) {
+                // Поддержка строк (проверка подстроки)
                 (String(text), String(substring)) => {
                     Ok(Bool(text.contains(substring)))
                 }
-                _ => Err(DataCodeError::type_error("String", "other", line)),
+                // Поддержка массивов (проверка наличия элемента)
+                (Array(arr), value) => {
+                    let found = arr.iter().any(|item| item == value);
+                    Ok(Bool(found))
+                }
+                _ => Err(DataCodeError::type_error("String or Array", "other", line)),
             }
         }
         

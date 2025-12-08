@@ -22,6 +22,11 @@ fn table_headers_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
     crate::builtins::table::call_table_function("table_headers", args, line)
 }
 
+/// Обертка для функции merge_tables
+fn merge_tables_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
+    crate::builtins::table::call_table_function("merge_tables", args, line)
+}
+
 /// Обертка для функции table_filter
 fn table_filter_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
     crate::builtins::table::call_table_function("table_filter", args, line)
@@ -40,6 +45,11 @@ fn table_select_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
 /// Обертка для функции table_head
 fn table_head_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
     crate::builtins::table::call_table_function("table_head", args, line)
+}
+
+/// Обертка для функции relate
+fn relate_wrapper(args: Vec<Value>, line: usize) -> Result<Value> {
+    crate::builtins::table::call_table_function("relate", args, line)
 }
 
 /// Обертка для функции sum
@@ -295,10 +305,26 @@ impl FunctionRegistry {
         ));
 
         self.register(FunctionInfo::new(
+            "merge_tables",
+            merge_tables_wrapper,
+            1, Some(1),
+            "Merge multiple tables into one",
+            "table"
+        ));
+
+        self.register(FunctionInfo::new(
             "table_head",
             table_head_wrapper,
             1, Some(2),
             "Get first n rows of table",
+            "table"
+        ));
+
+        self.register(FunctionInfo::new(
+            "relate",
+            relate_wrapper,
+            2, Some(2),
+            "Create a relation between two table columns",
             "table"
         ));
     }

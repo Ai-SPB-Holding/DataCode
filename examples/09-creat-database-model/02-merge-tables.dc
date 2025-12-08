@@ -1,0 +1,102 @@
+# Example 2: Merging Tables
+# Demonstrates how to merge multiple tables into one using merge_tables()
+
+print("============================================================")
+print("Example 2: Merging Tables")
+print("============================================================")
+print()
+
+# Example 2.1: Basic table merging
+print("🔍 Example 2.1: Basic table merging...")
+
+# Create sample tables with same structure
+global table1 = table_create([
+    [1, "Alice", 25],
+    [2, "Bob", 30]
+], ["id", "name", "age"])
+
+global table2 = table_create([
+    [3, "Charlie", 35],
+    [4, "David", 28]
+], ["id", "name", "age"])
+
+global table3 = table_create([
+    [5, "Eve", 32]
+], ["id", "name", "age"])
+
+print("  Table 1: ", len(table1), " rows")
+print("  Table 2: ", len(table2), " rows")
+print("  Table 3: ", len(table3), " rows")
+print()
+
+# Merge tables
+global merged = merge_tables([table1, table2, table3])
+
+if merged != null do
+    print("  ✓ Merged table created: ", len(merged), " rows")
+    print("  ✓ Headers: ", table_headers(merged))
+else
+    print("  ✗ Error: merged table is null")
+endif
+print()
+
+# Example 2.2: Merging tables from files
+print("🔍 Example 2.2: Merging tables loaded from files...")
+try
+    global base_path = getcwd() / "model_data"
+    
+    # Load multiple monthly sales files
+    global sales_tables = []
+    
+    # Load first quarter of 2023
+    for month in ["01", "02", "03"] do
+        local file_path = base_path / "2023" / month / ("sales_2023_" + month + ".csv")
+        try
+            local data = read_file(file_path)
+            sales_tables = push(sales_tables, data)
+            print("  ✓ Loaded sales_2023_", month, ".csv: ", len(data), " rows")
+        catch e
+            print("  ⚠️  Could not load sales_2023_", month, ".csv: ", e)
+        endtry
+    next month
+    
+    print()
+    
+    # Merge all sales tables
+    if len(sales_tables) > 0 do
+        global all_sales = merge_tables(sales_tables)
+        if all_sales != null do
+            print("  ✓ Merged sales data: ", len(all_sales), " total rows")
+            print("  ✓ Headers: ", table_headers(all_sales))
+        endif
+    endif
+    print()
+catch e
+    print("  ✗ Error: ", e)
+    print()
+endtry
+
+# Example 2.3: Edge cases
+print("🔍 Example 2.3: Edge cases...")
+
+# Empty array
+global empty_merged = merge_tables([])
+if empty_merged == null do
+    print("  ✓ merge_tables([]) returns null (expected)")
+else
+    print("  ✗ Error: merge_tables([]) should return null")
+endif
+
+# Single table
+global single_merged = merge_tables([table1])
+if single_merged != null and len(single_merged) == len(table1) do
+    print("  ✓ merge_tables([single_table]) works correctly: ", len(single_merged), " rows")
+else
+    print("  ✗ Error: merge_tables([single_table]) failed")
+endif
+print()
+
+print("============================================================")
+print("✅ Example 2 completed")
+print("============================================================")
+
