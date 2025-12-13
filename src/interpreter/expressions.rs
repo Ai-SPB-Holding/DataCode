@@ -4,6 +4,7 @@ use crate::parser::{Expr, BinaryOp, UnaryOp};
 use crate::builtins::call_builtin_function_with_named_args;
 use super::variables::VariableManager;
 use super::user_functions::UserFunctionManager;
+use std::path::PathBuf;
 
 /// Вычислитель выражений для интерпретатора
 pub struct ExpressionEvaluator<'a> {
@@ -537,6 +538,54 @@ impl<'a> ExpressionEvaluator<'a> {
                     &format!("TableIndexer does not support member access '{}'", member),
                     self.current_line,
                 ))
+            }
+            Path(p) | PathPattern(p) => {
+                // Доступ к свойствам пути
+                match member {
+                    "name" => {
+                        Ok(Value::String(
+                            p.file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                                .to_string()
+                        ))
+                    }
+                    "parent" => {
+                        match p.parent() {
+                            Some(parent) => Ok(Value::Path(parent.to_path_buf())),
+                            None => Ok(Value::Null),
+                        }
+                    }
+                    "exists" => Ok(Value::Bool(p.exists())),
+                    "is_file" => Ok(Value::Bool(p.is_file())),
+                    "is_dir" => Ok(Value::Bool(p.is_dir())),
+                    "extension" => {
+                        Ok(Value::String(
+                            p.extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("")
+                                .to_string()
+                        ))
+                    }
+                    "stem" => {
+                        Ok(Value::String(
+                            p.file_stem()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("")
+                                .to_string()
+                        ))
+                    }
+                    "to_string" => {
+                        Ok(Value::String(p.to_string_lossy().to_string()))
+                    }
+                    "len" => {
+                        Ok(Value::Number(p.to_string_lossy().len() as f64))
+                    }
+                    _ => Err(DataCodeError::runtime_error(
+                        &format!("Path has no member '{}'. Available members: name, parent, exists, is_file, is_dir, extension, stem, to_string, len", member),
+                        self.current_line,
+                    )),
+                }
             }
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot access member '{}' on {:?}", member, object),

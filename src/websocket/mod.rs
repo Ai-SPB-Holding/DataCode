@@ -4,6 +4,8 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::fs;
 
 pub mod output_capture;
 pub mod smb;
@@ -34,6 +36,11 @@ enum WebSocketRequest {
     SmbReadFile {
         share_name: String,
         file_path: String,
+    },
+    #[serde(rename = "upload_file")]
+    UploadFile {
+        filename: String,
+        content: String,
     },
 }
 
@@ -70,14 +77,55 @@ struct SmbReadFileResponse {
     error: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct UploadFileResponse {
+    success: bool,
+    message: String,
+    error: Option<String>,
+}
+
+// Thread-local storage для хранения пути к папке пользователя
+thread_local! {
+    static USER_SESSION_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
+    static USE_VE_FLAG: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
+}
+
+pub fn set_user_session_path(path: Option<PathBuf>) {
+    USER_SESSION_PATH.with(|p| *p.borrow_mut() = path);
+}
+
+pub fn get_user_session_path() -> Option<PathBuf> {
+    USER_SESSION_PATH.with(|p| p.borrow().clone())
+}
+
+pub fn set_use_ve(use_ve: bool) {
+    USE_VE_FLAG.with(|f| *f.borrow_mut() = use_ve);
+}
+
+pub fn get_use_ve() -> bool {
+    USE_VE_FLAG.with(|f| *f.borrow())
+}
+
 /// Запустить WebSocket сервер на указанном адресе
-pub async fn start_server(address: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_server(address: &str, use_ve: bool) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind(address).await?;
     println!("🚀 DataCode WebSocket Server запущен на {}", address);
     println!("📡 Ожидание подключений...");
     println!("💡 Отправьте JSON запрос: {{\"code\": \"ваш код\"}}");
     println!("💡 Ответ будет в формате: {{\"success\": true/false, \"output\": \"...\", \"error\": null/\"...\"}}");
     println!();
+
+    // Если включен режим use_ve, создаем папку temp_sessions
+    if use_ve {
+        let temp_sessions_dir = Path::new("src/temp_sessions");
+        if !temp_sessions_dir.exists() {
+            if let Err(e) = fs::create_dir_all(temp_sessions_dir) {
+                eprintln!("⚠️  Предупреждение: не удалось создать папку temp_sessions: {}", e);
+            } else {
+                println!("📁 Создана папка для сессий: {}", temp_sessions_dir.display());
+            }
+        }
+    }
 
     // Используем LocalSet для локальных задач, так как Interpreter не является Send
     let local_set = tokio::task::LocalSet::new();
@@ -94,7 +142,7 @@ pub async fn start_server(address: &str) -> Result<(), Box<dyn std::error::Error
             };
             
             println!("✅ Новое подключение от {}", addr);
-            local_set.spawn_local(handle_client(stream));
+            local_set.spawn_local(handle_client(stream, use_ve));
         }
     }).await;
 
@@ -102,7 +150,7 @@ pub async fn start_server(address: &str) -> Result<(), Box<dyn std::error::Error
 }
 
 /// Обработать клиентское подключение
-async fn handle_client(stream: TcpStream) {
+async fn handle_client(stream: TcpStream, use_ve: bool) {
     let ws_stream = match accept_async(stream).await {
         Ok(ws) => ws,
         Err(e) => {
@@ -119,6 +167,34 @@ async fn handle_client(stream: TcpStream) {
     
     // Устанавливаем SmbManager в thread-local storage для доступа из функций файловых операций
     set_smb_manager(smb_manager.clone());
+    
+    // Устанавливаем флаг use_ve
+    set_use_ve(use_ve);
+    
+    // Если включен режим use_ve, создаем папку для пользователя
+    let user_session_path = if use_ve {
+        // Генерируем уникальный ID для пользователя на основе времени и случайного числа
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let user_id = format!("user_{}", timestamp);
+        let user_dir = Path::new("src/temp_sessions").join(&user_id);
+        
+        if let Err(e) = fs::create_dir_all(&user_dir) {
+            eprintln!("❌ Ошибка создания папки пользователя: {}", e);
+            None
+        } else {
+            println!("📁 Создана папка пользователя: {}", user_dir.display());
+            Some(user_dir)
+        }
+    } else {
+        None
+    };
+    
+    // Устанавливаем путь к папке пользователя в thread-local storage
+    set_user_session_path(user_session_path.clone());
 
     while let Some(msg) = read.next().await {
         match msg {
@@ -223,6 +299,81 @@ async fn handle_client(stream: TcpStream) {
                                 }
                             }
                         }
+                        WebSocketRequest::UploadFile { filename, content } => {
+                            let response = if use_ve {
+                                if let Some(session_path) = get_user_session_path() {
+                                    let file_path = session_path.join(&filename);
+                                    
+                                    // Создаем родительские директории если нужно
+                                    if let Some(parent) = file_path.parent() {
+                                        match fs::create_dir_all(parent) {
+                                            Ok(_) => {
+                                                // Декодируем base64 контент если нужно
+                                                let file_content_result = if content.starts_with("base64:") {
+                                                    use base64::Engine;
+                                                    base64::engine::general_purpose::STANDARD.decode(&content[7..])
+                                                        .map_err(|e| format!("Ошибка декодирования base64: {}", e))
+                                                } else {
+                                                    Ok(content.as_bytes().to_vec())
+                                                };
+                                                
+                                                match file_content_result {
+                                                    Ok(file_content) => {
+                                                        match fs::write(&file_path, file_content) {
+                                                            Ok(_) => UploadFileResponse {
+                                                                success: true,
+                                                                message: format!("Файл {} успешно загружен", filename),
+                                                                error: None,
+                                                            },
+                                                            Err(e) => UploadFileResponse {
+                                                                success: false,
+                                                                message: String::new(),
+                                                                error: Some(format!("Ошибка записи файла: {}", e)),
+                                                            },
+                                                        }
+                                                    }
+                                                    Err(e) => UploadFileResponse {
+                                                        success: false,
+                                                        message: String::new(),
+                                                        error: Some(e),
+                                                    },
+                                                }
+                                            }
+                                            Err(e) => UploadFileResponse {
+                                                success: false,
+                                                message: String::new(),
+                                                error: Some(format!("Ошибка создания директории: {}", e)),
+                                            },
+                                        }
+                                    } else {
+                                        UploadFileResponse {
+                                            success: false,
+                                            message: String::new(),
+                                            error: Some("Некорректный путь к файлу".to_string()),
+                                        }
+                                    }
+                                } else {
+                                    UploadFileResponse {
+                                        success: false,
+                                        message: String::new(),
+                                        error: Some("Сессия пользователя не найдена".to_string()),
+                                    }
+                                }
+                            } else {
+                                UploadFileResponse {
+                                    success: false,
+                                    message: String::new(),
+                                    error: Some("Режим --use-ve не включен".to_string()),
+                                }
+                            };
+                            
+                            if let Ok(json) = serde_json::to_string(&response) {
+                                if let Err(e) = write.send(Message::Text(json)).await {
+                                    eprintln!("❌ Ошибка отправки ответа: {}", e);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 } else {
                     // Пытаемся распарсить как старый формат для обратной совместимости
@@ -255,6 +406,20 @@ async fn handle_client(stream: TcpStream) {
                 for share in shares {
                     let _ = manager.disconnect(&share);
                 }
+                
+                // Если включен режим use_ve, удаляем папку пользователя
+                if use_ve {
+                    if let Some(session_path) = get_user_session_path() {
+                        if session_path.exists() {
+                            if let Err(e) = fs::remove_dir_all(&session_path) {
+                                eprintln!("⚠️  Ошибка удаления папки пользователя {}: {}", session_path.display(), e);
+                            } else {
+                                println!("🗑️  Удалена папка пользователя: {}", session_path.display());
+                            }
+                        }
+                    }
+                }
+                
                 break;
             }
             Ok(Message::Ping(data)) => {
@@ -265,14 +430,39 @@ async fn handle_client(stream: TcpStream) {
             }
             Err(e) => {
                 eprintln!("❌ Ошибка чтения сообщения: {}", e);
+                
+                // Если включен режим use_ve, удаляем папку пользователя при ошибке
+                if use_ve {
+                    if let Some(session_path) = get_user_session_path() {
+                        if session_path.exists() {
+                            let _ = fs::remove_dir_all(&session_path);
+                        }
+                    }
+                }
+                
                 break;
             }
             _ => {}
         }
     }
     
+    // Если включен режим use_ve, удаляем папку пользователя при выходе из цикла
+    if use_ve {
+        if let Some(session_path) = get_user_session_path() {
+            if session_path.exists() {
+                if let Err(e) = fs::remove_dir_all(&session_path) {
+                    eprintln!("⚠️  Ошибка удаления папки пользователя {}: {}", session_path.display(), e);
+                } else {
+                    println!("🗑️  Удалена папка пользователя: {}", session_path.display());
+                }
+            }
+        }
+    }
+    
     // Очищаем thread-local storage
     clear_smb_manager();
+    set_user_session_path(None);
+    set_use_ve(false);
 }
 
 /// Выполнить код и вернуть результат

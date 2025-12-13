@@ -12,12 +12,25 @@ This folder contains examples for using the DataCode WebSocket server.
 - **websocket_test_requests.md** - WebSocket testing documentation
 - **test_smb_connection.py** - Python client for testing SMB connection via WebSocket
 - **test_smb_load_data.dc** - Example DataCode script for working with files on SMB share
+- **test_file_upload.py** - Python client for testing file upload via WebSocket (requires --use-ve mode)
 
 ## Starting the Server
 
+**Standard mode:**
 ```bash
 datacode --websocket --host 0.0.0.0 --port 8899
 ```
+
+**Virtual environment mode (for file uploads):**
+```bash
+datacode --websocket --host 0.0.0.0 --port 8899 --use-ve
+```
+
+The `--use-ve` flag enables:
+- Isolated session folders in `src/temp_sessions`
+- `getcwd()` returns empty string
+- File upload support via WebSocket
+- Automatic cleanup of session folders on disconnect
 
 ## Usage
 
@@ -32,6 +45,14 @@ node test_websocket.js
 cd examples/08-websocket
 pip install websockets
 python3 test_websocket.py
+```
+
+### File Upload (Python, requires --use-ve)
+```bash
+cd examples/08-websocket
+pip install websockets
+# Make sure server is running with --use-ve flag
+python3 test_file_upload.py
 ```
 
 ### Bash
@@ -295,4 +316,143 @@ async def smb_example():
         print("Execute:", json.loads(response))
 
 asyncio.run(smb_example())
+```
+
+## File Upload via WebSocket
+
+WebSocket server supports file uploads when started with `--use-ve` flag. Each client connection gets an isolated session folder in `src/temp_sessions`.
+
+### Requirements
+
+1. Start server with `--use-ve` flag:
+```bash
+datacode --websocket --host 0.0.0.0 --port 8899 --use-ve
+```
+
+2. Install Python dependencies:
+```bash
+pip install websockets
+```
+
+### Uploading Files
+
+#### Text Files
+
+```python
+import asyncio
+import websockets
+import json
+
+async def upload_text_file():
+    async with websockets.connect("ws://localhost:8899") as websocket:
+        upload_request = {
+            "type": "upload_file",
+            "filename": "test.txt",
+            "content": "Hello, DataCode!\nThis is a test file."
+        }
+        await websocket.send(json.dumps(upload_request))
+        response = await websocket.recv()
+        result = json.loads(response)
+        print(result)
+
+asyncio.run(upload_text_file())
+```
+
+#### Binary Files (Base64)
+
+```python
+import asyncio
+import websockets
+import json
+import base64
+
+async def upload_binary_file():
+    async with websockets.connect("ws://localhost:8899") as websocket:
+        # Read binary file and encode to base64
+        with open("image.png", "rb") as f:
+            binary_data = f.read()
+        base64_data = base64.b64encode(binary_data).decode('utf-8')
+        
+        upload_request = {
+            "type": "upload_file",
+            "filename": "image.png",
+            "content": f"base64:{base64_data}"
+        }
+        await websocket.send(json.dumps(upload_request))
+        response = await websocket.recv()
+        result = json.loads(response)
+        print(result)
+
+asyncio.run(upload_binary_file())
+```
+
+#### Files in Subdirectories
+
+```python
+upload_request = {
+    "type": "upload_file",
+    "filename": "subdir/nested_file.txt",
+    "content": "Content of nested file"
+}
+```
+
+### Server Response
+
+**Success:**
+```json
+{
+  "success": true,
+  "message": "Файл test.txt успешно загружен",
+  "error": null
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "message": "",
+  "error": "Ошибка записи файла: ..."
+}
+```
+
+### Working with Uploaded Files
+
+After uploading files, you can work with them in DataCode scripts:
+
+```python
+# Upload CSV file
+upload_csv = {
+    "type": "upload_file",
+    "filename": "data.csv",
+    "content": "name,age\nAlice,30\nBob,25"
+}
+await websocket.send(json.dumps(upload_csv))
+
+# Read and process CSV
+code = """
+global data = read_file(path("data.csv"), 0)
+print("Loaded rows:", len(data))
+table_info(data)
+"""
+execute_request = {
+    "type": "execute",
+    "code": code
+}
+await websocket.send(json.dumps(execute_request))
+```
+
+### Important Notes
+
+1. **Session Isolation** - Each WebSocket connection gets its own session folder
+2. **Automatic Cleanup** - Session folders are automatically deleted when client disconnects
+3. **getcwd() Behavior** - In `--use-ve` mode, `getcwd()` returns empty string
+4. **File Paths** - Use relative paths in DataCode scripts (e.g., `path("data.csv")`)
+5. **Base64 Encoding** - Binary files must be prefixed with `base64:` in content field
+
+### Complete Example
+
+See `test_file_upload.py` for a complete example with multiple test cases:
+```bash
+python3 test_file_upload.py
 ```

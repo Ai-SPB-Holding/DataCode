@@ -121,7 +121,15 @@ impl ValueOperations for Value {
             }
             Value::Currency(s) => s.clone(),
             Value::Null => "null".to_string(),
-            Value::Path(p) => p.to_string_lossy().to_string(),
+            Value::Path(p) => {
+                let path_str = p.to_string_lossy().to_string();
+                // Если путь пустой, возвращаем пустую строку
+                if path_str.is_empty() {
+                    "".to_string()
+                } else {
+                    path_str
+                }
+            }
             Value::PathPattern(p) => format!("{}*", p.to_string_lossy()),
         }
     }

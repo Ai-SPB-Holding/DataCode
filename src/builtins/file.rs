@@ -1,7 +1,7 @@
 use crate::value::{Value, Table as TableStruct};
 use crate::error::{DataCodeError, Result};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use glob::glob;
 use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
@@ -19,6 +19,113 @@ pub fn set_smb_manager(manager: Arc<Mutex<crate::websocket::smb::SmbManager>>) {
 /// Очистить SmbManager для текущего потока
 pub fn clear_smb_manager() {
     SMB_MANAGER.with(|m| *m.borrow_mut() = None);
+}
+
+/// Разрешить путь для режима --use-ve
+/// Если путь относительный и включен режим use_ve, разрешает его относительно папки сессии
+/// БЕЗОПАСНОСТЬ: Блокирует попытки выйти за пределы папки сессии с помощью ".."
+fn resolve_path_for_use_ve(path: &Path, line: usize) -> Result<PathBuf> {
+    use crate::websocket::{get_use_ve, get_user_session_path};
+    use crate::error::DataCodeError;
+    
+    // Если режим use_ve не включен, возвращаем путь как есть
+    if !get_use_ve() {
+        return Ok(path.to_path_buf());
+    }
+    
+    // Если путь абсолютный, блокируем доступ вне папки сессии
+    if path.is_absolute() {
+        if let Some(session_path) = get_user_session_path() {
+            // Проверяем, что абсолютный путь находится внутри папки сессии
+            if path.strip_prefix(&session_path).is_ok() {
+                // Путь находится внутри папки сессии, разрешаем
+                return Ok(path.to_path_buf());
+            } else {
+                // Путь вне папки сессии - блокируем
+                return Err(DataCodeError::runtime_error(
+                    "Доступ запрещен: путь находится вне папки сессии",
+                    line
+                ));
+            }
+        }
+        // Если нет папки сессии, блокируем абсолютные пути
+        return Err(DataCodeError::runtime_error(
+            "Доступ запрещен: абсолютные пути не разрешены в режиме use_ve",
+            line
+        ));
+    }
+    
+    // Если путь относительный и есть папка сессии, разрешаем относительно неё
+    if let Some(session_path) = get_user_session_path() {
+        // Проверяем, что путь не содержит компоненты ".." в начале
+        // Это простейшая проверка на path traversal
+        let path_str = path.to_string_lossy();
+        if path_str.contains("..") {
+            // Более строгая проверка: блокируем если путь начинается с ".." или содержит "/../"
+            let normalized = path_str.replace("\\", "/");
+            if normalized.starts_with("../") || normalized.starts_with("..\\") || 
+               normalized.contains("/../") || normalized.contains("\\..\\") ||
+               normalized == ".." {
+                return Err(DataCodeError::runtime_error(
+                    "Доступ запрещен: использование '..' для выхода из папки сессии не разрешено",
+                    line
+                ));
+            }
+        }
+        
+        let resolved = session_path.join(path);
+        
+        // Дополнительная проверка безопасности: убеждаемся, что результат всё ещё внутри папки сессии
+        // Нормализуем путь (canonicalize не используем, так как файл может не существовать)
+        // Вместо этого просто проверяем, что resolved начинается с session_path
+        if let Ok(canonical_session) = std::fs::canonicalize(&session_path) {
+            if let Ok(canonical_resolved) = std::fs::canonicalize(&resolved) {
+                if !canonical_resolved.starts_with(&canonical_session) {
+                    return Err(DataCodeError::runtime_error(
+                        "Доступ запрещен: путь выходит за пределы папки сессии",
+                        line
+                    ));
+                }
+            }
+        } else {
+            // Если canonicalize не работает, используем простую проверку через strip_prefix
+            if resolved.strip_prefix(&session_path).is_err() {
+                return Err(DataCodeError::runtime_error(
+                    "Доступ запрещен: путь выходит за пределы папки сессии",
+                    line
+                ));
+            }
+        }
+        
+        return Ok(resolved);
+    }
+    
+    // Если папка сессии не установлена, возвращаем ошибку для безопасности
+    Err(DataCodeError::runtime_error(
+        "Доступ запрещен: папка сессии не установлена",
+        line
+    ))
+}
+
+/// Вычислить относительный путь от папки сессии до файла
+/// В режиме --use-ve возвращает путь относительно папки сессии
+/// Вне режима --use-ve возвращает полный путь
+fn make_relative_to_session(absolute_path: &Path, _line: usize) -> Result<PathBuf> {
+    use crate::websocket::{get_use_ve, get_user_session_path};
+    
+    if get_use_ve() {
+        if let Some(session_path) = get_user_session_path() {
+            // Пытаемся вычислить относительный путь от папки сессии
+            if let Ok(rel_path) = absolute_path.strip_prefix(&session_path) {
+                return Ok(rel_path.to_path_buf());
+            }
+            // Если не получается (например, файл вне папки сессии), возвращаем полный путь
+            return Ok(absolute_path.to_path_buf());
+        }
+    }
+    
+    // Вне режима use_ve или если нет папки сессии, возвращаем полный путь
+    Ok(absolute_path.to_path_buf())
 }
 
 /// Парсинг lib:// пути
@@ -58,44 +165,80 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
             if args.len() != 1 {
                 return Err(DataCodeError::wrong_argument_count("list_files", 1, args.len(), line));
             }
+            
+            // Внутренняя функция для обработки list_files с Path
+            fn list_files_internal(path: &std::path::Path, line: usize) -> Result<Vec<Value>> {
+                let path_str = path.to_string_lossy();
+                
+                // Проверяем, является ли это lib:// путем
+                if let Some((share_name, smb_path)) = parse_lib_path(&path_str) {
+                    // Работаем с SMB
+                    let files = SMB_MANAGER.with(|m| {
+                        if let Some(manager) = m.borrow().as_ref() {
+                            manager.lock().unwrap().list_files(&share_name, &smb_path)
+                                .map_err(|e| DataCodeError::runtime_error(&e, line))
+                        } else {
+                            Err(DataCodeError::runtime_error(
+                                &format!("SMB manager not available. Share '{}' may not be connected.", share_name),
+                                line
+                            ))
+                        }
+                    })?;
+                    
+                    // Для SMB возвращаем полные пути как Path
+                    let mut path_objects = vec![];
+                    for file_name in files {
+                        // Строим полный путь: lib://share_name/smb_path/file_name
+                        let full_smb_path = if smb_path.is_empty() || smb_path == "/" {
+                            format!("lib://{}/{}", share_name, file_name)
+                        } else {
+                            let clean_path = if smb_path.ends_with('/') {
+                                &smb_path[..smb_path.len()-1]
+                            } else {
+                                &smb_path
+                            };
+                            format!("lib://{}/{}/{}", share_name, clean_path, file_name)
+                        };
+                        path_objects.push(Value::Path(PathBuf::from(full_smb_path)));
+                    }
+                    return Ok(path_objects);
+                }
+                
+                // Обычная файловая система
+                // В режиме --use-ve для относительных путей используем папку сессии
+                let resolved_path = resolve_path_for_use_ve(path, line)?;
+                
+                let entries = fs::read_dir(&resolved_path).map_err(|e|
+                    DataCodeError::runtime_error(&format!("Failed to read dir: {}", e), line))?;
+                let mut files = vec![];
+                for entry in entries {
+                    let entry = entry.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
+                    if let Ok(file_type) = entry.file_type() {
+                        // Возвращаем и файлы, и директории
+                        if file_type.is_file() || file_type.is_dir() {
+                            let absolute_path = entry.path();
+                            // Вычисляем относительный путь относительно папки сессии
+                            let relative_path = make_relative_to_session(&absolute_path, line)?;
+                            files.push(Value::Path(relative_path));
+                        }
+                    }
+                }
+                Ok(files)
+            }
+            
             match &args[0] {
                 Path(p) => {
-                    let path_str = p.to_string_lossy();
-                    
-                    // Проверяем, является ли это lib:// путем
-                    if let Some((share_name, smb_path)) = parse_lib_path(&path_str) {
-                        // Работаем с SMB
-                        let files = SMB_MANAGER.with(|m| {
-                            if let Some(manager) = m.borrow().as_ref() {
-                                manager.lock().unwrap().list_files(&share_name, &smb_path)
-                                    .map_err(|e| DataCodeError::runtime_error(&e, line))
-                            } else {
-                                Err(DataCodeError::runtime_error(
-                                    &format!("SMB manager not available. Share '{}' may not be connected.", share_name),
-                                    line
-                                ))
-                            }
-                        })?;
-                        
-                        Ok(Array(files.into_iter().map(Value::String).collect()))
+                    Ok(Array(list_files_internal(p, line)?))
+                }
+                Value::String(s) => {
+                    // Поддержка строковых аргументов (для ".", пустых строк и относительных путей)
+                    let path = if s.is_empty() || s == "." {
+                        // Пустая строка или "." означает текущую директорию
+                        PathBuf::from("")
                     } else {
-                        // Обычная файловая система
-                        let entries = fs::read_dir(p).map_err(|e|
-                            DataCodeError::runtime_error(&format!("Failed to read dir: {}", e), line))?;
-                        let mut files = vec![];
-                        for entry in entries {
-                            let entry = entry.map_err(|e| DataCodeError::runtime_error(&e.to_string(), line))?;
-                            if let Ok(file_type) = entry.file_type() {
-                                // Возвращаем и файлы, и директории
-                                if file_type.is_file() || file_type.is_dir() {
-                                    if let Some(name) = entry.file_name().to_str() {
-                                        files.push(String(name.to_string()));
-                                    }
-                                }
-                            }
-                        }
-                        Ok(Array(files))
-                    }
+                        PathBuf::from(s)
+                    };
+                    Ok(Array(list_files_internal(&path, line)?))
                 }
                 Value::PathPattern(pattern) => {
                     let pattern_str = pattern.to_string_lossy();
@@ -115,7 +258,23 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                             }
                         })?;
                         
-                        Ok(Array(files.into_iter().map(Value::String).collect()))
+                        // Для SMB паттернов возвращаем полные пути как Path
+                        let mut path_objects = vec![];
+                        for file_name in files {
+                            // Строим полный путь: lib://share_name/smb_path/file_name
+                            let full_smb_path = if smb_path.is_empty() || smb_path == "/" {
+                                format!("lib://{}/{}", share_name, file_name)
+                            } else {
+                                let clean_path = if smb_path.ends_with('/') {
+                                    &smb_path[..smb_path.len()-1]
+                                } else {
+                                    &smb_path
+                                };
+                                format!("lib://{}/{}/{}", share_name, clean_path, file_name)
+                            };
+                            path_objects.push(Value::Path(PathBuf::from(full_smb_path)));
+                        }
+                        Ok(Array(path_objects))
                     } else {
                         let mut files = vec![];
                         
@@ -125,9 +284,9 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                                 Ok(path) => {
                                     // Возвращаем и файлы, и директории
                                     if path.is_file() || path.is_dir() {
-                                        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                                            files.push(String(name.to_string()));
-                                        }
+                                        // Вычисляем относительный путь относительно папки сессии
+                                        let relative_path = make_relative_to_session(&path, line)?;
+                                        files.push(Value::Path(relative_path));
                                     }
                                 }
                                 Err(e) => {
@@ -138,7 +297,7 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                         Ok(Array(files))
                     }
                 }
-                _ => Err(DataCodeError::type_error("Path or PathPattern", "other", line)),
+                _ => Err(DataCodeError::type_error("Path, PathPattern or String", "other", line)),
             }
         }
         
@@ -251,18 +410,21 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
                 }
             } else {
                 // Обычная файловая система
-                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                // В режиме --use-ve для относительных путей используем папку сессии
+                let resolved_path = resolve_path_for_use_ve(path, line)?;
+                
+                let ext = resolved_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
                 match ext.as_str() {
                     "txt" => {
-                        let contents = std::fs::read_to_string(path)
+                        let contents = std::fs::read_to_string(&resolved_path)
                             .map_err(|e| DataCodeError::runtime_error(&format!("Failed to read file: {}", e), line))?;
                         Ok(Value::String(contents))
                     }
                     "csv" => {
-                        read_csv_file(path, header_row.unwrap_or(0), line)
+                        read_csv_file(&resolved_path, header_row.unwrap_or(0), line)
                     }
                     "xlsx" => {
-                        read_xlsx_file(path, header_row, sheet_name.as_deref(), line)
+                        read_xlsx_file(&resolved_path, header_row, sheet_name.as_deref(), line)
                     }
                     _ => Err(DataCodeError::runtime_error(&format!("Unsupported file extension: {}", ext), line)),
                 }
@@ -275,7 +437,8 @@ pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<V
             }
             match &args[0] {
                 Value::Path(p) => {
-                    analyze_csv_file(p, line)
+                    let resolved_path = resolve_path_for_use_ve(p, line)?;
+                    analyze_csv_file(&resolved_path, line)
                 }
                 _ => Err(DataCodeError::type_error("Path", "other", line)),
             }

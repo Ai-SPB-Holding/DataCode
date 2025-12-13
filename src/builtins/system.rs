@@ -38,7 +38,15 @@ fn format_value_for_print(value: &Value) -> String {
             format!("TableIndexer({} rows, {} columns)", table_borrowed.rows.len(), table_borrowed.column_names.len())
         }
         Null => "null".to_string(),
-        Path(p) => p.display().to_string(),
+        Path(p) => {
+            let path_str = p.display().to_string();
+            // Если путь пустой, возвращаем пустую строку
+            if path_str.is_empty() {
+                "".to_string()
+            } else {
+                path_str
+            }
+        }
         PathPattern(p) => format!("Pattern({})", p.display()),
     }
 }
@@ -61,12 +69,8 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
             // }
             
             let parts: Vec<std::string::String> = args.into_iter()
-                .enumerate()
-                .map(|(idx, v)| {
+                .map(|v| {
                     let formatted = format_value_for_print(&v);
-                    // if std::env::var("DATACODE_DEBUG").is_ok() {
-                    //     eprintln!("🔍 DEBUG print function: Argument {} formatted to: '{}'", idx, formatted);
-                    // }
                     formatted
                 })
                 .collect();
@@ -88,6 +92,16 @@ pub fn call_system_function(name: &str, args: Vec<Value>, line: usize) -> Result
             if !args.is_empty() {
                 return Err(DataCodeError::wrong_argument_count("getcwd", 0, args.len(), line));
             }
+            // Проверяем, включен ли режим use_ve через websocket модуль
+            // Если включен, возвращаем пустой Path для безопасности
+            // (но относительные пути все равно будут разрешаться относительно папки сессии)
+            use crate::websocket::get_use_ve;
+            use std::path::PathBuf;
+            if get_use_ve() {
+                // В режиме use_ve возвращаем пустой Path (а не String)
+                return Ok(Value::Path(PathBuf::from("")));
+            }
+            // В обычном режиме возвращаем текущую директорию
             let cwd = std::env::current_dir()
                 .map_err(|e| DataCodeError::runtime_error(&format!("Failed to get current dir: {}", e), line))?;
             Ok(Value::Path(cwd))

@@ -20,7 +20,8 @@ fn main() {
         // Сначала проверяем наличие команды websocket (она должна обрабатываться отдельно)
         if args.iter().any(|a| a == "--websocket" || a == "--ws" || a == "websocket" || a == "ws") {
             let (host, port) = parse_websocket_args(&args);
-            start_websocket_server(host, port);
+            let use_ve = args.contains(&"--use-ve".to_string());
+            start_websocket_server(host, port, use_ve);
             return;
         }
 
@@ -71,7 +72,8 @@ fn main() {
                     }
                     "websocket" | "ws" => {
                         let (host, port) = parse_websocket_args(&args);
-                        start_websocket_server(host, port);
+                        let use_ve = args.contains(&"--use-ve".to_string());
+                        start_websocket_server(host, port, use_ve);
                     }
                     "help" | "-h" => {
                         show_help();
@@ -351,11 +353,14 @@ fn parse_address(addr: &str) -> Option<(String, u16)> {
     None
 }
 
-fn start_websocket_server(host: String, port: u16) {
+fn start_websocket_server(host: String, port: u16, use_ve: bool) {
     let address = format!("{}:{}", host, port);
     
     println!("🚀 Запуск WebSocket сервера DataCode...");
     println!("📡 Адрес: ws://{}", address);
+    if use_ve {
+        println!("📁 Режим виртуальной среды: включен (--use-ve)");
+    }
     println!("💡 Используйте --host и --port для изменения адреса");
     println!("💡 Или переменную окружения DATACODE_WS_ADDRESS");
     println!();
@@ -363,7 +368,7 @@ fn start_websocket_server(host: String, port: u16) {
     // Создаем tokio runtime для асинхронного выполнения
     let rt = tokio::runtime::Runtime::new().unwrap();
     
-    if let Err(e) = rt.block_on(websocket::start_server(&address)) {
+    if let Err(e) = rt.block_on(websocket::start_server(&address, use_ve)) {
         eprintln!("❌ Ошибка запуска WebSocket сервера: {}", e);
         std::process::exit(1);
     }
@@ -408,8 +413,14 @@ fn show_help() {
     println!("  • Default address: ws://127.0.0.1:8080");
     println!("  • Custom host/port: datacode --websocket --host 0.0.0.0 --port 8899");
     println!("  • Or use env var: DATACODE_WS_ADDRESS=0.0.0.0:3000 datacode --websocket");
+    println!("  • Virtual environment mode: datacode --websocket --use-ve");
+    println!("    - Creates isolated session folders in src/temp_sessions");
+    println!("    - getcwd() returns empty string");
+    println!("    - Supports file uploads via upload_file request");
+    println!("    - Session folder is deleted on disconnect");
     println!("  • Send JSON: {{\"code\": \"print('Hello World')\"}}");
     println!("  • Receive JSON: {{\"success\": true, \"output\": \"Hello World\\n\", \"error\": null}}");
+    println!("  • Upload file: {{\"type\": \"upload_file\", \"filename\": \"test.txt\", \"content\": \"...\"}}");
     println!();
     println!("Features:");
     println!("  • Interactive REPL with multiline support");

@@ -206,6 +206,8 @@ impl<'a> MemberAccessHandler<'a> {
             },
             Value::Array(arr) => self.access_array_member(arr, member),
             Value::String(s) => self.access_string_member(s, member),
+            Value::Path(p) => self.access_path_member(p, member),
+            Value::PathPattern(p) => self.access_path_member(p, member),
             _ => Err(DataCodeError::runtime_error(
                 &format!("Cannot access member '{}' on {:?}", member, object),
                 self.evaluator.line()
@@ -296,6 +298,70 @@ impl<'a> MemberAccessHandler<'a> {
             "trim" => Ok(Value::String(s.trim().to_string())),
             _ => Err(DataCodeError::runtime_error(
                 &format!("String has no member '{}'", member),
+                self.evaluator.line()
+            )),
+        }
+    }
+
+    /// Доступ к свойствам пути
+    fn access_path_member(&self, path: &std::path::PathBuf, member: &str) -> Result<Value> {
+        match member {
+            "name" => {
+                // Имя файла/директории (последний компонент пути)
+                Ok(Value::String(
+                    path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string()
+                ))
+            }
+            "parent" => {
+                // Родительская директория
+                match path.parent() {
+                    Some(parent) => Ok(Value::Path(parent.to_path_buf())),
+                    None => Ok(Value::Null),
+                }
+            }
+            "exists" => {
+                // Существует ли файл/директория
+                Ok(Value::Bool(path.exists()))
+            }
+            "is_file" => {
+                // Является ли файлом
+                Ok(Value::Bool(path.is_file()))
+            }
+            "is_dir" => {
+                // Является ли директорией
+                Ok(Value::Bool(path.is_dir()))
+            }
+            "extension" => {
+                // Расширение файла (без точки)
+                Ok(Value::String(
+                    path.extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string()
+                ))
+            }
+            "stem" => {
+                // Имя файла без расширения
+                Ok(Value::String(
+                    path.file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("")
+                        .to_string()
+                ))
+            }
+            "to_string" => {
+                // Строковое представление пути
+                Ok(Value::String(path.to_string_lossy().to_string()))
+            }
+            "len" => {
+                // Длина строкового представления пути
+                Ok(Value::Number(path.to_string_lossy().len() as f64))
+            }
+            _ => Err(DataCodeError::runtime_error(
+                &format!("Path has no member '{}'. Available members: name, parent, exists, is_file, is_dir, extension, stem, to_string, len", member),
                 self.evaluator.line()
             )),
         }

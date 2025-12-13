@@ -22,7 +22,7 @@ node_modules
 
 datacode-syntax
 .datacode_history
-
+temp_sessions/
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

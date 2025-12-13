@@ -248,3 +248,78 @@ chmod +x test_websocket.sh
   "error": "Error: variable 'undefined_variable' is not defined"
 }
 ```
+
+## File Upload (requires --use-ve mode)
+
+### Starting Server with File Upload Support
+
+```bash
+datacode --websocket --host 0.0.0.0 --port 8899 --use-ve
+```
+
+### Upload Text File
+
+```json
+{
+  "type": "upload_file",
+  "filename": "test.txt",
+  "content": "Hello, DataCode!\nThis is a test file."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Файл test.txt успешно загружен",
+  "error": null
+}
+```
+
+### Upload Binary File (Base64)
+
+```json
+{
+  "type": "upload_file",
+  "filename": "image.png",
+  "content": "base64:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+}
+```
+
+### Upload File to Subdirectory
+
+```json
+{
+  "type": "upload_file",
+  "filename": "subdir/nested_file.txt",
+  "content": "Content of nested file"
+}
+```
+
+### Check getcwd() in --use-ve Mode
+
+```json
+{
+  "type": "execute",
+  "code": "global cwd = getcwd()\nprint('Current directory:', cwd)"
+}
+```
+
+**Expected Output:** `Current directory: ` (empty string)
+
+### Read Uploaded File
+
+```json
+{
+  "type": "execute",
+  "code": "global data = read_file(path(\"test.txt\"))\nprint(data)"
+}
+```
+
+### Python Example for File Upload
+
+See `test_file_upload.py` for complete examples:
+
+```bash
+python3 test_file_upload.py
+```
