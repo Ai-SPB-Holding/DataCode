@@ -1,0 +1,173 @@
+# Демонстрация файловых операций в DataCode
+# path(), list_files(), read_file(), analyze_csv(), write_file()
+
+print('📁 Файловые операции в DataCode')
+print('=================================')
+print()
+
+# 1. Работа с путями (path)
+print('1️⃣ Работа с путями (path):')
+print('==========================')
+
+global current_dir = getcwd()
+print('Текущая директория:', current_dir)
+
+global file_path = path('test.txt')
+global relative_path = path('data/sample.csv')
+global absolute_path = path('/tmp/test.txt')
+
+print('file_path =', file_path)
+print('relative_path =', relative_path)
+print('absolute_path =', absolute_path)
+print('isinstance(file_path, path):', isinstance(file_path, path))
+print()
+
+# 2. Список файлов (list_files)
+print('2️⃣ Список файлов (list_files):')
+print('==============================')
+
+# Получить список файлов в текущей директории
+global files = list_files(current_dir)
+print('Файлы в текущей директории:')
+print('Количество файлов:', len(files))
+if len(files) > 0 do
+    print('Первые 5 файлов:')
+    for i in range(0, min(5, len(files))) do
+        print('  -', files[i])
+    next i
+endif
+print()
+
+# Поиск CSV файлов в текущей директории
+global all_files_current = list_files(current_dir)
+global csv_files = []
+for file in all_files_current do
+    local file_str = str(file)
+    if contains(file_str, '.csv') do
+        push(csv_files, file)
+    endif
+next file
+
+print('CSV файлы в текущей директории:')
+print('Количество CSV файлов:', len(csv_files))
+if len(csv_files) > 0 do
+    for file in csv_files do
+        print('  -', file)
+    next file
+endif
+print()
+
+# 3. Чтение файлов (read_file)
+print('3️⃣ Чтение файлов (read_file):')
+print('=============================')
+
+# Чтение CSV файла (создает таблицу)
+global csv_path = path('examples/04-data-processing/sample_data.csv')
+global csv_data = read_file(csv_path)
+print('CSV файл загружен как таблица:')
+if isinstance(csv_data, table) do
+    table_info(csv_data)
+    print('Первые 3 строки:')
+    global preview = table_head(csv_data, 3)
+    show_table(preview)
+endif
+print()
+
+# 4. Анализ CSV файла (analyze_csv)
+print('4️⃣ Анализ CSV файла (analyze_csv):')
+print('===================================')
+
+global analysis = analyze_csv(csv_path)
+print('Анализ CSV файла:')
+print('Результат анализа:', analysis)
+print()
+
+# 5. Запись файла (write_file)
+print('5️⃣ Запись файла (write_file):')
+print('==============================')
+
+# Создаем тестовый файл
+global test_content = 'Hello, DataCode!\nThis is a test file.\nCreated at: ' + now()
+global test_file = path('test_output.txt')
+
+write_file(test_file, test_content)
+print('Файл записан:', test_file)
+
+# Проверяем, что файл создан (читаем обратно)
+global read_back = read_file(test_file)
+print('Содержимое записанного файла:')
+print(read_back)
+print()
+
+# 6. Практический пример: обработка нескольких файлов
+print('6️⃣ Практический пример: обработка нескольких файлов')
+print('====================================================')
+
+global function process_csv_files(directory) do
+    # Используем правильный путь для поиска CSV файлов
+    local dir_path = path(directory)
+    local all_files = list_files(dir_path)
+    local csv_files = []
+    
+    # Фильтруем только CSV файлы
+    for file in all_files do
+        local file_str = str(file)
+        if contains(file_str, '.csv') do
+            push(csv_files, file)
+        endif
+    next file
+    
+    local results = []
+    
+    for file in csv_files do
+        local data = read_file(file)
+        if isinstance(data, table) do
+            local info = 'File: ' + str(file) + ', Rows: ' + str(len(data))
+            push(results, info)
+        endif
+    next file
+    
+    return results
+endfunction
+
+print('Обработка CSV файлов в examples/04-data-processing/:')
+global processed = process_csv_files('examples/04-data-processing/')
+for result in processed do
+    print('  ', result)
+next result
+print()
+
+# 7. Пример: создание отчета
+print('7️⃣ Пример: создание отчета')
+print('==========================')
+
+global function create_report(filename, data) do
+    local report = 'DataCode Report\n'
+    report = report + '================\n'
+    report = report + 'Generated at: ' + now() + '\n'
+    report = report + '\n'
+    
+    if isinstance(data, table) do
+        report = report + 'Table Information:\n'
+        report = report + 'Rows: ' + str(len(data)) + '\n'
+        local headers = table_headers(data)
+        report = report + 'Columns: ' + str(len(headers)) + '\n'
+        report = report + 'Column names: ' + str(headers) + '\n'
+    else
+        report = report + 'Data: ' + str(data) + '\n'
+    endif
+    
+    report = report + '\n'
+    report = report + 'End of Report\n'
+    
+    write_file(path(filename), report)
+    return 'Report created: ' + filename
+endfunction
+
+global report_result = create_report('report.txt', csv_data)
+print(report_result)
+print()
+
+print('✅ Демонстрация файловых операций завершена!')
+print('DataCode предоставляет мощные инструменты для работы с файлами')
+

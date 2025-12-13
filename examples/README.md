@@ -38,6 +38,8 @@ Learn main language constructs: functions, conditions, arrays.
 - **`arrays_example.dc`** - Working with arrays and indexing
 - **`complex_expressions.dc`** - Complex expressions and operators
 - **`loops.dc`** - Basic calculations and operations
+- **`file_operations.dc`** - File operations (path, list_files, read_file, write_file)
+- **`advanced_array_operations.dc`** - Advanced array operations (reverse, append, extend, bulk_create)
 
 **[📖 Detailed Documentation](02-language-syntax/README.md)**
 
@@ -60,6 +62,8 @@ Powerful capabilities for processing tabular data and CSV files.
 - **`filter_demo_simple.dc`** - Simple filtering
 - **`enum_demo.dc`** - Enumeration with indices
 - **`enum_table_example.dc`** - Tabular data enumeration
+- **`advanced_table_operations.dc`** - Advanced table operations (sort, merge, relate)
+- **`advanced_filtering.dc`** - Advanced filtering (query, between, in, null checks)
 
 **Data files**: `sample_data.csv`, `clean_data.csv`, `simple.csv`
 
@@ -72,6 +76,7 @@ Learn about data types, type checking, and conversions.
 - **`type_conversion_guide.dc`** - Type conversion
 - **`multiple_variables_demo.dc`** - Working with multiple variables
 - **`simple_multiple_vars_demo.dc`** - Simple multiple variables
+- **`type_conversion_functions.dc`** - Type conversion functions (int, float, bool, str, date, money, typeof)
 
 **[📖 Detailed Documentation](05-data-types/README.md)**
 

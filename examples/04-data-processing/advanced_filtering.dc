@@ -1,0 +1,205 @@
+# Продвинутая фильтрация таблиц в DataCode
+# table_query(), table_between(), table_in(), table_is_null(), table_not_null()
+
+print('🔍 Продвинутая фильтрация таблиц в DataCode')
+print('============================================')
+print()
+
+# Создаем тестовую таблицу с различными типами данных
+global test_data = [
+    ['Alice', 30, 50000, 'Engineering', 'New York'],
+    ['Bob', 25, 45000, 'Marketing', null],
+    ['Charlie', 35, 60000, 'Engineering', 'London'],
+    ['Diana', 28, null, 'Sales', 'Paris'],
+    ['Eve', 32, 52000, 'Marketing', 'New York'],
+    ['Frank', 40, 70000, 'Engineering', null],
+    ['Grace', 27, 48000, 'Sales', 'Tokyo']
+]
+global test_headers = ['name', 'age', 'salary', 'department', 'city']
+global test_table = table(test_data, test_headers)
+
+print('Исходная таблица:')
+show_table(test_table)
+print()
+
+# 1. Сложные запросы (комбинация фильтров)
+print('1️⃣ Сложные запросы (комбинация фильтров):')
+print('==========================================')
+
+# Запрос: возраст между 25 и 35 (используем table_between)
+global age_range = table_between(test_table, 'age', 25, 35)
+print('Сотрудники в возрасте от 25 до 35:')
+show_table(age_range)
+print()
+
+# Запрос: отдел Engineering ИЛИ Marketing (используем table_in)
+global dept_filter = table_in(test_table, 'department', ['Engineering', 'Marketing'])
+print('Сотрудники из Engineering или Marketing:')
+show_table(dept_filter)
+print()
+
+# Запрос: зарплата больше 50000 И возраст меньше 35 (используем комбинацию фильтров)
+global high_salary = table_where(test_table, 'salary', '>', 50000)
+global complex_filter = table_where(high_salary, 'age', '<', 35)
+print('Сотрудники с зарплатой > 50000 и возрастом < 35:')
+show_table(complex_filter)
+print()
+
+# 2. Фильтрация по диапазону (table_between)
+print('2️⃣ Фильтрация по диапазону (table_between):')
+print('=============================================')
+
+# Возраст от 28 до 35
+global age_between = table_between(test_table, 'age', 28, 35)
+print('Сотрудники в возрасте от 28 до 35:')
+show_table(age_between)
+print()
+
+# Зарплата от 48000 до 60000
+global salary_between = table_between(test_table, 'salary', 48000, 60000)
+print('Сотрудники с зарплатой от 48000 до 60000:')
+show_table(salary_between)
+print()
+
+# 3. Фильтрация по списку значений (table_in)
+print('3️⃣ Фильтрация по списку значений (table_in):')
+print('===========================================')
+
+# Сотрудники из определенных городов
+global cities = ['New York', 'London', 'Tokyo']
+global city_filter = table_in(test_table, 'city', cities)
+print('Сотрудники из New York, London или Tokyo:')
+show_table(city_filter)
+print()
+
+# Сотрудники из определенных отделов
+global departments = ['Engineering', 'Sales']
+global dept_filter2 = table_in(test_table, 'department', departments)
+print('Сотрудники из Engineering или Sales:')
+show_table(dept_filter2)
+print()
+
+# 4. Фильтрация NULL значений (table_is_null)
+print('4️⃣ Фильтрация NULL значений (table_is_null):')
+print('==============================================')
+
+# Сотрудники без указанного города
+global no_city = table_is_null(test_table, 'city')
+print('Сотрудники без указанного города:')
+show_table(no_city)
+print()
+
+# Сотрудники без указанной зарплаты
+global no_salary = table_is_null(test_table, 'salary')
+print('Сотрудники без указанной зарплаты:')
+show_table(no_salary)
+print()
+
+# 5. Фильтрация НЕ NULL значений (table_not_null)
+print('5️⃣ Фильтрация НЕ NULL значений (table_not_null):')
+print('=================================================')
+
+# Сотрудники с указанным городом
+global has_city = table_not_null(test_table, 'city')
+print('Сотрудники с указанным городом:')
+show_table(has_city)
+print()
+
+# Сотрудники с указанной зарплатой
+global has_salary = table_not_null(test_table, 'salary')
+print('Сотрудники с указанной зарплатой:')
+show_table(has_salary)
+print()
+
+# 6. Комбинирование фильтров
+print('6️⃣ Комбинирование фильтров:')
+print('=============================')
+
+# Сначала фильтруем по отделу
+global engineering_only = table_where(test_table, 'department', '==', 'Engineering')
+print('Только Engineering:')
+show_table(engineering_only)
+print()
+
+# Затем фильтруем по возрасту
+global engineering_age = table_between(engineering_only, 'age', 30, 40)
+print('Engineering в возрасте от 30 до 40:')
+show_table(engineering_age)
+print()
+
+# И убираем NULL значения
+global engineering_complete = table_not_null(engineering_age, 'city')
+print('Engineering в возрасте 30-40 с указанным городом:')
+show_table(engineering_complete)
+print()
+
+# 7. Практический пример: анализ данных
+print('7️⃣ Практический пример: анализ данных')
+print('======================================')
+
+global function analyze_employees(emp_table) do
+    print('Анализ сотрудников:')
+    print('===================')
+    
+    # Общее количество
+    local total = len(emp_table)
+    print('Всего сотрудников:', total)
+    
+    # С зарплатой
+    local with_salary = table_not_null(emp_table, 'salary')
+    print('С указанной зарплатой:', len(with_salary))
+    
+    # Без зарплаты
+    local without_salary = table_is_null(emp_table, 'salary')
+    print('Без указанной зарплаты:', len(without_salary))
+    
+    # С городом
+    local with_city = table_not_null(emp_table, 'city')
+    print('С указанным городом:', len(with_city))
+    
+    # Высокооплачиваемые (если есть данные)
+    if len(with_salary) > 0 do
+        local high_salary = table_where(with_salary, 'salary', '>', 55000)
+        print('С зарплатой > 55000:', len(high_salary))
+    endif
+    
+    # Молодые сотрудники
+    local young = table_between(emp_table, 'age', 25, 30)
+    print('В возрасте 25-30:', len(young))
+    
+    print()
+endfunction
+
+analyze_employees(test_table)
+
+# 8. Пример: поиск по нескольким критериям
+print('8️⃣ Пример: поиск по нескольким критериям')
+print('==========================================')
+
+# Ищем сотрудников, которые:
+# - В возрасте от 28 до 35
+# - С зарплатой больше 50000
+# - Из определенных отделов
+# - С указанным городом
+
+global step1 = table_between(test_table, 'age', 28, 35)
+global step2 = table_where(step1, 'salary', '>', 50000)
+global step3 = table_in(step2, 'department', ['Engineering', 'Marketing'])
+global step4 = table_not_null(step3, 'city')
+
+print('Результат многоступенчатой фильтрации:')
+print('1. Возраст 28-35:', len(step1))
+print('2. + Зарплата > 50000:', len(step2))
+print('3. + Engineering или Marketing:', len(step3))
+print('4. + С указанным городом:', len(step4))
+print()
+
+if len(step4) > 0 do
+    print('Финальный результат:')
+    show_table(step4)
+endif
+print()
+
+print('✅ Демонстрация продвинутой фильтрации завершена!')
+print('Эти функции позволяют создавать сложные запросы к данным')
+

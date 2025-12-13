@@ -1,0 +1,181 @@
+# Продвинутые операции с массивами в DataCode
+# reverse(), append(), array_builder(), bulk_create(), extend()
+
+print('🔧 Продвинутые операции с массивами в DataCode')
+print('================================================')
+print()
+
+# 1. Разворот массива (reverse)
+print('1️⃣ Разворот массива (reverse):')
+print('===============================')
+
+global numbers = [1, 2, 3, 4, 5]
+print('Исходный массив:', numbers)
+
+global reversed = reverse(numbers)
+print('Развернутый массив:', reversed)
+
+global words = ['hello', 'world', 'datacode']
+global reversed_words = reverse(words)
+print('Исходный массив слов:', words)
+print('Развернутый массив слов:', reversed_words)
+print()
+
+# 2. Добавление элемента (append)
+print('2️⃣ Добавление элемента (append):')
+print('==================================')
+
+global my_array = [1, 2, 3]
+print('Исходный массив:', my_array)
+
+# append возвращает новый массив, нужно присваивать результат
+global my_array = append(my_array, 4)
+print('После append(my_array, 4):', my_array)
+
+global my_array = append(my_array, 'hello')
+print('После append(my_array, "hello"):', my_array)
+print()
+
+# 3. Создание массива с начальной емкостью (array_builder)
+print('3️⃣ Создание массива с начальной емкостью (array_builder):')
+print('===========================================================')
+
+global builder = array_builder(1000)
+print('Создан массив с емкостью 1000')
+print('Начальная длина:', len(builder))
+
+# Заполняем массив
+# push возвращает новый массив, нужно присваивать результат
+for i in range(1, 11) do
+    global builder = push(builder, i)
+next i
+
+print('После добавления 10 элементов:', builder)
+print('Длина массива:', len(builder))
+print()
+
+# 4. Массовое создание (bulk_create)
+print('4️⃣ Массовое создание (bulk_create):')
+print('====================================')
+
+# Создаем массив из 5 одинаковых значений
+global zeros = bulk_create(5, 0)
+print('bulk_create(5, 0) =', zeros)
+
+global ones = bulk_create(10, 1)
+print('bulk_create(10, 1) =', ones)
+
+global greetings = bulk_create(3, 'Hello')
+print('bulk_create(3, "Hello") =', greetings)
+print()
+
+# 5. Расширение массива (extend)
+print('5️⃣ Расширение массива (extend):')
+print('=================================')
+
+global arr1 = [1, 2, 3]
+global arr2 = [4, 5, 6]
+
+print('arr1 =', arr1)
+print('arr2 =', arr2)
+
+global extended = extend(arr1, arr2)
+print('extend(arr1, arr2) =', extended)
+print('arr1 остался без изменений:', arr1)
+print()
+
+# 6. Комбинированные операции
+print('6️⃣ Комбинированные операции:')
+print('==============================')
+
+# Создаем большой массив эффективно
+global large_array = array_builder(10000)
+for i in range(1, 1001) do
+    global large_array = push(large_array, i)
+next i
+
+print('Создан большой массив с', len(large_array), 'элементами')
+print('Первые 10 элементов:', [large_array[0], large_array[1], large_array[2], large_array[3], large_array[4], large_array[5], large_array[6], large_array[7], large_array[8], large_array[9]])
+print('Последние 10 элементов:', [large_array[990], large_array[991], large_array[992], large_array[993], large_array[994], large_array[995], large_array[996], large_array[997], large_array[998], large_array[999]])
+print()
+
+# 7. Практический пример: обработка данных
+print('7️⃣ Практический пример: обработка данных')
+print('==========================================')
+
+global function process_data_chunks(chunk1, chunk2, chunk3) do
+    # Объединяем все чанки
+    local combined = extend(chunk1, chunk2)
+    combined = extend(combined, chunk3)
+    
+    # Разворачиваем для обработки в обратном порядке
+    local reversed = reverse(combined)
+    
+    # Создаем новый массив с результатами
+    local results = array_builder(len(reversed))
+    
+    for item in reversed do
+        # Обрабатываем каждый элемент
+        local processed = item * 2
+        local results = push(results, processed)
+    next item
+    
+    return reverse(results)  # Возвращаем в исходном порядке
+endfunction
+
+global chunk1 = [1, 2, 3]
+global chunk2 = [4, 5, 6]
+global chunk3 = [7, 8, 9]
+
+global processed = process_data_chunks(chunk1, chunk2, chunk3)
+print('Исходные чанки:')
+print('  chunk1 =', chunk1)
+print('  chunk2 =', chunk2)
+print('  chunk3 =', chunk3)
+print('Обработанные данные:', processed)
+print()
+
+# 8. Пример: создание матрицы
+print('8️⃣ Пример: создание матрицы')
+print('============================')
+
+global function create_matrix(rows, cols, initial_value) do
+    local matrix = array_builder(rows)
+    
+    for i in range(0, rows) do
+        local row = bulk_create(cols, initial_value)
+        local matrix = push(matrix, row)
+    next i
+    
+    return matrix
+endfunction
+
+global matrix = create_matrix(3, 4, 0)
+print('Создана матрица 3x4:')
+for i in range(0, len(matrix)) do
+    print('  Row', i, ':', matrix[i])
+next i
+print()
+
+# 9. Пример: эффективное копирование и модификация
+print('9️⃣ Пример: эффективное копирование и модификация')
+print('==================================================')
+
+global original = [10, 20, 30, 40, 50]
+print('Исходный массив:', original)
+
+# Создаем копию и разворачиваем
+global copy1 = reverse(original)
+global copy2 = reverse(copy1)  # Возвращаем обратно
+
+print('Копия (развернута и возвращена):', copy2)
+print('Исходный массив не изменился:', original)
+
+# Расширяем копию
+global extended_copy = extend(copy2, [60, 70, 80])
+print('Расширенная копия:', extended_copy)
+print()
+
+print('✅ Демонстрация продвинутых операций с массивами завершена!')
+print('Эти функции помогают эффективно работать с большими массивами данных')
+

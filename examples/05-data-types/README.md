@@ -56,6 +56,19 @@ endif
 - Simple comparisons
 - Data grouping basics
 
+### 5. `type_conversion_functions.dc` - Type Conversion Functions
+**Description**: Comprehensive demonstration of type conversion functions including int(), float(), bool(), str(), date(), money(), and typeof().
+
+**What you'll learn**:
+- Converting to integers with `int()`
+- Converting to floats with `float()`
+- Converting to booleans with `bool()`
+- Converting to strings with `str()`
+- Converting to dates with `date()`
+- Converting to currency with `money()`
+- Getting type information with `typeof()`
+- Practical examples of type conversion
+
 ## 🎯 How to Run Examples
 
 ```bash
@@ -70,6 +83,9 @@ cargo run examples/05-data-types/multiple_variables_demo.dc
 
 # Simple multiple variables
 cargo run examples/05-data-types/simple_multiple_vars_demo.dc
+
+# Type conversion functions
+cargo run examples/05-data-types/type_conversion_functions.dc
 ```
 
 ## 📚 DataCode Type System
@@ -186,6 +202,7 @@ endfunction
 2. **`type_checking_demo.dc`** - learn isinstance()
 3. **`multiple_variables_demo.dc`** - complex scenarios
 4. **`type_conversion_guide.dc`** - type conversions
+5. **`type_conversion_functions.dc`** - explicit type conversion functions
 
 ## ⚡ Important Points
 

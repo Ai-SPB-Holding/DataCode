@@ -146,6 +146,72 @@ fn parse_lib_path(path_str: &str) -> Option<(String, String)> {
     }
 }
 
+/// File operations functions with header support
+pub fn call_file_function_with_header(
+    name: &str, 
+    args: Vec<Value>, 
+    header: Option<Value>, 
+    line: usize
+) -> Result<Value> {
+    if name != "read_file" {
+        return call_file_function(name, args, line);
+    }
+    
+    // Validate header argument
+    let header_names: Option<Vec<String>> = if let Some(header_val) = header {
+        match header_val {
+            Value::Array(arr) => {
+                if arr.is_empty() {
+                    return Err(DataCodeError::runtime_error(
+                        "header array cannot be empty",
+                        line
+                    ));
+                }
+                let mut names = Vec::new();
+                for (idx, val) in arr.iter().enumerate() {
+                    match val {
+                        Value::String(s) => names.push(s.clone()),
+                        _ => {
+                            return Err(DataCodeError::runtime_error(
+                                &format!("header array must contain only strings, but element {} is not a string", idx),
+                                line
+                            ));
+                        }
+                    }
+                }
+                Some(names)
+            }
+            _ => {
+                return Err(DataCodeError::runtime_error(
+                    "header must be an array of strings",
+                    line
+                ));
+            }
+        }
+    } else {
+        None
+    };
+    
+    // Call read_file and apply header filter if needed
+    let result = call_file_function(name, args, line)?;
+    
+    // Apply header filter if header was specified
+    if let Some(header_names) = header_names {
+        match result {
+            Value::Table(table) => {
+                let filtered_table = filter_table_columns(table, &header_names, line)?;
+                Ok(Value::Table(filtered_table))
+            }
+            _ => {
+                // If result is not a table (e.g., txt file), return as is
+                Ok(result)
+            }
+        }
+    } else {
+        Ok(result)
+    }
+}
+
 /// File operations functions
 pub fn call_file_function(name: &str, args: Vec<Value>, line: usize) -> Result<Value> {
     use Value::*;
@@ -750,6 +816,76 @@ fn parse_excel_value(cell: &calamine::Data) -> Value {
         calamine::Data::DurationIso(dur) => Value::String(dur.clone()),
         calamine::Data::Error(e) => Value::String(format!("ERROR: {:?}", e)),
     }
+}
+
+/// Фильтровать таблицу по указанным именам колонок
+fn filter_table_columns(
+    table: std::rc::Rc<std::cell::RefCell<crate::value::Table>>,
+    header_names: &[String],
+    line: usize
+) -> Result<std::rc::Rc<std::cell::RefCell<crate::value::Table>>> {
+    use crate::value::Table;
+    
+    // Получаем доступ к таблице
+    let table_ref = table.borrow();
+    let original_columns = &table_ref.column_names;
+    
+    // Находим индексы колонок
+    let mut column_indices = Vec::new();
+    let mut missing_columns = Vec::new();
+    
+    for header_name in header_names {
+        if let Some(index) = original_columns.iter().position(|col| col == header_name) {
+            column_indices.push(index);
+        } else {
+            missing_columns.push(header_name.clone());
+        }
+    }
+    
+    // Проверяем, что найдена хотя бы одна колонка
+    if column_indices.is_empty() {
+        return Err(DataCodeError::runtime_error(
+            &format!(
+                "None of the specified columns found. Available columns: {:?}", 
+                original_columns
+            ),
+            line
+        ));
+    }
+    
+    // Выдаем предупреждения для отсутствующих колонок
+    if !missing_columns.is_empty() {
+        eprintln!(
+            "⚠️  Warning: Columns not found: {:?}. Available columns: {:?}", 
+            missing_columns, 
+            original_columns
+        );
+    }
+    
+    // Создаем новую таблицу с отфильтрованными колонками
+    let new_column_names: Vec<String> = column_indices
+        .iter()
+        .map(|&idx| original_columns[idx].clone())
+        .collect();
+    
+    drop(table_ref); // Освобождаем borrow
+    
+    let mut new_table = Table::new(new_column_names);
+    let table_ref = table.borrow();
+    
+    // Копируем строки с отфильтрованными колонками
+    for row in &table_ref.rows {
+        let filtered_row: Vec<Value> = column_indices
+            .iter()
+            .map(|&idx| row[idx].clone())
+            .collect();
+        
+        if let Err(e) = new_table.add_row(filtered_row) {
+            eprintln!("⚠️  Warning: {}", e);
+        }
+    }
+    
+    Ok(std::rc::Rc::new(std::cell::RefCell::new(new_table)))
 }
 
 fn parse_csv_value(s: &str) -> Value {

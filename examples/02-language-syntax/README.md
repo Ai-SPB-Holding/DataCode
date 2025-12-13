@@ -74,6 +74,28 @@ circle_area(5) = 78.53975
 - Combining operators
 - Complex logic
 
+### 7. `file_operations.dc` - File Operations
+**Description**: Comprehensive demonstration of file operations including path(), list_files(), read_file(), analyze_csv(), and write_file().
+
+**What you'll learn**:
+- Working with file paths using `path()`
+- Listing files with `list_files()`
+- Reading files with `read_file()`
+- Analyzing CSV files with `analyze_csv()`
+- Writing files with `write_file()`
+- Processing multiple files
+
+### 8. `advanced_array_operations.dc` - Advanced Array Operations
+**Description**: Demonstrates advanced array operations including reverse(), append(), array_builder(), bulk_create(), and extend().
+
+**What you'll learn**:
+- Reversing arrays with `reverse()`
+- Appending elements with `append()`
+- Creating arrays with initial capacity using `array_builder()`
+- Bulk creation with `bulk_create()`
+- Extending arrays with `extend()`
+- Efficient array manipulation techniques
+
 ## 🎯 How to Run Examples
 
 ```bash
@@ -94,6 +116,12 @@ cargo run examples/02-language-syntax/arrays_example.dc
 
 # Complex expressions
 cargo run examples/02-language-syntax/complex_expressions.dc
+
+# File operations
+cargo run examples/02-language-syntax/file_operations.dc
+
+# Advanced array operations
+cargo run examples/02-language-syntax/advanced_array_operations.dc
 ```
 
 ## 📚 Key Concepts
@@ -145,6 +173,8 @@ global value = nested[0][1]  # Nested indexing
 4. **`arrays_example.dc`** - data structures
 5. **`basic_calculations.dc`** - basic calculations
 6. **`complex_expressions.dc`** - complex expressions
+7. **`file_operations.dc`** - working with files
+8. **`advanced_array_operations.dc`** - advanced array manipulation
 
 ## 💡 Practical Tips
 

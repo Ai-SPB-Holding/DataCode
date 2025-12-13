@@ -36,6 +36,8 @@ Quick index of all examples with brief descriptions and links for convenient nav
 - [`arrays_example.dc`](02-language-syntax/arrays_example.dc) - Arrays and indexing
 - [`basic_calculations.dc`](02-language-syntax/basic_calculations.dc) - Basic calculations
 - [`complex_expressions.dc`](02-language-syntax/complex_expressions.dc) - Complex expressions
+- [`file_operations.dc`](02-language-syntax/file_operations.dc) - File operations (path, list_files, read_file, write_file)
+- [`advanced_array_operations.dc`](02-language-syntax/advanced_array_operations.dc) - Advanced array operations
 
 ### 🎯 [03-advanced-features/](03-advanced-features/) - Advanced Techniques
 - [`simple_recursion.dc`](03-advanced-features/simple_recursion.dc) - Simple recursion
@@ -50,12 +52,15 @@ Quick index of all examples with brief descriptions and links for convenient nav
 - [`data_filtering_demo.dc`](04-data-processing/data_filtering_demo.dc) - Advanced filtering
 - [`enum_demo.dc`](04-data-processing/enum_demo.dc) - Enumeration with indices
 - [`enum_table_example.dc`](04-data-processing/enum_table_example.dc) - Table enumeration
+- [`advanced_table_operations.dc`](04-data-processing/advanced_table_operations.dc) - Advanced table operations (sort, merge, relate)
+- [`advanced_filtering.dc`](04-data-processing/advanced_filtering.dc) - Advanced filtering (query, between, in, null checks)
 
 ### 🔢 [05-data-types/](05-data-types/) - Type System
 - [`type_checking_demo.dc`](05-data-types/type_checking_demo.dc) - Type checking isinstance()
 - [`type_conversion_guide.dc`](05-data-types/type_conversion_guide.dc) - Type conversion
 - [`multiple_variables_demo.dc`](05-data-types/multiple_variables_demo.dc) - Multiple variables
 - [`simple_multiple_vars_demo.dc`](05-data-types/simple_multiple_vars_demo.dc) - Simple multiple variables
+- [`type_conversion_functions.dc`](05-data-types/type_conversion_functions.dc) - Type conversion functions (int, float, bool, str, date, money, typeof)
 
 ### 🛠️ [06-developer-tools/](06-developer-tools/) - Developer Tools
 - [`interactive_demo.dc`](06-developer-tools/interactive_demo.dc) - Examples for REPL

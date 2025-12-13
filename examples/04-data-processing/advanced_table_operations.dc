@@ -1,0 +1,222 @@
+# Продвинутые операции с таблицами в DataCode
+# table_sort(), merge_tables(), relate()
+
+print('📊 Продвинутые операции с таблицами в DataCode')
+print('================================================')
+print()
+
+# 1. Сортировка таблицы (table_sort)
+print('1️⃣ Сортировка таблицы (table_sort):')
+print('===================================')
+
+# Создаем тестовую таблицу
+global employees_data = [
+    ['Alice', 30, 50000, 'Engineering'],
+    ['Bob', 25, 45000, 'Marketing'],
+    ['Charlie', 35, 60000, 'Engineering'],
+    ['Diana', 28, 55000, 'Sales'],
+    ['Eve', 32, 52000, 'Marketing']
+]
+global employees_headers = ['name', 'age', 'salary', 'department']
+global employees = table(employees_data, employees_headers)
+
+print('Исходная таблица:')
+show_table(employees)
+print()
+
+# Сортировка по возрасту (по возрастанию)
+global sorted_by_age = table_sort(employees, 'age', true)
+print('Сортировка по возрасту (по возрастанию):')
+show_table(sorted_by_age)
+print()
+
+# Сортировка по зарплате (по убыванию)
+global sorted_by_salary = table_sort(employees, 'salary', false)
+print('Сортировка по зарплате (по убыванию):')
+show_table(sorted_by_salary)
+print()
+
+# Сортировка по имени (по возрастанию)
+global sorted_by_name = table_sort(employees, 'name', true)
+print('Сортировка по имени (по возрастанию):')
+show_table(sorted_by_name)
+print()
+
+# 2. Объединение таблиц (merge_tables)
+print('2️⃣ Объединение таблиц (merge_tables):')
+print('======================================')
+
+# Создаем первую таблицу
+global table1_data = [
+    ['Alice', 30, 'Engineering'],
+    ['Bob', 25, 'Marketing']
+]
+global table1_headers = ['name', 'age', 'department']
+global table1 = table(table1_data, table1_headers)
+
+# Создаем вторую таблицу с теми же заголовками
+global table2_data = [
+    ['Charlie', 35, 'Engineering'],
+    ['Diana', 28, 'Sales']
+]
+global table2 = table(table2_data, table1_headers)
+
+# Создаем третью таблицу
+global table3_data = [
+    ['Eve', 32, 'Marketing']
+]
+global table3 = table(table3_data, table1_headers)
+
+print('Таблица 1:')
+show_table(table1)
+print()
+
+print('Таблица 2:')
+show_table(table2)
+print()
+
+print('Таблица 3:')
+show_table(table3)
+print()
+
+# Объединяем все таблицы
+global merged = merge_tables([table1, table2, table3])
+print('Объединенная таблица:')
+show_table(merged)
+print()
+
+# 3. Создание связей между таблицами (relate)
+print('3️⃣ Создание связей между таблицами (relate):')
+print('==============================================')
+
+# Создаем таблицу сотрудников
+global employees_table_data = [
+    [1, 'Alice', 'Engineering'],
+    [2, 'Bob', 'Marketing'],
+    [3, 'Charlie', 'Engineering'],
+    [4, 'Diana', 'Sales']
+]
+global employees_table_headers = ['id', 'name', 'department']
+global employees_table = table(employees_table_data, employees_table_headers)
+
+# Создаем таблицу проектов
+global projects_table_data = [
+    [101, 'Project A', 1],
+    [102, 'Project B', 2],
+    [103, 'Project C', 1],
+    [104, 'Project D', 3]
+]
+global projects_table_headers = ['project_id', 'project_name', 'employee_id']
+global projects_table = table(projects_table_data, projects_table_headers)
+
+print('Таблица сотрудников:')
+show_table(employees_table)
+print()
+
+print('Таблица проектов:')
+show_table(projects_table)
+print()
+
+# Создаем связь между таблицами
+relate(employees_table["id"], projects_table["employee_id"])
+print('Связь создана: employees_table.id -> projects_table.employee_id')
+print()
+
+# 4. Комплексный пример: обработка данных
+print('4️⃣ Комплексный пример: обработка данных')
+print('=========================================')
+
+# Загружаем данные из CSV (если файл существует)
+global csv_files = list_files(getcwd() / "examples/04-data-processing")
+
+if len(csv_files) > 0 do
+    global data = read_file(getcwd() / 'examples/04-data-processing/sample_data.csv')
+    
+    if isinstance(data, table) do
+        print('Загружены данные из CSV:')
+        table_info(data)
+        print()
+        
+        # Сортируем по первому столбцу
+        global headers = table_headers(data)
+        if len(headers) > 0 do
+            global first_column = headers[0]
+            print('Сортировка по столбцу:', first_column)
+            global sorted_data = table_sort(data, first_column, true)
+            global preview = table_head(sorted_data, 5)
+            show_table(preview)
+            print()
+        endif
+    endif
+endif
+
+# 5. Пример: объединение данных из разных источников
+print('5️⃣ Пример: объединение данных из разных источников')
+print('====================================================')
+
+# Данные за январь
+global jan_data = [
+    ['Product A', 100, 10.50],
+    ['Product B', 150, 15.75]
+]
+global jan = table(jan_data, ['product', 'quantity', 'price'])
+
+# Данные за февраль
+global feb_data = [
+    ['Product A', 120, 10.50],
+    ['Product B', 180, 15.75],
+    ['Product C', 90, 8.25]
+]
+global feb = table(feb_data, ['product', 'quantity', 'price'])
+
+# Данные за март
+global mar_data = [
+    ['Product A', 110, 10.50],
+    ['Product C', 100, 8.25]
+]
+global mar = table(mar_data, ['product', 'quantity', 'price'])
+
+print('Данные за январь:')
+show_table(jan)
+print()
+
+print('Данные за февраль:')
+show_table(feb)
+print()
+
+print('Данные за март:')
+show_table(mar)
+print()
+
+# Объединяем все данные
+global quarterly_data = merge_tables([jan, feb, mar])
+print('Объединенные данные за квартал:')
+show_table(quarterly_data)
+print()
+
+# Сортируем по продукту
+global sorted_quarterly = table_sort(quarterly_data, 'product', true)
+print('Отсортированные данные по продукту:')
+show_table(sorted_quarterly)
+print()
+
+# 6. Пример: многоуровневая сортировка (через промежуточные таблицы)
+print('6️⃣ Пример: многоуровневая сортировка')
+print('=====================================')
+
+# Сначала сортируем по отделу
+global sorted_by_dept = table_sort(employees, 'department', true)
+print('Сортировка по отделу:')
+show_table(sorted_by_dept)
+print()
+
+# Затем сортируем по зарплате внутри каждого отдела
+# (В реальности это требует более сложной логики, но показываем концепцию)
+global sorted_by_salary_in_dept = table_sort(sorted_by_dept, 'salary', false)
+print('Сортировка по зарплате (после сортировки по отделу):')
+show_table(sorted_by_salary_in_dept)
+print()
+
+print('✅ Демонстрация продвинутых операций с таблицами завершена!')
+print('Эти функции позволяют эффективно обрабатывать и объединять данные')
+

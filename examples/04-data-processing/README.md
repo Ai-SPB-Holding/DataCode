@@ -65,6 +65,25 @@ First 5 rows:
 - Indexed data access
 - Combining enum() with table functions
 
+### 7. `advanced_table_operations.dc` - Advanced Table Operations
+**Description**: Demonstrates advanced table operations including table_sort(), merge_tables(), and relate().
+
+**What you'll learn**:
+- Sorting tables with `table_sort()`
+- Merging multiple tables with `merge_tables()`
+- Creating relationships between tables with `relate()`
+- Complex data processing workflows
+
+### 8. `advanced_filtering.dc` - Advanced Filtering
+**Description**: Comprehensive demonstration of advanced filtering functions including table_query(), table_between(), table_in(), table_is_null(), and table_not_null().
+
+**What you'll learn**:
+- Complex queries with `table_query()`
+- Range filtering with `table_between()`
+- List-based filtering with `table_in()`
+- NULL value filtering with `table_is_null()` and `table_not_null()`
+- Combining multiple filters
+
 ## 📁 Data Files
 
 ### `sample_data.csv` - Main Dataset
@@ -99,6 +118,12 @@ cargo run examples/04-data-processing/enum_demo.dc
 
 # Table enumeration
 cargo run examples/04-data-processing/enum_table_example.dc
+
+# Advanced table operations
+cargo run examples/04-data-processing/advanced_table_operations.dc
+
+# Advanced filtering
+cargo run examples/04-data-processing/advanced_filtering.dc
 ```
 
 ## 📖 Additional Documentation
@@ -216,6 +241,8 @@ data = read_file(path("report.xlsx"), 1, "DataSheet")  # Sheet "DataSheet", head
 4. **`data_filtering_demo.dc`** - advanced filtering
 5. **`enum_demo.dc`** - data enumeration
 6. **`enum_table_example.dc`** - table enumeration
+7. **`advanced_table_operations.dc`** - sorting, merging, and relationships
+8. **`advanced_filtering.dc`** - complex filtering operations
 
 ---
 

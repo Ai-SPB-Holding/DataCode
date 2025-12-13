@@ -82,42 +82,62 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
 
         "bulk_create" => {
             // Phase 1 Aggressive Optimization: Create array in bulk to avoid O(n²) complexity
-            if args.len() != 3 {
-                return Err(DataCodeError::wrong_argument_count("bulk_create", 3, args.len(), line));
-            }
-            match (&args[0], &args[1], &args[2]) {
-                (Number(count), Array(template), Array(params)) => {
-                    let count = *count as usize;
-                    let mut result = Vec::with_capacity(count);
+            // Supports two forms:
+            // 1. bulk_create(count, value) - creates array with count copies of value
+            // 2. bulk_create(count, template, params) - creates array of arrays based on template
+            match args.len() {
+                2 => {
+                    // Simple form: bulk_create(count, value)
+                    match (&args[0], &args[1]) {
+                        (Number(count), value) => {
+                            let count = *count as usize;
+                            let mut result = Vec::with_capacity(count);
+                            for _i in 0..count {
+                                result.push(value.clone());
+                            }
+                            Ok(Array(result))
+                        }
+                        _ => Err(DataCodeError::type_error("Number and Value", "other", line)),
+                    }
+                }
+                3 => {
+                    // Complex form: bulk_create(count, template, params)
+                    match (&args[0], &args[1], &args[2]) {
+                        (Number(count), Array(template), Array(params)) => {
+                            let count = *count as usize;
+                            let mut result = Vec::with_capacity(count);
 
-                    for i in 0..count {
-                        // Create row based on template and parameters
-                        let mut row = Vec::with_capacity(template.len());
-                        for (_j, template_item) in template.iter().enumerate() {
-                            match template_item {
-                                String(s) if s == "INDEX" => {
-                                    row.push(Number(i as f64));
-                                }
-                                String(s) if s.starts_with("PARAM_") => {
-                                    if let Ok(param_idx) = s[6..].parse::<usize>() {
-                                        if param_idx < params.len() {
-                                            row.push(params[param_idx].clone());
-                                        } else {
-                                            row.push(Value::Null);
+                            for i in 0..count {
+                                // Create row based on template and parameters
+                                let mut row = Vec::with_capacity(template.len());
+                                for (_j, template_item) in template.iter().enumerate() {
+                                    match template_item {
+                                        String(s) if s == "INDEX" => {
+                                            row.push(Number(i as f64));
                                         }
-                                    } else {
-                                        row.push(template_item.clone());
+                                        String(s) if s.starts_with("PARAM_") => {
+                                            if let Ok(param_idx) = s[6..].parse::<usize>() {
+                                                if param_idx < params.len() {
+                                                    row.push(params[param_idx].clone());
+                                                } else {
+                                                    row.push(Value::Null);
+                                                }
+                                            } else {
+                                                row.push(template_item.clone());
+                                            }
+                                        }
+                                        _ => row.push(template_item.clone()),
                                     }
                                 }
-                                _ => row.push(template_item.clone()),
+                                result.push(Array(row));
                             }
-                        }
-                        result.push(Array(row));
-                    }
 
-                    Ok(Array(result))
+                            Ok(Array(result))
+                        }
+                        _ => Err(DataCodeError::type_error("Number, Array, Array", "other", line)),
+                    }
                 }
-                _ => Err(DataCodeError::type_error("Number, Array, Array", "other", line)),
+                _ => Err(DataCodeError::wrong_argument_count("bulk_create", 2, args.len(), line)),
             }
         }
         
@@ -166,6 +186,20 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
                         }
                     });
                     Ok(Array(sorted_arr))
+                }
+                _ => Err(DataCodeError::type_error("Array", "other", line)),
+            }
+        }
+        
+        "reverse" => {
+            if args.len() != 1 {
+                return Err(DataCodeError::wrong_argument_count("reverse", 1, args.len(), line));
+            }
+            match &args[0] {
+                Array(arr) => {
+                    let mut reversed_arr = arr.clone();
+                    reversed_arr.reverse();
+                    Ok(Array(reversed_arr))
                 }
                 _ => Err(DataCodeError::type_error("Array", "other", line)),
             }
@@ -457,7 +491,7 @@ pub fn call_array_function(name: &str, args: Vec<Value>, line: usize) -> Result<
 /// Check if a function name belongs to array functions
 pub fn is_array_function(name: &str) -> bool {
     matches!(name,
-        "len" | "push" | "pop" | "append" | "sort" |
+        "len" | "push" | "pop" | "append" | "sort" | "reverse" |
         "unique" | "array" | "sum" | "average" | "count" | "range" |
         "map" | "filter" | "reduce" | "array_builder" | "extend" | "bulk_create"
     )

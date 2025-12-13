@@ -174,9 +174,13 @@ pub fn call_builtin_function_with_named_args(
                 }
             }
             
+            // Handle header named argument - pass it directly to read_file
+            // We'll handle it in call_file_function by passing named_args
+            let header_arg = named_args.get("header").cloned();
+            
             // Check for unknown named arguments
             for (key, _) in &named_args {
-                if key != "sheet_name" && key != "header_row" {
+                if key != "sheet_name" && key != "header_row" && key != "header" {
                     return Err(DataCodeError::runtime_error(
                         &format!("Unknown named argument '{}' for read_file", key),
                         line
@@ -184,7 +188,8 @@ pub fn call_builtin_function_with_named_args(
                 }
             }
             
-            call_builtin_function(name, final_args, line)
+            // Call read_file with header through file module
+            crate::builtins::file::call_file_function_with_header("read_file", final_args, header_arg, line)
         }
         _ => {
             // For other functions, check if they have named arguments (not supported yet)

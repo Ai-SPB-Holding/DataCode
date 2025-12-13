@@ -220,4 +220,247 @@ mod file_reading_tests {
             _ => panic!("xlsx_content should be a table"),
         }
     }
+
+    // ========== Тесты для функционала header ==========
+
+    #[test]
+    fn test_read_csv_with_header_filter() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        interp.exec("global csv_content = read_file(csv_path, header=[\"Name\", \"Age\"])").unwrap();
+        
+        match interp.get_variable("csv_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                // Должно быть только 2 колонки
+                assert_eq!(table_borrowed.column_names.len(), 2);
+                assert_eq!(table_borrowed.column_names[0], "Name");
+                assert_eq!(table_borrowed.column_names[1], "Age");
+                
+                // Проверяем количество строк
+                assert_eq!(table_borrowed.rows.len(), 5);
+                
+                // Проверяем первую строку
+                let first_row = &table_borrowed.rows[0];
+                assert_eq!(first_row.len(), 2);
+                if let Value::String(name) = &first_row[0] {
+                    assert_eq!(name, "John Doe");
+                }
+                if let Value::Number(age) = &first_row[1] {
+                    assert_eq!(*age, 30.0);
+                }
+            }
+            _ => panic!("read_file should return a table for csv files with header filter"),
+        }
+    }
+
+    #[test]
+    fn test_read_csv_with_header_filter_reordered() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // Порядок колонок в header отличается от порядка в файле
+        interp.exec("global csv_content = read_file(csv_path, header=[\"Salary\", \"Name\", \"City\"])").unwrap();
+        
+        match interp.get_variable("csv_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                // Должно быть 3 колонки в указанном порядке
+                assert_eq!(table_borrowed.column_names.len(), 3);
+                assert_eq!(table_borrowed.column_names[0], "Salary");
+                assert_eq!(table_borrowed.column_names[1], "Name");
+                assert_eq!(table_borrowed.column_names[2], "City");
+                
+                // Проверяем первую строку - порядок значений должен соответствовать header
+                let first_row = &table_borrowed.rows[0];
+                assert_eq!(first_row.len(), 3);
+                if let Value::Number(salary) = &first_row[0] {
+                    assert_eq!(*salary, 50000.0);
+                }
+                if let Value::String(name) = &first_row[1] {
+                    assert_eq!(name, "John Doe");
+                }
+                if let Value::String(city) = &first_row[2] {
+                    assert_eq!(city, "New York");
+                }
+            }
+            _ => panic!("read_file should return a table with reordered columns"),
+        }
+    }
+
+    #[test]
+    fn test_read_xlsx_with_header_filter() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.xlsx";
+        interp.exec(&format!("global xlsx_path = path('{}')", test_file_path)).unwrap();
+        interp.exec("global xlsx_content = read_file(xlsx_path, header=[\"Product\", \"Price\"])").unwrap();
+        
+        match interp.get_variable("xlsx_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                // Должно быть только 2 колонки
+                assert_eq!(table_borrowed.column_names.len(), 2);
+                assert_eq!(table_borrowed.column_names[0], "Product");
+                assert_eq!(table_borrowed.column_names[1], "Price");
+                
+                // Проверяем первую строку
+                if table_borrowed.rows.len() > 0 {
+                    let first_row = &table_borrowed.rows[0];
+                    assert_eq!(first_row.len(), 2);
+                    if let Value::String(product) = &first_row[0] {
+                        assert_eq!(product, "Laptop");
+                    }
+                    if let Value::Number(price) = &first_row[1] {
+                        assert_eq!(*price, 999.99);
+                    }
+                }
+            }
+            _ => panic!("read_file should return a table for xlsx files with header filter"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_and_sheet_name() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.xlsx";
+        interp.exec(&format!("global xlsx_path = path('{}')", test_file_path)).unwrap();
+        // Не указываем sheet_name, так как тестовый файл может не иметь листа "Sheet1"
+        // Просто проверяем, что header работает с xlsx файлами
+        interp.exec("global xlsx_content = read_file(xlsx_path, header=[\"Product\", \"Price\"])").unwrap();
+        
+        match interp.get_variable("xlsx_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.column_names.len(), 2);
+                assert_eq!(table_borrowed.column_names[0], "Product");
+                assert_eq!(table_borrowed.column_names[1], "Price");
+            }
+            _ => panic!("read_file should work with header for xlsx files"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_and_header_row() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        interp.exec("global csv_content = read_file(csv_path, 0, header=[\"Name\", \"Age\"])").unwrap();
+        
+        match interp.get_variable("csv_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                assert_eq!(table_borrowed.column_names.len(), 2);
+                assert_eq!(table_borrowed.column_names[0], "Name");
+                assert_eq!(table_borrowed.column_names[1], "Age");
+            }
+            _ => panic!("read_file should work with both header_row and header"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_missing_column() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // Указываем несуществующую колонку вместе с существующей
+        // Должно выдать предупреждение, но продолжить работу
+        let result = interp.exec("global csv_content = read_file(csv_path, header=[\"Name\", \"NonExistentColumn\"])");
+        
+        // Должно работать, но с предупреждением
+        assert!(result.is_ok(), "Should work with missing column (with warning)");
+        
+        match interp.get_variable("csv_content") {
+            Some(Value::Table(table)) => {
+                let table_borrowed = table.borrow();
+                // Должна быть только одна колонка (Name)
+                assert_eq!(table_borrowed.column_names.len(), 1);
+                assert_eq!(table_borrowed.column_names[0], "Name");
+            }
+            _ => panic!("Should return table with only existing columns"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_all_missing_columns() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // Все указанные колонки не существуют
+        let result = interp.exec("global csv_content = read_file(csv_path, header=[\"NonExistent1\", \"NonExistent2\"])");
+        
+        // Должно вернуть ошибку
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            DataCodeError::RuntimeError { message, .. } => {
+                assert!(message.contains("None of the specified columns found") || 
+                        message.contains("not found"));
+            }
+            _ => panic!("Expected RuntimeError for all missing columns"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_empty_array() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // Пустой массив header
+        let result = interp.exec("global csv_content = read_file(csv_path, header=[])");
+        
+        // Должно вернуть ошибку
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            DataCodeError::RuntimeError { message, .. } => {
+                assert!(message.contains("empty") || message.contains("cannot be empty"));
+            }
+            _ => panic!("Expected RuntimeError for empty header array"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_wrong_type() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // header должен быть массивом, а не строкой
+        let result = interp.exec("global csv_content = read_file(csv_path, header=\"Name\")");
+        
+        // Должно вернуть ошибку
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            DataCodeError::RuntimeError { message, .. } => {
+                assert!(message.contains("array") || message.contains("Array"));
+            }
+            _ => panic!("Expected RuntimeError for wrong header type"),
+        }
+    }
+
+    #[test]
+    fn test_read_file_with_header_array_containing_non_strings() {
+        let mut interp = Interpreter::new();
+        
+        let test_file_path = "test_data/sample.csv";
+        interp.exec(&format!("global csv_path = path('{}')", test_file_path)).unwrap();
+        // header должен содержать только строки
+        let result = interp.exec("global csv_content = read_file(csv_path, header=[\"Name\", 123])");
+        
+        // Должно вернуть ошибку
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            DataCodeError::RuntimeError { message, .. } => {
+                assert!(message.contains("string") || message.contains("String"));
+            }
+            _ => panic!("Expected RuntimeError for non-string elements in header array"),
+        }
+    }
 }
