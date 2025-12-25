@@ -1,0 +1,47 @@
+# Циклы while
+# Демонстрация циклов while
+
+# Простой цикл while
+let counter = 0
+while counter < 5 {
+    print("Счетчик:", counter)
+    counter = counter + 1
+}
+
+# Сумма чисел от 1 до 10
+let sum = 0
+let i = 1
+while i <= 10 {
+    sum = sum + i
+    i = i + 1
+}
+print("Сумма чисел от 1 до 10 =", sum)
+
+# Обратный отсчет
+let countdown = 5
+while countdown > 0 {
+    print("Осталось:", countdown)
+    countdown = countdown - 1
+}
+print("Старт!")
+
+# Поиск максимального значения
+let numbers = 0
+let max = 0
+let current = 1
+while current <= 10 {
+    if current > max {
+        max = current
+    }
+    current = current + 1
+}
+print("Максимум от 1 до 10 =", max)
+
+# Условие, которое никогда не выполнится
+let x = 10
+while x > 20 {
+    print("Это не выполнится")
+    x = x + 1
+}
+print("x =", x)
+

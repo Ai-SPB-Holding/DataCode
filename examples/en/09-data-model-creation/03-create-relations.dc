@@ -1,0 +1,159 @@
+# Example 3: Creating relations between tables
+# Demonstrates how to create relations between table columns using relate()
+
+print("============================================================")
+print("Example 3: Creating relations between tables")
+print("============================================================")
+print()
+
+# Example 3.1: Simple relation between two tables
+print("🔍 Example 3.1: Simple relation...")
+
+let products = table([
+    ["PROD_001", "Laptop", 999.99],
+    ["PROD_002", "Mouse", 29.99],
+    ["PROD_003", "Keyboard", 79.99]
+], ["product_id", "name", "price"])
+
+let sales = table([
+    ["SALE_001", "PROD_001", 2],
+    ["SALE_002", "PROD_002", 5],
+    ["SALE_003", "PROD_001", 1]
+], ["sale_id", "product_id", "quantity"])
+
+print("  Products table: ", len(products), " rows")
+print("  Sales table: ", len(sales), " rows")
+print()
+
+# Create relation between product_id columns
+try {
+    relate(products["product_id"], sales["product_id"])
+    print("  ✓ Relation created: products.product_id ↔ sales.product_id")
+} catch e {
+    print("  ✗ Error creating relation: ", e)
+}
+print()
+
+# Example 3.2: Multiple relations
+print("🔍 Example 3.2: Multiple relations...")
+
+let regions = table([
+    ["REG_01", "North", "USA"],
+    ["REG_02", "South", "USA"]
+], ["region_id", "name", "country"])
+
+let sales_by_region = table([
+    ["SALE_001", "REG_01", 1999.98],
+    ["SALE_002", "REG_02", 149.95]
+], ["sale_id", "region_id", "amount"])
+
+let employees = table([
+    ["EMP_001", "Alice", "REG_01"],
+    ["EMP_002", "Bob", "REG_02"]
+], ["employee_id", "name", "region_id"])
+
+print("  Regions table: ", len(regions), " rows")
+print("  Sales by region table: ", len(sales_by_region), " rows")
+print("  Employees table: ", len(employees), " rows")
+print()
+
+# Create multiple relations
+let relations_created = 0
+
+try {
+    relate(regions["region_id"], sales_by_region["region_id"])
+    relations_created = relations_created + 1
+    print("  ✓ Relation 1: regions.region_id ↔ sales_by_region.region_id")
+} catch e {
+    print("  ✗ Error creating relation 1: ", e)
+}
+
+try {
+    relate(regions["region_id"], employees["region_id"])
+    relations_created = relations_created + 1
+    print("  ✓ Relation 2: regions.region_id ↔ employees.region_id")
+} catch e {
+    print("  ✗ Error creating relation 2: ", e)
+}
+
+try {
+    relate(sales["sale_id"], sales_by_region["sale_id"])
+    relations_created = relations_created + 1
+    print("  ✓ Relation 3: sales.sale_id ↔ sales_by_region.sale_id")
+} catch e {
+    print("  ✗ Error creating relation 3: ", e)
+}
+
+print()
+print("  Total relations created: ", relations_created)
+print()
+
+# Example 3.3: Relation after merging tables
+print("🔍 Example 3.3: Creating relations after merging tables...")
+
+# Create tables with same structure
+let monthly_sales_jan = table([
+    ["SALE_JAN_001", "PROD_001", 100.0],
+    ["SALE_JAN_002", "PROD_002", 50.0]
+], ["sale_id", "product_id", "amount"])
+
+let monthly_sales_feb = table([
+    ["SALE_FEB_001", "PROD_001", 120.0],
+    ["SALE_FEB_002", "PROD_003", 80.0]
+], ["sale_id", "product_id", "amount"])
+
+# Merge tables
+let all_monthly_sales = merge_tables([monthly_sales_jan, monthly_sales_feb])
+
+if all_monthly_sales != null {
+    print("  ✓ Merged table created: ", len(all_monthly_sales), " rows")
+    
+    # Create relation with merged table
+    try {
+        relate(products["product_id"], all_monthly_sales["product_id"])
+        print("  ✓ Relation created: products.product_id ↔ all_monthly_sales.product_id")
+    } catch e {
+        print("  ✗ Error creating relation: ", e)
+    }
+}
+print()
+
+# Example 3.4: Helper function for safe relation creation
+print("🔍 Example 3.4: Safe relation creation using helper function...")
+
+fn create_relation_safe(table1, col1, table2, col2, relation_name) {
+    try {
+        let headers1 = table1.columns
+        let headers2 = table2.columns
+        
+        if col1 in headers1 and col2 in headers2 {
+            relate(table1[col1], table2[col2])
+            print("    ✓ ", relation_name)
+            return true
+        } else {
+            print("    ⚠️  ", relation_name, " - columns not found")
+            return false
+        }
+    } catch e {
+        print("    ✗ ", relation_name, " - error: ", e)
+        return false
+    }
+}
+
+# Use helper function
+let safe_relations = 0
+if create_relation_safe(products, "product_id", sales, "product_id", "products ↔ sales") {
+    safe_relations = safe_relations + 1
+}
+
+print("  Safe relations created: ", safe_relations)
+print()
+
+print("============================================================")
+print("✅ Example 3 completed")
+print("============================================================")
+print()
+print("💡 Tip: Relations are used when exporting to SQLite database")
+print("   Use --build_model flag to export tables and relations to SQLite")
+print()
+

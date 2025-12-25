@@ -1,8 +1,0 @@
-# Простой пример DataCode
-global x = 10
-global y = 20
-global sum = x + y
-
-print('x =', x)
-print('y =', y)
-print('sum =', sum)

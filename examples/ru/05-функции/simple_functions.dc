@@ -1,0 +1,40 @@
+# Простые функции
+# Демонстрация создания и использования функций
+
+# Функция без параметров
+fn get_five() {
+    return 5
+}
+
+# Функция с одним параметром
+fn double(x) {
+    return x * 2
+}
+
+# Функция с несколькими параметрами
+fn add(a, b) {
+    return a + b
+}
+
+# Функция для вычисления площади прямоугольника
+fn rectangle_area(width, height) {
+    return width * height
+}
+
+# Использование функций
+print("get_five() =", get_five())
+print("double(10) =", double(10))
+print("add(5, 3) =", add(5, 3))
+print("rectangle_area(4, 5) =", rectangle_area(4, 5))
+
+# Функции в выражениях
+let result = add(double(5), get_five())
+print("add(double(5), get_five()) =", result)
+
+# Функция для приветствия
+fn greet(name) {
+    return "Привет, " + name + "!"
+}
+
+print(greet("ДатаКод"))
+

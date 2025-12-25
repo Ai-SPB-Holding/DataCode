@@ -1,0 +1,226 @@
+# Table JOIN Operations in DataCode
+# Demonstrates all types of table joins: inner, left, right, full, cross, semi, anti
+
+print("============================================================")
+print("Table JOIN Operations")
+print("============================================================")
+print()
+
+# Setup: Create sample tables for demonstration
+print("📊 Setting up sample tables...")
+global users = table([
+    [1, "Alice", "Engineering"],
+    [2, "Bob", "Marketing"],
+    [3, "Charlie", "Engineering"],
+    [4, "Diana", "Sales"]
+], ["id", "name", "department"])
+
+global orders = table([
+    [101, 1, 150.00, "2024-01-15"],
+    [102, 1, 200.50, "2024-02-20"],
+    [103, 3, 75.25, "2024-01-10"],
+    [104, 5, 300.00, "2024-03-05"]
+], ["order_id", "user_id", "amount", "date"])
+
+global products = table([
+    [1, "Laptop", 999.99],
+    [2, "Mouse", 29.99],
+    [3, "Keyboard", 79.99]
+], ["product_id", "name", "price"])
+
+print("  ✓ Created users table:", len(users), "rows")
+print("  ✓ Created orders table:", len(orders), "rows")
+print("  ✓ Created products table:", len(products), "rows")
+print()
+
+# Example 1: INNER JOIN
+print("🔍 Example 1: INNER JOIN")
+print("  Returns only rows that have matches in both tables")
+print("  ----------------------------------------")
+
+global inner_result = inner_join(users, orders, "id", "user_id")
+print("  ✓ inner_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(inner_result), "rows")
+print("    Columns:", inner_result.columns)
+print("    Note: Only users with orders are included")
+print()
+
+# Example 2: LEFT JOIN
+print("🔍 Example 2: LEFT JOIN")
+print("  Returns all rows from left table, NULL for unmatched right rows")
+print("  ----------------------------------------")
+
+global left_result = left_join(users, orders, "id", "user_id")
+print("  ✓ left_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(left_result), "rows")
+print("    Columns:", left_result.columns)
+print("    Note: All users are included, even without orders")
+print()
+
+# Example 3: RIGHT JOIN
+print("🔍 Example 3: RIGHT JOIN")
+print("  Returns all rows from right table, NULL for unmatched left rows")
+print("  ----------------------------------------")
+
+global right_result = right_join(users, orders, "id", "user_id")
+print("  ✓ right_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(right_result), "rows")
+print("    Columns:", right_result.columns)
+print("    Note: All orders are included, even with non-existent user_id")
+print()
+
+# Example 4: FULL JOIN
+print("🔍 Example 4: FULL JOIN")
+print("  Returns all rows from both tables, NULL for unmatched values")
+print("  ----------------------------------------")
+
+global full_result = full_join(users, orders, "id", "user_id")
+print("  ✓ full_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(full_result), "rows")
+print("    Columns:", full_result.columns)
+print("    Note: All users and all orders are included")
+print()
+
+# Example 5: CROSS JOIN
+print("🔍 Example 5: CROSS JOIN")
+print("  Returns Cartesian product (all combinations)")
+print("  ----------------------------------------")
+
+global small_users = table([
+    [1, "Alice"],
+    [2, "Bob"]
+], ["id", "name"])
+
+global small_products = table([
+    [1, "Laptop"],
+    [2, "Mouse"]
+], ["product_id", "name"])
+
+global cross_result = cross_join(small_users, small_products)
+print("  ✓ cross_join(small_users, small_products):")
+print("    Result:", len(cross_result), "rows (2 users × 2 products = 4 rows)")
+print("    Columns:", cross_result.columns)
+print("    Note: Every user is paired with every product")
+print()
+
+# Example 6: SEMI JOIN
+print("🔍 Example 6: SEMI JOIN")
+print("  Returns left table rows that have matches in right table")
+print("  (without including right table columns)")
+print("  ----------------------------------------")
+
+global semi_result = semi_join(users, orders, "id", "user_id")
+print("  ✓ semi_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(semi_result), "rows")
+print("    Columns:", semi_result.columns)
+print("    Note: Only users who have orders (without order details)")
+print()
+
+# Example 7: ANTI JOIN
+print("🔍 Example 7: ANTI JOIN")
+print("  Returns left table rows that have NO matches in right table")
+print("  ----------------------------------------")
+
+global anti_result = anti_join(users, orders, "id", "user_id")
+print("  ✓ anti_join(users, orders, 'id', 'user_id'):")
+print("    Result:", len(anti_result), "rows")
+print("    Columns:", anti_result.columns)
+print("    Note: Only users who have NO orders")
+print()
+
+# Example 8: JOIN with multiple keys
+print("🔍 Example 8: JOIN with multiple keys")
+print("  Joining on multiple columns")
+print("  ----------------------------------------")
+
+global employees = table([
+    [1, "Engineering", "US"],
+    [2, "Marketing", "US"],
+    [3, "Engineering", "UK"],
+    [4, "Sales", "US"]
+], ["emp_id", "department", "country"])
+
+global departments = table([
+    ["Engineering", "US", "Headquarters"],
+    ["Marketing", "US", "Branch Office"],
+    ["Engineering", "UK", "European Office"],
+    ["HR", "US", "Branch Office"]
+], ["department", "country", "location"])
+
+global multi_key_result = inner_join(
+    employees, 
+    departments, 
+    [["department", "department"], ["country", "country"]]
+)
+print("  ✓ inner_join with multiple keys:")
+print("    Result:", len(multi_key_result), "rows")
+print("    Columns:", multi_key_result.columns)
+print("    Note: Joined on both department AND country")
+print()
+
+# Example 9: Using the universal join() function
+print("🔍 Example 9: Using the universal join() function")
+print("  Using join() with type parameter")
+print("  ----------------------------------------")
+
+global join_inner = join(users, orders, ["id", "user_id"], "inner")
+print("  ✓ join(users, orders, ['id', 'user_id'], 'inner'):")
+print("    Result:", len(join_inner), "rows")
+
+global join_left = join(users, orders, ["id", "user_id"], "left")
+print("  ✓ join(users, orders, ['id', 'user_id'], 'left'):")
+print("    Result:", len(join_left), "rows")
+print()
+
+# Example 10: Practical use case - Sales report
+print("🔍 Example 10: Practical use case - Sales report")
+print("  Creating a sales report with user and order information")
+print("  ----------------------------------------")
+
+global sales_report = left_join(users, orders, "id", "user_id")
+print("  ✓ Sales report (left join):")
+print("    Total rows:", len(sales_report))
+print("    Columns:", sales_report.columns)
+print("    This shows all users with their orders (if any)")
+print()
+
+# Example 11: Finding users without orders
+print("🔍 Example 11: Finding users without orders")
+print("  Using anti_join to find users with no orders")
+print("  ----------------------------------------")
+
+global users_without_orders = anti_join(users, orders, "id", "user_id")
+print("  ✓ Users without orders:")
+print("    Count:", len(users_without_orders), "users")
+if len(users_without_orders) > 0 {
+    print("    Users:", users_without_orders.columns)
+}
+print()
+
+# Example 12: Finding users with orders
+print("🔍 Example 12: Finding users with orders")
+print("  Using semi_join to find users who have placed orders")
+print("  ----------------------------------------")
+
+global users_with_orders = semi_join(users, orders, "id", "user_id")
+print("  ✓ Users with orders:")
+print("    Count:", len(users_with_orders), "users")
+if len(users_with_orders) > 0 {
+    print("    Users:", users_with_orders.columns)
+}
+print()
+
+print("============================================================")
+print("✅ Table JOIN Operations Examples Completed")
+print("============================================================")
+print()
+print("Summary of JOIN types:")
+print("  - INNER JOIN: Only matching rows from both tables")
+print("  - LEFT JOIN: All left rows + matching right rows")
+print("  - RIGHT JOIN: All right rows + matching left rows")
+print("  - FULL JOIN: All rows from both tables")
+print("  - CROSS JOIN: Cartesian product (all combinations)")
+print("  - SEMI JOIN: Left rows that have matches (no right columns)")
+print("  - ANTI JOIN: Left rows that have NO matches")
+print()
+

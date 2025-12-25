@@ -1,199 +1,199 @@
-# 📦 DataCode Installation Guide
+# 📦 Руководство по установке DataCode
 
-This guide explains how to install DataCode as a global command on your system.
+Это руководство объясняет, как установить DataCode как глобальную команду в вашей системе.
 
-## 🚀 Quick Installation
+## 🚀 Быстрая установка
 
-### Automatic Installation (Recommended)
+### Автоматическая установка (Рекомендуется)
 
-1. **Clone the repository:**
+1. **Клонируйте репозиторий:**
    ```bash
    git clone https://github.com/igornet0/DataCode.git
    cd DataCode
    ```
 
-2. **Run the installation script:**
+2. **Запустите скрипт установки:**
    ```bash
    ./install.sh
    ```
    
-   Or using Make:
+   Или используя Make:
    ```bash
    make install
    ```
 
-3. **Test the installation:**
+3. **Проверьте установку:**
    ```bash
    datacode --help
    ```
 
-## 🔧 Manual Installation
+## 🔧 Ручная установка
 
-### Prerequisites
-- **Rust** (1.70 or later) - Install from [rustup.rs](https://rustup.rs/)
-- **Git** - For cloning the repository
+### Требования
+- **Rust** (1.70 или новее) - Установите с [rustup.rs](https://rustup.rs/)
+- **Git** - Для клонирования репозитория
 
-### Step-by-Step Installation
+### Пошаговая установка
 
-1. **Clone and build:**
+1. **Клонируйте и соберите:**
    ```bash
    git clone https://github.com/igornet0/DataCode.git
    cd DataCode
    cargo build --release
    ```
 
-2. **Install globally:**
+2. **Установите глобально:**
    ```bash
    cargo install --path . --force
    ```
 
-3. **Verify installation:**
+3. **Проверьте установку:**
    ```bash
    datacode --version
    ```
 
-## 🎯 Usage After Installation
+## 🎯 Использование после установки
 
-### Basic Commands
+### Основные команды
 ```bash
-# Start interactive REPL
+# Запустить интерактивный REPL
 datacode
 
-# Execute a DataCode file
+# Выполнить файл DataCode
 datacode filename.dc
 
-# Show help
+# Показать справку
 datacode --help
 
-# Run demonstration
+# Запустить демонстрацию
 datacode --demo
 ```
 
-### Example Usage
+### Пример использования
 ```bash
-# Create a simple DataCode program
+# Создайте простую программу DataCode
 echo "print('Hello, DataCode!')" > hello.dc
 
-# Execute it
+# Выполните её
 datacode hello.dc
 ```
 
-## 🛠️ Development Setup
+## 🛠️ Настройка для разработки
 
-For development and testing:
+Для разработки и тестирования:
 
 ```bash
-# Clone repository
+# Клонируйте репозиторий
 git clone https://github.com/igornet0/DataCode.git
 cd DataCode
 
-# Build in debug mode
+# Соберите в режиме отладки
 make build
 
-# Run tests
+# Запустите тесты
 make test
 
-# Start REPL in development mode
+# Запустите REPL в режиме разработки
 make run
 
-# Run all examples
+# Запустите все примеры
 make examples
 ```
 
-## 🗑️ Uninstallation
+## 🗑️ Удаление
 
-### Using the uninstall script:
+### Используя скрипт удаления:
 ```bash
 ./uninstall.sh
 ```
 
-### Or using Make:
+### Или используя Make:
 ```bash
 make uninstall
 ```
 
-### Manual uninstallation:
+### Ручное удаление:
 ```bash
 cargo uninstall data_code
 ```
 
-## 🔍 Troubleshooting
+## 🔍 Решение проблем
 
-### Command not found: datacode
+### Команда не найдена: datacode
 
-**Problem:** After installation, `datacode` command is not recognized.
+**Проблема:** После установки команда `datacode` не распознается.
 
-**Solution:** Add Cargo's bin directory to your PATH:
+**Решение:** Добавьте директорию bin Cargo в ваш PATH:
 
 ```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+# Добавьте в ваш профиль оболочки (~/.bashrc, ~/.zshrc, и т.д.)
 export PATH="$HOME/.cargo/bin:$PATH"
 
-# Reload your shell
-source ~/.bashrc  # or ~/.zshrc
+# Перезагрузите оболочку
+source ~/.bashrc  # или ~/.zshrc
 ```
 
-### Permission denied
+### Отказано в доступе
 
-**Problem:** Permission denied when running installation script.
+**Проблема:** Отказано в доступе при запуске скрипта установки.
 
-**Solution:** Make the script executable:
+**Решение:** Сделайте скрипт исполняемым:
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-### Build fails
+### Ошибка сборки
 
-**Problem:** Compilation errors during build.
+**Проблема:** Ошибки компиляции во время сборки.
 
-**Solution:** 
-1. Update Rust: `rustup update`
-2. Clean and rebuild: `cargo clean && cargo build --release`
-3. Check Rust version: `rustc --version` (should be 1.70+)
+**Решение:** 
+1. Обновите Rust: `rustup update`
+2. Очистите и пересоберите: `cargo clean && cargo build --release`
+3. Проверьте версию Rust: `rustc --version` (должна быть 1.70+)
 
-## 📁 File Locations
+## 📁 Расположение файлов
 
-After installation:
-- **Executable:** `~/.cargo/bin/datacode`
-- **Source:** Your cloned directory
-- **Examples:** `examples/` directory in source
+После установки:
+- **Исполняемый файл:** `~/.cargo/bin/datacode`
+- **Исходный код:** Ваша клонированная директория
+- **Примеры:** директория `examples/` в исходниках
 
-## 🌍 Platform Support
+## 🌍 Поддержка платформ
 
-DataCode is tested on:
+DataCode протестирован на:
 - ✅ **macOS** (Intel & Apple Silicon)
 - ✅ **Linux** (Ubuntu, Debian, CentOS, Arch)
-- ✅ **Windows** (with WSL or native)
+- ✅ **Windows** (с WSL или нативно)
 
-## 📚 Next Steps
+## 📚 Следующие шаги
 
-After installation:
+После установки:
 
-1. **Try the examples:**
+1. **Попробуйте примеры:**
    ```bash
    datacode examples/hello.dc
    datacode examples/functions.dc
    datacode examples/showcase.dc
    ```
 
-2. **Start the interactive REPL:**
+2. **Запустите интерактивный REPL:**
    ```bash
    datacode
    ```
 
-3. **Read the documentation:**
-   - [README.md](README.md) - Main documentation
-   - [examples/](examples/) - Example programs
-   - Type `help` in the REPL for syntax reference
+3. **Прочитайте документацию:**
+   - [README.md](README.md) - Основная документация
+   - [examples/](examples/) - Примеры программ
+   - Введите `help` в REPL для справки по синтаксису
 
-## 🆘 Getting Help
+## 🆘 Получение помощи
 
-- **In REPL:** Type `help` for syntax reference
-- **Command line:** `datacode --help`
-- **Issues:** [GitHub Issues](https://github.com/igornet0/DataCode/issues)
-- **Documentation:** [README.md](README.md)
+- **В REPL:** Введите `help` для справки по синтаксису
+- **В командной строке:** `datacode --help`
+- **Проблемы:** [GitHub Issues](https://github.com/igornet0/DataCode/issues)
+- **Документация:** [README.md](README.md)
 
 ---
 
-**Happy coding with DataCode! 🧠✨**
+**Приятного программирования с DataCode! 🧠✨**

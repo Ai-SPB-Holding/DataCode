@@ -1,4 +1,4 @@
-use crate::interpreter::Interpreter;
+use crate::run;
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
@@ -6,13 +6,13 @@ use tokio::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
 use std::fs;
+use std::env;
 
 pub mod output_capture;
 pub mod smb;
 
 use output_capture::OutputCapture;
 use smb::{SmbManager, SmbConnection};
-use crate::builtins::file::{set_smb_manager, clear_smb_manager};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -88,6 +88,7 @@ struct UploadFileResponse {
 thread_local! {
     static USER_SESSION_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
     static USE_VE_FLAG: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
+    static NATIVE_ERROR: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
 }
 
 pub fn set_user_session_path(path: Option<PathBuf>) {
@@ -106,8 +107,16 @@ pub fn get_use_ve() -> bool {
     USE_VE_FLAG.with(|f| *f.borrow())
 }
 
+pub fn set_native_error(msg: String) {
+    NATIVE_ERROR.with(|e| *e.borrow_mut() = Some(msg));
+}
+
+pub fn take_native_error() -> Option<String> {
+    NATIVE_ERROR.with(|e| e.borrow_mut().take())
+}
+
 /// Запустить WebSocket сервер на указанном адресе
-pub async fn start_server(address: &str, use_ve: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_server(address: &str, use_ve: bool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let listener = TcpListener::bind(address).await?;
     println!("🚀 DataCode WebSocket Server запущен на {}", address);
     println!("📡 Ожидание подключений...");
@@ -160,13 +169,11 @@ async fn handle_client(stream: TcpStream, use_ve: bool) {
     };
 
     let (mut write, mut read) = ws_stream.split();
-    // Создаем отдельный интерпретатор для каждого клиента
-    let mut interpreter = Interpreter::new();
     // Создаем отдельный SmbManager для каждого клиента
     let smb_manager = Arc::new(Mutex::new(SmbManager::new()));
     
     // Устанавливаем SmbManager в thread-local storage для доступа из функций файловых операций
-    set_smb_manager(smb_manager.clone());
+    crate::vm::file_ops::set_smb_manager(smb_manager.clone());
     
     // Устанавливаем флаг use_ve
     set_use_ve(use_ve);
@@ -182,12 +189,25 @@ async fn handle_client(stream: TcpStream, use_ve: bool) {
         let user_id = format!("user_{}", timestamp);
         let user_dir = Path::new("src/temp_sessions").join(&user_id);
         
-        if let Err(e) = fs::create_dir_all(&user_dir) {
+        // Преобразуем в абсолютный путь для корректной работы с путями от list_files
+        let user_dir_absolute = match user_dir.canonicalize() {
+            Ok(p) => p,
+            Err(_) => {
+                // Если канонизация не удалась (папка еще не существует), 
+                // создаем абсолютный путь через current_dir
+                match env::current_dir() {
+                    Ok(cwd) => cwd.join(&user_dir),
+                    Err(_) => user_dir, // Fallback к относительному пути
+                }
+            },
+        };
+        
+        if let Err(e) = fs::create_dir_all(&user_dir_absolute) {
             eprintln!("❌ Ошибка создания папки пользователя: {}", e);
             None
         } else {
-            println!("📁 Создана папка пользователя: {}", user_dir.display());
-            Some(user_dir)
+            println!("📁 Создана папка пользователя: {}", user_dir_absolute.display());
+            Some(user_dir_absolute)
         }
     } else {
         None
@@ -203,8 +223,8 @@ async fn handle_client(stream: TcpStream, use_ve: bool) {
                 if let Ok(request) = serde_json::from_str::<WebSocketRequest>(&text) {
                     match request {
                         WebSocketRequest::Execute { code } => {
-                            // Выполняем код (синхронно, так как Interpreter не является Send)
-                            let response = execute_code(&mut interpreter, &code, &smb_manager);
+                            // Выполняем код
+                            let response = execute_code(&code, &smb_manager);
                             
                             // Отправляем ответ
                             if let Ok(json) = serde_json::to_string(&response) {
@@ -378,7 +398,7 @@ async fn handle_client(stream: TcpStream, use_ve: bool) {
                 } else {
                     // Пытаемся распарсить как старый формат для обратной совместимости
                     if let Ok(request) = serde_json::from_str::<ExecuteRequest>(&text) {
-                        let response = execute_code(&mut interpreter, &request.code, &smb_manager);
+                        let response = execute_code(&request.code, &smb_manager);
                         
                         if let Ok(json) = serde_json::to_string(&response) {
                             if let Err(e) = write.send(Message::Text(json)).await {
@@ -460,19 +480,18 @@ async fn handle_client(stream: TcpStream, use_ve: bool) {
     }
     
     // Очищаем thread-local storage
-    clear_smb_manager();
+    crate::vm::file_ops::clear_smb_manager();
     set_user_session_path(None);
     set_use_ve(false);
 }
 
 /// Выполнить код и вернуть результат
 fn execute_code(
-    interpreter: &mut Interpreter,
     code: &str,
     smb_manager: &Arc<Mutex<SmbManager>>,
 ) -> ExecuteResponse {
     // Устанавливаем SmbManager в thread-local storage для доступа из функций файловых операций
-    set_smb_manager(smb_manager.clone());
+    crate::vm::file_ops::set_smb_manager(smb_manager.clone());
     
     // Создаем буфер для перехвата вывода
     let output_capture = OutputCapture::new();
@@ -480,8 +499,8 @@ fn execute_code(
     // Устанавливаем буфер для текущего потока
     output_capture.set_capture(true);
 
-    // Выполняем код
-    let result = interpreter.exec(code);
+    // Выполняем код используя новую архитектуру VM
+    let result = run(code);
 
     // Получаем вывод
     let output = output_capture.get_output();
@@ -489,7 +508,7 @@ fn execute_code(
 
     // Формируем ответ
     match result {
-        Ok(()) => ExecuteResponse {
+        Ok(_) => ExecuteResponse {
             success: true,
             output,
             error: None,

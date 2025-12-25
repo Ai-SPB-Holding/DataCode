@@ -1,48 +1,48 @@
-# 🧠 DataCode - Interactive Programming Language
+# 🧠 ДатаКод - Интерактивный язык программирования
 
-<img width="935" height="451" alt="Screenshot 2025-07-15 at 16 32 23" src="https://github.com/user-attachments/assets/5f2d3745-dcf2-47cf-9caa-881c7d10ae71" />
+<img width="935" height="451" alt="DataCode image" src="https://github.com/user-attachments/assets/5f2d3745-dcf2-47cf-9caa-881c7d10ae71" />
 
-**DataCode** is a simple, interactive programming language designed for fast data processing and easy learning. It features an intuitive syntax, powerful array support, built-in functions, and user-defined functions with local scope.
+**ДатаКод** — простой интерактивный язык программирования, разработанный для быстрой обработки данных и легкого обучения. Он отличается интуитивным синтаксисом, мощной поддержкой массивов, встроенными функциями и пользовательскими функциями с локальной областью видимости.
 
-## 🚀 Features
+## 🚀 Возможности
 
-- **Interactive REPL** with multiline support and command history
-- **File execution** - write programs in `.dc` files
-- **Array literals** - `[1, 2, 3]`, `['a', 'b']`, mixed types supported
-- **Array indexing** - `arr[0]`, `nested[0][1]` with full nesting support
-- **User-defined functions** with local scope, parameters and recursion
-- **Conditional statements** - if/else/endif with nesting support
-- **For loops** - iterate over arrays with `for...in`
-- **Arithmetic and logical operations** with proper precedence
-- **String manipulation** and concatenation
-- **Table operations** - work with CSV/Excel files, automatic typing
-- **40+ built-in functions** - math, string, array, file, and table operations
-- **Path manipulation** for file system operations
-- **Flexible data types** - numbers, strings, booleans, arrays, tables, paths
-- **Improved error messages** with line numbers and context
-- **Comment support** with `#`
+- **Интерактивный REPL** с поддержкой многострочного ввода и историей команд
+- **Выполнение файлов** - пишите программы в файлах `.dc`
+- **Литералы массивов** - `[1, 2, 3]`, `['a', 'b']`, поддерживаются смешанные типы
+- **Индексирование массивов** - `arr[0]`, `nested[0][1]` с полной поддержкой вложенности
+- **Пользовательские функции** с локальной областью видимости, параметрами и рекурсией
+- **Условные операторы** - if/else/endif с поддержкой вложенности
+- **Циклы for** - итерация по массивам с `for...in`
+- **Арифметические и логические операции** с правильным приоритетом
+- **Работа со строками** и конкатенация
+- **Операции с таблицами** - работа с CSV/Excel файлами, автоматическая типизация
+- **40+ встроенных функций** - математические, строковые, массивные, файловые и табличные операции
+- **Манипуляции с путями** для операций с файловой системой
+- **Гибкие типы данных** - числа, строки, булевы значения, массивы, таблицы, пути
+- **Улучшенные сообщения об ошибках** с номерами строк и контекстом
+- **Поддержка комментариев** с `#`
 
-## 📦 Installation
+## 📦 Установка
 
-### Option 1: Global Installation (Recommended)
-Install DataCode as a global command:
+### Вариант 1: Глобальная установка (Рекомендуется)
+Установите DataCode как глобальную команду:
 
 ```bash
-# Clone and install
+# Клонируйте и установите
 git clone https://github.com/igornet0/DataCode.git
 cd DataCode
 
-# Install globally
+# Установите глобально
 make install
-# or
+# или
 ./install.sh
 
-# Now you can use datacode from anywhere!
+# Теперь вы можете использовать datacode откуда угодно!
 datacode --help
 ```
 
-### Option 2: Development Mode
-Run directly with Cargo:
+### Вариант 2: Режим разработки
+Запустите напрямую с помощью Cargo:
 
 ```bash
 git clone https://github.com/igornet0/DataCode.git
@@ -50,50 +50,65 @@ cd DataCode
 cargo run
 ```
 
-## 🎯 Usage
+### 🛠️ Поддержка редакторов
 
-### After Global Installation
+#### Visual Studio Code
+Установите расширение для поддержки синтаксиса DataCode в VS Code:
+
+**[📦 DataCode Syntax Extension](https://marketplace.visualstudio.com/items?itemName=datacode.datacode-syntax&ssr=false#version-history)**
+
+Расширение предоставляет:
+- Подсветку синтаксиса для файлов `.dc`
+- Автодополнение встроенных функций
+- Проверку ошибок
+- Поддержку навигации по коду
+
+## 🎯 Использование
+
+### После глобальной установки
 ```bash
-datacode                   # Start interactive REPL
-datacode filename.dc       # Execute DataCode file
-datacode filename.dc --build_model  # Execute and export tables to SQLite
-datacode filename.dc --build_model output.db  # Export to specific file
-datacode --repl            # Start interactive REPL
-datacode --demo            # Run demonstration
-datacode --help            # Show help
+datacode                   # Запустить интерактивный REPL (по умолчанию)
+datacode filename.dc       # Выполнить файл DataCode
+datacode filename.dc --debug  # Выполнить с отладочной информацией
+datacode filename.dc --build_model  # Выполнить и экспортировать таблицы в SQLite
+datacode filename.dc --build_model output.db  # Экспортировать в указанный файл
+datacode --websocket       # Запустить WebSocket сервер (ws://127.0.0.1:8080)
+datacode --websocket --host 0.0.0.0 --port 8899  # Кастомный хост/порт
+datacode --websocket --use-ve  # Режим виртуальной среды (изоляция сессий)
+datacode --help            # Показать справку
 ```
 
-### Development Mode
+### Режим разработки
 ```bash
-cargo run                  # Start interactive REPL
-cargo run filename.dc      # Execute DataCode file
-cargo run -- --help       # Show help
+cargo run                  # Запустить интерактивный REPL
+cargo run filename.dc      # Выполнить файл DataCode
+cargo run -- --help       # Показать справку
 
-# Or use Makefile
-make run                   # Start REPL
-make examples              # Run all examples
-make test                  # Run tests
+# Или используйте Makefile
+make run                   # Запустить REPL
+make examples              # Запустить все примеры
+make test                  # Запустить тесты
 ```
 
-### Quick Examples
+### Быстрые примеры
 ```bash
-# Create a simple DataCode file
+# Создайте простой файл DataCode
 echo 'print("Hello, DataCode!")' > hello.dc
 
-# Create an array example
+# Создайте пример с массивом
 echo 'global arr = [1, 2, 3]
 print("Array:", arr)
 print("First element:", arr[0])' > arrays.dc
 
-# Execute the files
-datacode hello.dc          # (after global installation)
+# Выполните файлы
+datacode hello.dc          # (после глобальной установки)
 datacode arrays.dc
-# or
-cargo run hello.dc         # (development mode)
+# или
+cargo run hello.dc         # (режим разработки)
 cargo run arrays.dc
 ```
 
-### Programmatic Usage
+### Программное использование
 ```rust
 use data_code::interpreter::Interpreter;
 
@@ -105,297 +120,297 @@ fn main() {
 ```
 ---
 
-## 📄 Language Syntax
+## 📄 Синтаксис языка
 
-### 🔹 Variables
+### 🔹 Переменные
 ```DataCode
 global path = getcwd()
-local subdir = 'data'
+let subdir = 'data'
 ```
-• `global` — stores variable globally
-• `local` — limited to current context (e.g., loop)
+• `global` — сохраняет переменную глобально
+• `let` — ограничена текущим контекстом (например, циклом)
 
-### 🔹 Arithmetic Operations
+### 🔹 Арифметические операции
 ```DataCode
 global x = 10
 global y = 20
-global sum = x + y          # Addition
-global diff = x - y         # Subtraction
-global prod = x * y         # Multiplication
-global quot = x / y       # Division
-global complex = (x + y) * 2 - 5  # Complex expressions
+global sum = x + y          # Сложение
+global diff = x - y         # Вычитание
+global prod = x * y         # Умножение
+global quot = x / y         # Деление
+global complex = (x + y) * 2 - 5  # Сложные выражения
 ```
 
-### 🔹 Arrays
+### 🔹 Массивы
 ```DataCode
-# Creating arrays of any types
+# Создание массивов любых типов
 global numbers = [1, 2, 3, 4, 5]
 global strings = ['hello', 'world', 'datacode']
 global booleans = [true, false, true]
 global mixed = [1, 'hello', true, 3.14]
 global empty = []
 
-# Nested arrays
+# Вложенные массивы
 global matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 global nested_mixed = [[1, 'a'], [true, 3.14]]
 
-# Accessing elements (0-based indexing)
+# Доступ к элементам (индексирование с 0)
 print(numbers[0])        # 1
 print(strings[1])        # world
 print(mixed[2])          # true
 print(matrix[0][1])      # 2
 print(nested_mixed[1][0]) # true
 
-# Trailing comma supported
+# Trailing comma поддерживается
 global trailing = [1, 2, 3,]
 
-# Using in loops
-for item in [1, 2, 3] do
+# Использование в циклах
+for item in [1, 2, 3] {
     print('Item:', item)
-next item
+}
 ```
 
-### 🔹 Comparison Operators
+### 🔹 Операторы сравнения
 ```DataCode
-global eq = x == y          # Equality
-global ne = x != y          # Inequality
-global gt = x > y           # Greater than
-global lt = x < y           # Less than
-global ge = x >= y          # Greater than or equal
-global le = x <= y          # Less than or equal
+global eq = x == y          # Равенство
+global ne = x != y          # Неравенство
+global gt = x > y           # Больше
+global lt = x < y           # Меньше
+global ge = x >= y          # Больше или равно
+global le = x <= y          # Меньше или равно
 ```
 
-### 🔹 Logical Operations
+### 🔹 Логические операции
 ```DataCode
 global flag1 = true
 global flag2 = false
-global and_result = flag1 and flag2    # Logical AND
-global or_result = flag1 or flag2      # Logical OR
-global not_result = not flag1          # Logical NOT
+global and_result = flag1 and flag2    # Логическое И
+global or_result = flag1 or flag2      # Логическое ИЛИ
+global not_result = not flag1          # Логическое НЕ
 global complex_logic = (x > 5) and (y < 30) or flag1
 ```
 
-### 🔹 Path Concatenation
+### 🔹 Конкатенация путей
 ```DataCode
 global dir = basePath / 'data' / 'images'
 ```
-• `/` is used for Path + String (contextually determined)
+• `/` используется для Path + String (контекстно определяется)
 
-### 🔹 String Concatenation
+### 🔹 Сложение строк
 ```DataCode
 global name = 'image' + '001.jpg'
 global greeting = 'Hello, ' + name + '!'
 ```
-• `+` concatenates strings
+• `+` объединяет строки
 
 ---
 
-## 🔁 Loops
+## 🔁 Циклы
 ```DataCode
-# Loop over array variable
-for file in files do
-    local path = basePath / 'data' / file
-    local text = read_file(path)
+# Цикл по массиву переменных
+for file in files {
+    let path = basePath / 'data' / file
+    let text = read_file(path)
     print('>>', file, 'length:', text)
-next file
+}
 
-# Loop over array literal
-for number in [1, 2, 3, 4, 5] do
+# Цикл по литералу массива
+for number in [1, 2, 3, 4, 5] {
     print('Number:', number, 'Squared:', number * number)
-next number
+}
 
-# Loop over mixed array
-for item in ['hello', 42, true] do
+# Цикл по смешанному массиву
+for item in ['hello', 42, true] {
     print('Item:', item)
-next item
+}
 
-# Loop over nested array
-for row in [[1, 2], [3, 4], [5, 6]] do
+# Цикл по вложенному массиву
+for row in [[1, 2], [3, 4], [5, 6]] {
     print('Row:', row, 'Sum:', sum(row))
-next row
+}
 ```
-- `for x in array do ... next x` - iteration over array
-- `x` — variable accessible inside loop body
-- Both array variables and array literals are supported
+- `for x in array { ... }` - итерация по массиву
+- `x` — переменная, доступная внутри тела цикла
+- Поддерживаются как переменные-массивы, так и литералы массивов
 
 ---
 
-## 🔧 Built-in Functions (40+)
+## 🔧 Встроенные функции (40+)
 
-### 📁 File Operations
-| Function | Description |
+### 📁 Файловые операции
+| Функция | Описание |
 |---------|----------|
-| `getcwd()` | Current directory |
-| `path(string)` | Create path from string |
-| `read_file(path)` | Read files (.txt, .csv, .xlsx) |
-| `read_file(path, sheet_name)` | Read XLSX with sheet selection by name |
-| `read_file(path, header_row)` | Read CSV/XLSX with header row selection (0-based) |
-| `read_file(path, header_row, sheet_name)` | Read XLSX with header row and sheet selection by name |
+| `getcwd()` | Текущая директория |
+| `path(string)` | Создание пути из строки |
+| `read_file(path)` | Чтение файлов (.txt, .csv, .xlsx) |
+| `read_file(path, sheet_name="sheet_name")` | Чтение XLSX с выбором листа по имени |
+| `read_file(path, header_row)` | Чтение CSV/XLSX с выбором строки заголовка (0-based) |
+| `read_file(path, header_row, sheet_name)` | Чтение XLSX с выбором строки заголовка и листа по имени |
 
-**Optional parameters for `read_file()`:**
-- `sheet_name` (string) - sheet name for XLSX files (default: first sheet)
-- `header_row` (number) - header row number, starting from 0 (default: 0)
+**Опциональные параметры `read_file()`:**
+- `header_row` (число) - номер строки с заголовками, начиная с 0 (по умолчанию 0)
+- `sheet_name` (строка) - имя листа для XLSX файлов (по умолчанию первый лист)
 
-**Examples:**
+**Примеры:**
 ```datacode
-# Basic reading
+# Базовое чтение
 data = read_file(path("data.csv"))
 
-# Read specific Excel sheet
-data = read_file(path("report.xlsx"), "Sales")
+# Чтение конкретного листа Excel
+data = read_file(path("report.xlsx"), sheet_name="Sales")
 
-# Read with header in row 2
+# Чтение с заголовком в строке 2
 data = read_file(path("data.csv"), 2)
 
-# Combination: sheet + header row
+# Комбинация: лист + строка заголовка
 data = read_file(path("report.xlsx"), 1, "DataSheet")
 ```
 
-### 🧮 Mathematical Functions
-| Function | Description |
+### 🧮 Математические функции
+| Функция | Описание |
 |---------|----------|
-| `abs(n)` | Absolute value |
-| `sqrt(n)` | Square root |
-| `pow(base, exp)` | Power |
-| `min(...)` | Minimum value |
-| `max(...)` | Maximum value |
-| `round(n)` | Rounding |
+| `abs(n)` | Абсолютное значение |
+| `sqrt(n)` | Квадратный корень |
+| `pow(base, exp)` | Возведение в степень |
+| `min(...)` | Минимальное значение |
+| `max(...)` | Максимальное значение |
+| `round(n)` | Округление |
 
-### 📝 String Functions
-| Function | Description |
+### 📝 Строковые функции
+| Функция | Описание |
 |---------|----------|
-| `length(str)` | String length |
-| `upper(str)` | To uppercase |
-| `lower(str)` | To lowercase |
-| `trim(str)` | Trim whitespace |
-| `split(str, delim)` | Split string |
-| `join(array, delim)` | Join array |
-| `contains(str, substr)` | Check substring |
+| `len(str)` | Длина строки |
+| `upper(str)` | В верхний регистр |
+| `lower(str)` | В нижний регистр |
+| `trim(str)` | Удаление пробелов |
+| `split(str, delim)` | Разделение строки |
+| `join(array, delim)` | Объединение массива |
+| `contains(str, substr)` | Проверка вхождения |
 
-### 📊 Array Functions
-| Function | Description |
+### 📊 Функции массивов
+| Функция | Описание |
 |---------|----------|
-| `push(array, item)` | Add element |
-| `pop(array)` | Remove last |
-| `unique(array)` | Unique elements |
-| `reverse(array)` | Reverse order |
-| `sort(array)` | Sort |
-| `sum(array)` | Sum numbers |
-| `average(array)` | Average value |
-| `count(array)` | Element count |
+| `push(array, item)` | Добавить элемент |
+| `pop(array)` | Удалить последний |
+| `unique(array)` | Уникальные элементы |
+| `reverse(array)` | Обратный порядок |
+| `sort(array)` | Сортировка |
+| `sum(array)` | Сумма чисел |
+| `average(array)` | Среднее значение |
+| `count(array)` | Количество элементов |
 
-### 📋 Table Functions
-| Function | Description |
+### 📋 Табличные функции
+| Функция | Описание |
 |---------|----------|
-| `table(data, headers)` | Create table |
-| `show_table(table)` | Display table |
-| `table_info(table)` | Table information |
-| `table_head(table, n)` | First n rows |
-| `table_tail(table, n)` | Last n rows |
-| `table_select(table, cols)` | Select columns |
-| `table_sort(table, col, asc)` | Sort table |
+| `table(data, headers)` | Создание таблицы |
+| `show_table(table)` | Вывод таблицы |
+| `table_info(table)` | Информация о таблице |
+| `table_head(table, n)` | Первые n строк |
+| `table_tail(table, n)` | Последние n строк |
+| `table_select(table, cols)` | Выбор колонок |
+| `table_sort(table, col, asc)` | Сортировка таблицы |
 
-### 🔧 Utilities
-| Function | Description |
+### 🔧 Утилиты
+| Функция | Описание |
 |---------|----------|
-| `print(...)` | Print values |
-| `now()` | Current time |
+| `print(...)` | Вывод значений |
+| `now()` | Текущее время |
 
 ---
 
-## 🗄️ SQLite Export (--build_model)
+## 🗄️ Экспорт в SQLite (--build_model)
 
-DataCode supports automatic export of all tables from global variables to SQLite database with automatic dependency detection between tables.
+DataCode поддерживает автоматический экспорт всех таблиц из глобальных переменных в базу данных SQLite с автоматическим определением зависимостей между таблицами.
 
-### Main Features
+### Основные возможности
 
-- ✅ **Automatic table export** - all tables from global variables are exported to separate SQLite tables
-- ✅ **Variable metadata** - creates `_datacode_variables` table with information about all global variables
-- ✅ **Automatic dependency detection** - system automatically finds relationships between tables by ID columns
-- ✅ **Index creation** - automatic creation of indexes for ID columns and foreign keys
-- ✅ **Type conversion** - automatic conversion of DataCode types to SQLite types
+- ✅ **Автоматический экспорт таблиц** - все таблицы из глобальных переменных экспортируются в отдельные таблицы SQLite
+- ✅ **Метаданные переменных** - создается таблица `_datacode_variables` с информацией о всех глобальных переменных
+- ✅ **Автоматическое определение зависимостей** - система автоматически находит связи между таблицами по ID-колонкам
+- ✅ **Создание индексов** - автоматическое создание индексов для ID-колонок и внешних ключей
+- ✅ **Преобразование типов** - автоматическое преобразование типов DataCode в типы SQLite
 
-### Usage
+### Использование
 
 ```bash
-# Export with default name (script_name.db)
+# Экспорт с именем по умолчанию (script_name.db)
 datacode load_model_data.dc --build_model
 
-# Export with specified output file
+# Экспорт с указанием выходного файла
 datacode load_model_data.dc --build_model output.db
 
-# Using environment variable
+# Использование переменной окружения
 DATACODE_SQLITE_OUTPUT=model.db datacode load_model_data.dc --build_model
 ```
 
-### Example Script
+### Пример скрипта
 
 ```datacode
-# Load data
+# Загрузка данных
 global sales = read_file("sales.csv")
 global products = read_file("products.csv")
 global customers = read_file("customers.csv")
 
-# Process data
+# Обработка данных
 global sales_table = table(sales)
 global products_table = table(products)
 global customers_table = table(customers)
 
-# Filter and transform
+# Фильтрация и преобразование
 global filtered_sales = table_where(sales_table, "amount > 100")
 ```
 
-Execution:
+Выполнение:
 ```bash
 datacode load_model_data.dc --build_model
 ```
 
-### Export Result
+### Результат экспорта
 
-After execution, a SQLite database is created with the following tables:
+После выполнения создается SQLite база данных со следующими таблицами:
 
-1. **Data tables** - each global variable of type `Table` is exported to a separate table:
-   - `sales_table` - all data from sales
-   - `products_table` - all data from products
-   - `customers_table` - all data from customers
-   - `filtered_sales` - filtered data
+1. **Таблицы данных** - каждая глобальная переменная типа `Table` экспортируется в отдельную таблицу:
+   - `sales_table` - все данные из sales
+   - `products_table` - все данные из products
+   - `customers_table` - все данные из customers
+   - `filtered_sales` - отфильтрованные данные
 
-2. **Metadata table `_datacode_variables`** - contains information about all global variables:
+2. **Таблица метаданных `_datacode_variables`** - содержит информацию о всех глобальных переменных:
    ```sql
    CREATE TABLE _datacode_variables (
        variable_name TEXT PRIMARY KEY,
        variable_type TEXT NOT NULL,      -- Table, Array, Object, Number, String, etc.
-       table_name TEXT,                   -- SQLite table name (for tables)
-       row_count INTEGER,                 -- Row count (for tables)
-       column_count INTEGER,              -- Column count (for tables)
-       created_at TEXT,                   -- Export timestamp
-       description TEXT,                  -- Description (optional)
-       value TEXT                         -- String representation of value
+       table_name TEXT,                   -- Имя SQLite таблицы (для таблиц)
+       row_count INTEGER,                 -- Количество строк (для таблиц)
+       column_count INTEGER,              -- Количество колонок (для таблиц)
+       created_at TEXT,                   -- Временная метка экспорта
+       description TEXT,                  -- Описание (опционально)
+       value TEXT                         -- Строковое представление значения
    );
    ```
 
-3. **Automatic dependencies** - if a table has columns with ID-like names (`*_id`, `id`), the system automatically detects relationships:
-   - If `sales_table` has `product_id` and `products_table` has `id`, a relationship is created
-   - If `sales_table` has `customer_id` and `customers_table` has `id`, a relationship is created
+3. **Автоматические зависимости** - если в таблице есть колонки с ID-подобными именами (`*_id`, `id`), система автоматически определяет связи:
+   - Если в `sales_table` есть `product_id` и в `products_table` есть `id`, создается связь
+   - Если в `sales_table` есть `customer_id` и в `customers_table` есть `id`, создается связь
 
-### Dependency Detection Algorithm
+### Алгоритм определения зависимостей
 
-The system automatically detects primary keys and foreign keys:
+Система автоматически определяет первичные ключи и внешние ключи:
 
-**Primary keys are determined by:**
-- Columns named `id` of type Integer
-- Columns with names `*_id` of type Integer
-- Columns with prefix `pk_` or `key_`
-- Columns where all values are unique
+**Первичные ключи определяются по:**
+- Колонкам с именем `id` типа Integer
+- Колонкам с именами `*_id` типа Integer
+- Колонкам с префиксом `pk_` или `key_`
+- Колонкам, где все значения уникальны
 
-**Foreign keys are determined by:**
-- Columns with ID-like names: `*_id`, `id`, `*Id`, `*ID`
-- Data type match (Integer)
-- Presence of corresponding primary key in another table
+**Внешние ключи определяются по:**
+- Колонкам с ID-подобными именами: `*_id`, `id`, `*Id`, `*ID`
+- Совпадению типов данных (Integer)
+- Наличию соответствующего первичного ключа в другой таблице
 
-### Type Conversion
+### Преобразование типов
 
-| DataCode Type | SQLite Type |
+| DataCode тип | SQLite тип |
 |--------------|------------|
 | `Integer` | `INTEGER` |
 | `Float` | `REAL` |
@@ -406,88 +421,104 @@ The system automatically detects primary keys and foreign keys:
 | `Null` | `NULL` |
 | `Mixed` | `TEXT` |
 
-### Limitations
+### Явные связи через relate()
 
-- Only **global variables** are exported (local variables are not exported)
-- Only variables of type `Table` are exported (other types are saved only in metadata)
-- Foreign keys are created as indexes (full table recreation for FK constraints is not yet implemented)
+Функция `relate()` позволяет явно создать связи между колонками таблиц:
+
+```datacode
+global products = table(product_data, ["product_id", "name", "price"])
+global sales = table(sales_data, ["sale_id", "product_id", "amount"])
+
+# Создание явной связи
+relate(products["product_id"], sales["product_id"])
+```
+
+При экспорте в SQLite:
+- Явные связи, созданные через `relate()`, имеют приоритет над автоматическим определением
+- Создаются полноценные FOREIGN KEY constraints (не только индексы)
+- Таблицы пересоздаются с FOREIGN KEY constraints для обеспечения целостности данных
+
+### Ограничения
+
+- Экспортируются только **глобальные переменные** (локальные переменные не экспортируются)
+- Экспортируются только переменные типа `Table` (другие типы сохраняются только в метаданных)
 
 ---
 
-## 🧪 Example Program
+## 🧪 Пример программы
 ```DataCode
-# User-defined function for array analysis
-global function analyze_array(arr) do
-    local size = count(arr)
-    local sum_val = sum(arr)
-    local avg_val = average(arr)
+# Пользовательская функция для анализа массивов
+fn analyze_array(arr) {
+    let size = count(arr)
+    let sum_val = sum(arr)
+    let avg_val = average(arr)
 
-    print('📊 Array analysis:', arr)
-    print('  Size:', size)
-    print('  Sum:', sum_val)
-    print('  Average:', avg_val)
+    print('📊 Анализ массива:', arr)
+    print('  Размер:', size)
+    print('  Сумма:', sum_val)
+    print('  Среднее:', avg_val)
 
     return [size, sum_val, avg_val]
-endfunction
+}
 
-# Working with arrays and files
-global basePath = getcwd()
-global dataPath = basePath / 'examples'
+# Работа с массивами и файлами
+basePath = getcwd()
+dataPath = basePath / 'examples'
 
-# Create data arrays
+# Создаем массивы данных
 global numbers = [10, 20, 30, 40, 50]
 global mixed_data = [1, 'test', true, 3.14]
 global matrix = [[1, 2], [3, 4], [5, 6]]
 
-print('🧮 Numeric data analysis')
+print('🧮 Анализ числовых данных')
 global stats = analyze_array(numbers)
 
 print('')
-print('📋 Working with files')
+print('📋 Работа с файлами')
 global files = ['sample.csv', 'data.txt']
 
-for file in files do
-    local fullPath = dataPath / file
-    print('📄 Processing:', file)
+for file in files {
+    let fullPath = dataPath / file
+    print('📄 Обрабатываем:', file)
 
-    # If it's a CSV file, show the table
-    if contains(file, '.csv') do
-        local table = read_file(fullPath)
-        print('📊 Table contents:')
+    # Если это CSV файл, показываем таблицу
+    if contains(file, '.csv') {
+        let table = read_file(fullPath)
+        print('📊 Содержимое таблицы:')
         table_head(table, 3)
-    endif
-next file
+    }
+}
 
 print('')
-print('🔢 Working with nested arrays')
-for row in matrix do
-    local row_sum = sum(row)
-    print('Row:', row, 'Sum:', row_sum)
-next row
+print('🔢 Работа с вложенными массивами')
+for row in matrix {
+    let row_sum = sum(row)
+    print('Строка:', row, 'Сумма:', row_sum)
+}
 
-print('✅ Analysis complete!')
+print('✅ Анализ завершен!')
 ```
 
 ---
 
-## 📦 Supported Types
+## 📦 Поддерживаемые типы
 
-| Type | Example | Description |
+| Тип | Пример | Описание |
 |-----|--------|----------|
-| String | `'abc'`, `'hello.txt'` | Always in single quotes |
-| Number | `42`, `3.14` | Integer and floating-point numbers |
-| Bool | `true`, `false` | Boolean values |
-| Array | `[1, 'hello', true]` | Arrays of any data types |
-| Path | `base / 'file.csv'` | Built with `/` |
-| Table | `table(data, headers)` | Tabular data |
-| Null | — | Returned by `print(...)` |
+| String | `'abc'`, `'hello.txt'` | Всегда в одинарных кавычках |
+| Number | `42`, `3.14` | Целые и дробные числа |
+| Bool | `true`, `false` | Логические значения |
+| Array | `[1, 'hello', true]` | Массивы любых типов данных |
+| Path | `base / 'file.csv'` | Строится через `/` |
+| Table | `table(data, headers)` | Табличные данные |
+| Null | — | Возвращается `print(...)` |
 
 
 ---
 
-## ⚠️ Errors
+## ⚠️ Ошибки
 
-Typical error messages:
+Типичные сообщения об ошибках:
 - Unknown variable: foo
 - Invalid / expression
 - Unsupported expression
@@ -495,58 +526,58 @@ Typical error messages:
 
 ---
 
-## 📚 Extension
+## 📚 Расширение
 
-The project is easily extensible:
-- Add functions in builtins.rs
-- Add types in value.rs
-- Add syntax in interpreter.rs
+Проект легко расширяется:
+- Добавить функции в builtins.rs
+- Добавить типы в value.rs
+- Добавить синтаксис в interpreter.rs
 
 ---
 
-## 🧪 Testing
+## 🧪 Тестирование
 
-Run:
+Выполните:
 ```bash
 cargo test
 ```
-Tests check:
-- Variable declarations
-- Path concatenation
-- Built-in function calls
-- For loop execution
+Тесты проверяют:
+- Объявление переменных
+- Конкатенацию путей
+- Вызов встроенных функций
+- Исполнение for-циклов
 
 ---
 
-## 🛠 CLI Usage Example
+## 🛠 Пример вызова из CLI
 ```bash
 cargo run
 ```
 
 ---
 
-## 🎯 Interactive REPL
+## 🎯 Интерактивный REPL
 
-### Starting
+### Запуск
 ```bash
 cargo run
 ```
 
-### Special REPL Commands
-- `help` — show help
-- `exit` or `quit` — exit interpreter
-- `clear` — clear screen
-- `vars` — show all variables
-- `reset` — reset interpreter
+### Специальные команды REPL
+- `help` — показать справку
+- `exit` или `quit` — выйти из интерпретатора
+- `clear` — очистить экран
+- `vars` — показать все переменные
+- `reset` — сбросить интерпретатор
 
 ### Пример сессии
 ```
 🧠 DataCode Interactive Interpreter
->>> global x = 10
+>>> x = 10
 ✓ x = Number(10.0)
->>> global y = 20
+>>> y = 20
 ✓ y = Number(20.0)
->>> global result = (x + y) * 2
+>>> result = (x + y) * 2
 ✓ result = Number(60.0)
 >>> print('Result is:', result)
 Result is: 60
@@ -559,22 +590,22 @@ Result is: 60
 Goodbye! �
 ```
 
-### Multiline Constructs
-REPL supports multiline input for loops and arrays:
+### Многострочные конструкции
+REPL поддерживает многострочный ввод для циклов и массивов:
 ```
->>> global arr = [1, 2, 3, 4, 5]
+>>> arr = [1, 2, 3, 4, 5]
 ✓ arr = Array([Number(1.0), Number(2.0), Number(3.0), Number(4.0), Number(5.0)])
 >>> print(arr[0])
 1
->>> global nested = [[1, 2], [3, 4]]
+>>> nested = [[1, 2], [3, 4]]
 ✓ nested = Array([Array([Number(1.0), Number(2.0)]), Array([Number(3.0), Number(4.0)])])
 >>> print(nested[0][1])
 2
->>> for i in [1, 2, 3] do
+>>> for i in [1, 2, 3] {
 ...     print('Number:', i)
-...     global doubled = i * 2
+...     doubled = i * 2
 ...     print('Doubled:', doubled)
-... next i
+... }
 Number: 1
 Doubled: 2
 Number: 2
@@ -585,131 +616,104 @@ Doubled: 6
 
 ---
 
-## 📚 Examples and Learning
+## 📚 Примеры и обучение
 
-DataCode comes with a professionally organized collection of examples that will help you learn the language from basics to advanced techniques.
+DataCode поставляется с профессионально организованной коллекцией примеров, которые помогут вам изучить язык от основ до продвинутых техник.
 
-### 🎯 Quick Start with Examples
+### 🎯 Быстрый старт с примерами
 
 ```bash
-# Simplest example - start here!
-cargo run examples/01-basics/simple.dc
+# Простейший пример - начните здесь!
+cargo run examples/01-основы/simple.dc
 
-# Extended Hello World
-cargo run examples/01-basics/hello.dc
+# Расширенный Hello World
+cargo run examples/01-основы/hello.dc
 
-# Working with functions
-cargo run examples/02-language-syntax/functions.dc
+# Работа с функциями
+cargo run examples/02-синтаксис-языка/functions.dc
 
-# Processing data from CSV
-cargo run examples/04-data-processing/table_demo.dc
+# Обработка данных из CSV
+cargo run examples/04-обработка-данных/table_demo.dc
 ```
 
-### 📁 Example Organization
+### 📁 Организация примеров
 
-Examples are organized into thematic sections for systematic learning:
+Примеры организованы в тематические разделы для систематического изучения:
 
-#### 🚀 [examples/01-basics/](examples/01-basics/) - Language Basics
-Start learning DataCode with these examples:
-- `simple.dc` - variables and arithmetic
-- `hello.dc` - extended Hello World
+#### 🚀 [examples/01-основы/](examples/01-основы/) - Основы языка
+Начните изучение DataCode с этих примеров:
+- `simple.dc` - переменные и арифметика
+- `hello.dc` - расширенный Hello World
 
-#### 🔧 [examples/02-language-syntax/](examples/02-language-syntax/) - Syntax
-Learn the main language constructs:
-- `functions.dc` - user-defined functions
-- `conditionals.dc` - conditional constructs
-- `arrays_example.dc` - working with arrays
-- `complex_expressions.dc` - complex expressions
+#### 🔧 [examples/02-синтаксис-языка/](examples/02-синтаксис-языка/) - Синтаксис
+Изучите основные конструкции языка:
+- `functions.dc` - пользовательские функции
+- `conditionals.dc` - условные конструкции
+- `arrays_example.dc` - работа с массивами
+- `complex_expressions.dc` - сложные выражения
 
-#### 🎯 [examples/03-advanced-features/](examples/03-advanced-features/) - Advanced Techniques
-Recursion, error handling, and functional programming:
-- `recursion.dc` - recursive algorithms
-- `error_handling.dc` - error handling
-- `functional_methods_demo.dc` - functional methods
+#### 🎯 [examples/03-продвинутые-возможности/](examples/03-продвинутые-возможности/) - Продвинутые техники
+Рекурсия, обработка ошибок и функциональное программирование:
+- `recursion.dc` - рекурсивные алгоритмы
+- `error_handling.dc` - обработка ошибок
+- `functional_methods_demo.dc` - функциональные методы
 
-#### 📊 [examples/04-data-processing/](examples/04-data-processing/) - Data Processing
-Powerful capabilities for processing tabular data:
-- `table_demo.dc` - working with tables and CSV
-- `data_filtering_demo.dc` - data filtering
-- `enum_demo.dc` - enumeration with indices
+#### 📊 [examples/04-обработка-данных/](examples/04-обработка-данных/) - Работа с данными
+Мощные возможности для обработки табличных данных:
+- `table_demo.dc` - работа с таблицами и CSV
+- `data_filtering_demo.dc` - фильтрация данных
+- `enum_demo.dc` - перечисление с индексами
 
-#### 🔢 [examples/05-data-types/](examples/05-data-types/) - Type System
-Learn about data types and type checking:
-- `type_checking_demo.dc` - isinstance() function
-- `type_conversion_guide.dc` - type conversion
+#### 🔢 [examples/05-типы-данных/](examples/05-типы-данных/) - Система типов
+Изучите типы данных и их проверку:
+- `type_checking_demo.dc` - функция isinstance()
+- `type_conversion_guide.dc` - преобразование типов
 
-#### 🛠️ [examples/06-developer-tools/](examples/06-developer-tools/) - Developer Tools
-Debugging and performance testing:
-- `debug_mode_test.dc` - debug mode
-- `interactive_demo.dc` - examples for REPL
-- `stress_benchmark.dc` - performance testing
+#### 🛠️ [examples/06-инструменты-разработки/](examples/06-инструменты-разработки/) - Инструменты
+Отладка и тестирование производительности:
+- `debug_mode_test.dc` - режим отладки
+- `interactive_demo.dc` - примеры для REPL
+- `stress_benchmark.dc` - тестирование производительности
 
-#### 🎪 [examples/07-demonstrations/](examples/07-demonstrations/) - Full Demonstrations
-- `showcase.dc` - comprehensive demonstration of all capabilities
+#### 🎪 [examples/07-демонстрации/](examples/07-демонстрации/) - Полные демонстрации
+- `showcase.dc` - комплексная демонстрация всех возможностей
 
-### 📖 Detailed Documentation
+### 📖 Подробная документация
 
-Each section contains detailed documentation:
-- **[examples/README.md](examples/README.md)** - main examples page
-- Individual README.md files in each section with step-by-step explanations
-- Recommended learning order
-- Practical tips and best practices
+Каждый раздел содержит подробную документацию на русском языке:
+- **[examples/README.md](examples/README.md)** - главная страница примеров
+- Индивидуальные README.md в каждом разделе с пошаговыми объяснениями
+- Рекомендуемый порядок изучения
+- Практические советы и лучшие практики
 
-### 🎓 Recommended Learning Path
+### 🎓 Рекомендуемый путь обучения
 
-1. **Basics** → `01-basics/simple.dc` and `hello.dc`
-2. **Syntax** → `02-language-syntax/functions.dc` and `conditionals.dc`
-3. **Data Types** → `05-data-types/type_checking_demo.dc`
-4. **Data Processing** → `04-data-processing/table_demo.dc`
-5. **Advanced Capabilities** → `03-advanced-features/`
-6. **Full Demonstration** → `07-demonstrations/showcase.dc`
-
----
-
-## 📋 Technical Documentation
-
-### Developer Documentation
-- **[docs/DEMO_RESULTS.md](docs/DEMO_RESULTS.md)** - Detailed report on table function implementation
-  - Architectural decisions and technical details
-  - Type system implementation results
-  - Performance and limitations
-  - Feature development plans
+1. **Основы** → `01-основы/simple.dc` и `hello.dc`
+2. **Синтаксис** → `02-синтаксис-языка/functions.dc` и `conditionals.dc`
+3. **Типы данных** → `05-типы-данных/type_checking_demo.dc`
+4. **Обработка данных** → `04-обработка-данных/table_demo.dc`
+5. **Продвинутые возможности** → `03-продвинутые-возможности/`
+6. **Полная демонстрация** → `07-демонстрации/showcase.dc`
 
 ---
 
-## 📅 Implementation Status
-### ✅ Fully Implemented
-- ✅ Improved error system with detailed messages
-- ✅ Powerful expression parser with operator precedence
-- ✅ **Array literals** `[1, 2, 3]`, `['a', 'b']`, mixed types
-- ✅ **Array indexing** `arr[0]`, `nested[0][1]` with full nesting support
-- ✅ Arithmetic operations (+, -, *, /)
-- ✅ Comparison operators (==, !=, <, >, <=, >=)
-- ✅ Logical operations (and, or, not)
-- ✅ Interactive REPL with multiline support and command history
-- ✅ Global / local variable support
-- ✅ Conditional constructs if/else/endif (with nesting support)
-- ✅ User-defined functions with local scope
-- ✅ Recursive functions
-- ✅ For loops ... in (including array literals)
-- ✅ 40+ built-in functions (mathematical, string, file, table)
-- ✅ Working with tables and CSV/Excel files
-- ✅ Automatic data typing with warnings
-- ✅ File system path support
-- ✅ .dc file execution
-- ✅ **Objects with methods** `{key: value}`
-- ✅ **Exception handling try/catch**
-- ✅ **SQLite export** (`--build_model`) - automatic table export with dependency detection
+## 📋 Техническая документация
 
-### 🔄 Known Limitations
-- ⚠️ Nested conditions require careful use
+### Документация разработчика
+- **[docs/DEMO_RESULTS.md](docs/DEMO_RESULTS.md)** - Подробный отчет о реализации табличных функций
+  - Архитектурные решения и технические детали
+  - Результаты внедрения системы типов
+  - Производительность и ограничения
+  - Планы развития функциональности
 
-### 📋 Planned for Future
-- 📋 Module imports
-- 📋 Array destructuring
+---
+
+### 📋 Планируется в будущем
+- 📋 Импорт модулей
+- 📋 ООП
 
 ---
 
 ## 🧑‍💻 Автор
 
-Made by Igornet0.
+Создано Igornet0.

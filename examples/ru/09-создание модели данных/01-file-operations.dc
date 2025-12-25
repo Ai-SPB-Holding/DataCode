@@ -1,0 +1,121 @@
+# Пример 1: Операции с файлами
+# Демонстрирует работу с файлами и директориями в DataCode
+
+print("============================================================")
+print("Пример 1: Операции с файлами")
+print("============================================================")
+print()
+
+# Базовый путь к директории с данными
+let base_path = getcwd() / "model_data"
+let docs_path = base_path / "docs"
+
+print("📂 Работа с файлами и директориями")
+print("  Базовый путь: ", base_path)
+print()
+
+# Пример 1.1: Список файлов в директории
+print("🔍 Пример 1.1: Получение списка файлов в директории...")
+try {
+    let files = list_files(docs_path)
+    print("  ✓ Найдено ", len(files), " элементов в директории docs")
+    print("  ✓ Элементы: ", files)
+    print()
+} catch e {
+    print("  ✗ Ошибка: ", e)
+    print()
+}
+
+# Пример 1.2: Проверка существования файла в списке
+print("🔍 Пример 1.2: Проверка существования файла...")
+fn file_exists(files, filename) {
+    for file in files {
+        if file.name == filename {
+            return true
+        }
+    }
+    return false
+}
+
+try {
+    let month_path = base_path / "2023" / "01"
+    let month_files = list_files(month_path)
+    
+    let test_file = "sales_2023_01.csv"
+    let exists = file_exists(month_files, test_file)
+    
+    if exists {
+        print("  ✓ Файл найден: ", test_file)
+    } else {
+        print("  ✗ Файл не найден: ", test_file)
+    }
+    print()
+} catch e {
+    print("  ✗ Ошибка: ", e)
+    print()
+}
+
+# Пример 1.3: Формирование пути
+print("🔍 Пример 1.3: Построение путей к файлам...")
+try {
+    let year = "2023"
+    let month = "01"
+    let filename = "sales_2023_01.csv"
+    
+    # Построить путь пошагово
+    let year_path = base_path / year
+    let month_path = year_path / month
+    let full_path = month_path / filename
+    
+    print("  Путь к году: ", year_path)
+    print("  Путь к месяцу: ", month_path)
+    print("  Полный путь: ", full_path)
+    print()
+    
+    # Прочитать файл
+    let data = read_file(full_path)
+    print("  ✓ Файл успешно прочитан")
+    print("  ✓ Тип данных: ", typeof(data))
+    if typeof(data) == "table" {
+        print("  ✓ Строк: ", len(data))
+        print("  ✓ Строка 1: ", data.idx[1])
+        print("  ✓ Заголовки: ", data.columns)
+    }
+    print()
+} catch e {
+    print("  ✗ Ошибка чтения файла: ", e)
+    print()
+}
+
+# Пример 1.4: Итерация по структуре директорий
+print("🔍 Пример 1.4: Итерация по структуре директорий...")
+try {
+    let year_dirs = list_files(base_path)
+    print("  Найдено ", len(year_dirs), " элементов в базовой директории")
+    
+    let file_count = 0
+    for year_dir in year_dirs {
+        # Пропустить элементы, не являющиеся директориями
+        if year_dir.name != "docs" and !contains(year_dir.name, ".") {
+            print("-", year_dir)
+            let month_dirs = list_files(year_dir)
+            
+            for month_dir in month_dirs {
+                if !contains(month_dir, ".") {
+                    let files = list_files(month_dir)
+                    file_count = file_count + len(files)
+                }
+            }
+        }
+    }
+    
+    print("  ✓ Всего найдено файлов: ", file_count)
+    print()
+} catch e {
+    print("  ✗ Ошибка: ", e)
+    print()
+}
+
+print("============================================================")
+print("✅ Пример 1 завершён")
+print("============================================================")

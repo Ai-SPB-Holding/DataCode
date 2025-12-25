@@ -1,0 +1,26 @@
+# Working with strings
+# Demonstration of string operations
+
+let greeting = "Hello"
+let name = "DataCode"
+let message = greeting + ", " + name + "!"
+
+print(message)
+
+# String length
+let text = "Hello, World!"
+let length = len(text)
+
+print("Text: " + text)
+print("Length: " + length)
+
+# Empty string
+let empty = ""
+let empty_len = len(empty)
+print("Empty string, length: " + empty_len)
+
+# Concatenation with numbers (via strings)
+let num = 42
+let num_str = "Number: " + "42"
+print(num_str)
+

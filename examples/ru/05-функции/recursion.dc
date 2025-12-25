@@ -1,0 +1,46 @@
+# Рекурсия
+# Демонстрация рекурсивных функций
+
+# Факториал
+fn factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+print("Факториал 5 =", factorial(5))
+print("Факториал 3 =", factorial(3))
+
+# Числа Фибоначчи
+fn fibonacci(n) {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+print("fibonacci(6) =", fibonacci(6))
+print("fibonacci(8) =", fibonacci(8))
+
+# Сумма чисел от 1 до n
+fn sum_to_n(n) {
+    if n <= 0 {
+        return 0
+    }
+    return n + sum_to_n(n - 1)
+}
+
+print("sum_to_n(10) =", sum_to_n(10))
+
+# Возведение в степень
+fn power(base, exponent) {
+    if exponent == 0 {
+        return 1
+    }
+    return base * power(base, exponent - 1)
+}
+
+print("power(2, 8) =", power(2, 8))
+print("power(3, 4) =", power(3, 4))
+

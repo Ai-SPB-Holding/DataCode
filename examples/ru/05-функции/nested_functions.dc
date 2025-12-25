@@ -1,0 +1,58 @@
+# Вложенные вызовы функций
+# Демонстрирует использование функций внутри других функций
+
+fn multiply(a, b) {
+    return a * b
+}
+
+fn add(a, b) {
+    return a + b
+}
+
+fn subtract(a, b) {
+    return a - b
+}
+
+# Вызов функций в качестве аргументов
+let result1 = multiply(add(2, 3), subtract(10, 5))
+print("multiply(add(2, 3), subtract(10, 5)) =", result1)
+# (2 + 3) * (10 - 5) = 5 * 5 = 25
+
+# Сложные вложенные вызовы
+fn calculate(x, y, z) {
+    return multiply(add(x, y), z)
+}
+
+let result2 = calculate(3, 4, 5)
+print("calculate(3, 4, 5) =", result2)
+# (3 + 4) * 5 = 35
+
+# Функция, вызывающая другую функцию
+fn square(x) {
+    return multiply(x, x)
+}
+
+fn cube(x) {
+    return multiply(x, square(x))
+}
+
+print("square(5) =", square(5))
+print("cube(3) =", cube(3))
+
+# Композиция функций
+fn compose(f, g, x) {
+    return f(g(x))
+}
+
+fn double(x) {
+    return x * 2
+}
+
+fn triple(x) {
+    return x * 3
+}
+
+let result3 = compose(double, triple, 5)
+print("compose(double, triple, 5) =", result3)
+# double(triple(5)) = double(15) = 30
+

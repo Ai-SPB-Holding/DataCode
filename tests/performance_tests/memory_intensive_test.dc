@@ -1,0 +1,93 @@
+# Memory-Intensive Operations Performance Test
+# Tests memory allocation patterns and garbage collection behavior
+
+print("=== MEMORY-INTENSIVE OPERATIONS PERFORMANCE TEST ===")
+
+# Test 1: Large array creation and manipulation
+print("Test 1: Large array operations...")
+let large_arrays = []
+let total_elements = 0
+
+for i in range(100) {
+    let current_array = []
+    for j in range(500) {
+        push(current_array, i * 500 + j)
+        let total_elements = total_elements + 1
+    }
+    push(large_arrays, current_array)
+}
+
+print("Created", len(large_arrays), "arrays with", total_elements, "total elements")
+
+# Test 2: Memory-intensive string operations
+print("Test 2: String concatenation stress test...")
+let large_string = ""
+let string_parts = []
+
+for i in range(1000) {
+    let part = "DataCode_Performance_Test_String_Part_" + i + "_"
+    push(string_parts, part)
+    let large_string = large_string + part
+}
+
+print("String operations completed. Final string length:", len(large_string))
+
+# Test 3: Nested data structures
+print("Test 3: Nested data structures...")
+let nested_structure = []
+
+for i in range(50) {
+    let level1 = []
+    for j in range(50) {
+        let level2 = []
+        for k in range(20) {
+            push(level2, [i, j, k, i*j*k])
+        }
+        push(level1, level2)
+    }
+    push(nested_structure, level1)
+}
+
+print("Nested structure created with dimensions: 50x50x20")
+
+# Test 4: Table operations with large datasets
+print("Test 4: Multiple table operations...")
+let table_data = []
+let table_headers = ['id', 'data1', 'data2', 'data3', 'data4', 'data5']
+
+for i in range(2000) {
+    let row = [i, i*2, i*3, i*4, i*5, i*6]
+    push(table_data, row)
+}
+
+let performance_table = table(table_data, table_headers)
+
+# Multiple table views to test memory sharing
+let view1 = performance_table['data1']
+let view2 = performance_table['data2']
+let view3 = performance_table['data3']
+let view4 = performance_table['data4']
+let view5 = performance_table['data5']
+
+print("Table operations completed with", len(table_data), "rows")
+
+# Test 5: Memory cleanup simulation
+print("Test 5: Variable reassignment patterns...")
+for i in range(100) {
+    let temp_array = []
+    for j in range(100) {
+        push(temp_array, j)
+    }
+    # Reassign to simulate memory cleanup
+    let temp_array = []
+}
+
+print("Memory cleanup simulation completed")
+
+# Results
+print("=== MEMORY TEST RESULTS ===")
+print("Large arrays count:", len(large_arrays))
+print("String parts count:", len(string_parts))
+print("Nested structure depth: 3 levels")
+print("Performance table rows:", len(performance_table['id']))
+print("Memory-intensive test completed successfully!")

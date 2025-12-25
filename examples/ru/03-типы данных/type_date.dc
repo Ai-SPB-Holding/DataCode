@@ -1,0 +1,20 @@
+let date1 = date('12/10/2020')
+
+print('Дата:', date1)
+print('  isinstance(date1, str):', isinstance(date1, str))
+print('  isinstance(date1, date):', isinstance(date1, date))
+print('  isinstance(date1, money):', isinstance(date1, money))
+
+let not_date1 = date('12/13/2020') # должго
+let not_date2 = date('34/13/2020')
+
+print('Не Дата:', not_date1)
+print('  isinstance(not_date1, str):', isinstance(not_date1, str))
+print('  isinstance(not_date1, date):', isinstance(not_date1, date))
+print('  isinstance(not_date1, money):', isinstance(not_date1, money))
+
+print('Не Дата:', not_date2)
+print('  isinstance(not_date2, str):', isinstance(not_date2, str))
+print('  isinstance(not_date2, date):', isinstance(not_date2, date))
+print('  isinstance(not_date2, money):', isinstance(not_date2, money))
+print()

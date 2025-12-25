@@ -22,7 +22,7 @@ if ! command -v datacode &> /dev/null; then
     echo "⚠️  DataCode command not found - it may not be installed globally"
     echo "🔍 Checking cargo installation list..."
     
-    if cargo install --list | grep -q "data_code"; then
+    if cargo install --list | grep -q "data-code"; then
         echo "✅ Found DataCode in cargo install list"
     else
         echo "❌ DataCode not found in cargo installations"
@@ -36,7 +36,7 @@ fi
 # Uninstall using cargo
 echo ""
 echo "🗑️  Uninstalling DataCode..."
-cargo uninstall data_code
+cargo uninstall data-code
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Failed to uninstall DataCode"

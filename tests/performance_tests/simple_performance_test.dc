@@ -1,0 +1,48 @@
+# Simple Performance Test for DataCode
+print("=== SIMPLE PERFORMANCE TEST ===")
+
+# Test 1: Basic arithmetic operations
+print("Test 1: Arithmetic operations...")
+let result = 0
+for i in range(1000) {
+    let result = result + i * 2 - 1
+}
+
+print("Arithmetic result:", result)
+
+# Test 2: Array operations
+print("Test 2: Array operations...")
+let arr = []
+for i in range(500) {
+    push(arr, i)
+}
+print("Array length:", len(arr))
+
+# Test 3: String operations
+print("Test 3: String operations...")
+let str_result = ""
+for i in range(100) {
+    let str_result = str_result + "item" + i + "_"
+}
+print("String length:", len(str_result))
+
+# Test 4: Table operations
+print("Test 4: Table operations...")
+let data = []
+for i in range(100) {
+    let row = [i, "Item_" + i, i * 2]
+    push(data, row)
+}
+
+let headers = ["id", "name", "value"]
+let test_table = table(data, headers)
+print("Table rows:", len(test_table["id"]))
+
+# Test 5: Column access
+print("Test 5: Column access...")
+let names = test_table["name"]
+let values = test_table["value"]
+print("Names count:", len(names))
+print("Values count:", len(values))
+
+print("=== PERFORMANCE TEST COMPLETED ===")

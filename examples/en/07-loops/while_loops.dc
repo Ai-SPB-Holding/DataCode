@@ -1,0 +1,47 @@
+# While loops
+# Demonstration of while loops
+
+# Simple while loop
+let counter = 0
+while counter < 5 {
+    print("Counter:", counter)
+    counter = counter + 1
+}
+
+# Sum of numbers from 1 to 10
+let sum = 0
+let i = 1
+while i <= 10 {
+    sum = sum + i
+    i = i + 1
+}
+print("Sum of numbers from 1 to 10 =", sum)
+
+# Countdown
+let countdown = 5
+while countdown > 0 {
+    print("Remaining:", countdown)
+    countdown = countdown - 1
+}
+print("Start!")
+
+# Finding maximum value
+let numbers = 0
+let max = 0
+let current = 1
+while current <= 10 {
+    if current > max {
+        max = current
+    }
+    current = current + 1
+}
+print("Maximum from 1 to 10 =", max)
+
+# Condition that will never execute
+let x = 10
+while x > 20 {
+    print("This will not execute")
+    x = x + 1
+}
+print("x =", x)
+

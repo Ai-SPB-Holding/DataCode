@@ -1,0 +1,40 @@
+# Simple functions
+# Demonstration of function creation and usage
+
+# Function without parameters
+fn get_five() {
+    return 5
+}
+
+# Function with one parameter
+fn double(x) {
+    return x * 2
+}
+
+# Function with multiple parameters
+fn add(a, b) {
+    return a + b
+}
+
+# Function to calculate rectangle area
+fn rectangle_area(width, height) {
+    return width * height
+}
+
+# Using functions
+print("get_five() =", get_five())
+print("double(10) =", double(10))
+print("add(5, 3) =", add(5, 3))
+print("rectangle_area(4, 5) =", rectangle_area(4, 5))
+
+# Functions in expressions
+let result = add(double(5), get_five())
+print("add(double(5), get_five()) =", result)
+
+# Greeting function
+fn greet(name) {
+    return "Hello, " + name + "!"
+}
+
+print(greet("DataCode"))
+

@@ -1,0 +1,224 @@
+# Руководство по работе с типами и их преобразованию в DataCode
+# Этот файл показывает, как работать с различными типами данных
+
+print('🔄 Руководство по типам и преобразованиям в DataCode')
+print('====================================================')
+print()
+
+# 1. Основные типы данных
+print('1️⃣ Основные типы данных:')
+print('========================')
+
+let my_number = 42
+let my_float = 3.14
+let my_string = 'Hello, DataCode!'
+let my_bool = true
+let my_array = [1, 2, 3]
+let my_null = null
+let my_path = path('/home/user')
+
+print('Число:', my_number, '- тип:', isinstance(my_number, num))
+print('Дробное:', my_float, '- тип:', isinstance(my_float, float))
+print('Строка:', my_string, '- тип:', isinstance(my_string, str))
+print('Булево:', my_bool, '- тип:', isinstance(my_bool, bool))
+print('Массив:', my_array, '- тип:', isinstance(my_array, array))
+print('Null:', my_null, '- тип:', isinstance(my_null, null))
+print('Путь:', my_path, '- тип:', isinstance(my_path, path))
+print()
+
+# 2. Проверка типов с isinstance()
+print('2️⃣ Проверка типов с isinstance():')
+print('=================================')
+
+fn check_type(value) {
+    if isinstance(value, num) {
+        return 'Это число'
+    }
+    if isinstance(value, str) {
+        return 'Это строка'
+    }
+    if isinstance(value, bool) {
+        return 'Это булево значение'
+    }
+    if isinstance(value, array) {
+        return 'Это массив'
+    }
+    if isinstance(value, null) {
+        return 'Это null'
+    }
+    if isinstance(value, path){ 
+        return 'Это путь'
+    }
+    return 'Неизвестный тип'
+}
+
+print('check_type(42):', check_type(42))
+print('check_type("hello"):', check_type('hello'))
+print('check_type(true):', check_type(true))
+print('check_type([1,2,3]):', check_type([1, 2, 3]))
+print('check_type(null):', check_type(null))
+print()
+
+# 3. Работа с числами
+print('3️⃣ Работа с числами:')
+print('====================')
+
+let int_num = 42
+let float_num = 3.14
+
+print('Целое число:', int_num)
+print('Дробное число:', float_num)
+print('Оба являются числами:')
+print('  isinstance(int_num, num):', isinstance(int_num, num))
+print('  isinstance(float_num, num):', isinstance(float_num, num))
+print('  isinstance(int_num, float):', isinstance(int_num, float))
+print('  isinstance(float_num, float):', isinstance(float_num, float))
+print('  isinstance(int_num, int):', isinstance(int_num, int))
+print('  isinstance(float_num, int):', isinstance(float_num, int))
+print()
+
+# 4. Работа со строками
+print('4️⃣ Работа со строками:')
+print('======================')
+
+let text1 = 'Обычная строка'
+let text2 = '$100.50'  # Может быть определена как валюта
+let text22 = '100.50'  
+let text3 = '12/9/2019' 
+let date1 = date('12/10/2020')
+
+print('Обычная строка:', text1)
+print('  isinstance(text1, str):', isinstance(text1, str))
+print('  isinstance(text1, str):', isinstance(text1, money))
+
+print('Валютная строка:', text2)
+print('  isinstance(text2, str):', isinstance(text2, str))
+print('  isinstance(text2, money):', isinstance(text2, money))
+
+print('Валютная строка:', text22)
+print('  isinstance(text22, str):', isinstance(text22, str))
+print('  isinstance(text22, money):', isinstance(text22, money))
+
+print('Строка с датой:', text3)
+print('  isinstance(text3, str):', isinstance(text3, str))
+print('  isinstance(text3, date):', isinstance(text3, date))
+print('  isinstance(text3, money):', isinstance(text3, money))
+
+print('Дата:', date1)
+print('  isinstance(date1, str):', isinstance(date1, str))
+print('  isinstance(date1, date):', isinstance(date1, date))
+print('  isinstance(date1, money):', isinstance(date1, money))
+
+
+# 5. Работа с массивами
+print('5️⃣ Работа с массивами:')
+print('======================')
+
+let numbers = [1, 2, 3, 4, 5]
+let strings = ['a', 'b', 'c']
+let mixed = [1, 'hello', true, null]
+let empty = []
+
+print('Массив чисел:', numbers)
+print('Массив строк:', strings)
+print('Смешанный массив:', mixed)
+print('Пустой массив:', empty)
+
+print('Все являются массивами:')
+print('  isinstance(numbers, array):', isinstance(numbers, array))
+print('  isinstance(strings, array):', isinstance(strings, array))
+print('  isinstance(mixed, array):', isinstance(mixed, array))
+print('  isinstance(empty, array):', isinstance(empty, array))
+print()
+
+# 6. Проверка элементов массива
+print('6️⃣ Проверка элементов массива:')
+print('==============================')
+
+let data = [42, 'text', true, null, [1, 2]]
+
+print('Массив данных:', data)
+print('Типы элементов:')
+print('  data[0] (42):', isinstance(data[0], num))
+print('  data[1] ("text"):', isinstance(data[1], str))
+print('  data[2] (true):', isinstance(data[2], bool))
+print('  data[3] (null):', isinstance(data[3], null))
+print('  data[4] ([1,2]):', isinstance(data[4], array))
+print()
+
+# 7. Условная логика на основе типов
+print('7️⃣ Условная логика на основе типов:')
+print('===================================')
+
+fn process_value(val) {
+    if isinstance(val, num) {
+        print('Обрабатываю число:', val)
+        return val * 2
+    }
+    
+    if isinstance(val, str) {
+        print('Обрабатываю строку:', val)
+        return val + ' (обработано)'
+    }
+    
+    if isinstance(val, bool) {
+        print('Обрабатываю булево значение:', val)
+        if val {
+            return 'Истина'
+        } else {
+            return 'Ложь'
+        }
+    }
+    
+    if isinstance(val, array) {
+        print('Обрабатываю массив:', val)
+        return len(val)
+    }
+    
+    if isinstance(val, null) {
+        print('Обрабатываю null значение')
+        return 'Пустое значение'
+    }
+    
+    return 'Неизвестный тип'
+}
+
+print('Примеры обработки:')
+let result1 = process_value(10)
+print('Результат:', result1)
+
+let result2 = process_value('hello')
+print('Результат:', result2)
+
+let result3 = process_value(true)
+print('Результат:', result3)
+
+let result4 = process_value([1, 2, 3, 4])
+print('Результат:', result4)
+
+let result5 = process_value(null)
+print('Результат:', result5)
+print()
+
+# 8. Альтернативные имена типов
+print('8️⃣ Альтернативные имена типов:')
+print('==============================')
+
+let test_val = 42
+
+print('Число 42 можно проверить разными способами:')
+print('  isinstance(test_val, num):', isinstance(test_val, num))
+print('  isinstance(test_val, int):', isinstance(test_val, int))
+
+let test_str = 'hello'
+print('Строку можно проверить как:')
+print('  isinstance(test_str, str):', isinstance(test_str, str))
+
+let test_arr = [1, 2, 3]
+print('Массив можно проверить как:')
+print('  isinstance(test_arr, array):', isinstance(test_arr, array))
+print()
+
+print('✅ Руководство завершено!')
+print('Функция isinstance() - мощный инструмент для проверки типов в DataCode')
+print('Используйте её для создания надёжного и типобезопасного кода!')

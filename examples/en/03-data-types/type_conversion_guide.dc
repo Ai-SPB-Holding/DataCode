@@ -1,0 +1,225 @@
+# Guide to working with types and type conversion in DataCode
+# This file shows how to work with different data types
+
+print('🔄 Guide to types and conversions in DataCode')
+print('====================================================')
+print()
+
+# 1. Basic data types
+print('1️⃣ Basic data types:')
+print('========================')
+
+let my_number = 42
+let my_float = 3.14
+let my_string = 'Hello, DataCode!'
+let my_bool = true
+let my_array = [1, 2, 3]
+let my_null = null
+let my_path = path('/home/user')
+
+print('Number:', my_number, '- type:', isinstance(my_number, num))
+print('Float:', my_float, '- type:', isinstance(my_float, float))
+print('String:', my_string, '- type:', isinstance(my_string, str))
+print('Boolean:', my_bool, '- type:', isinstance(my_bool, bool))
+print('Array:', my_array, '- type:', isinstance(my_array, array))
+print('Null:', my_null, '- type:', isinstance(my_null, null))
+print('Path:', my_path, '- type:', isinstance(my_path, path))
+print()
+
+# 2. Type checking with isinstance()
+print('2️⃣ Type checking with isinstance():')
+print('=================================')
+
+fn check_type(value) {
+    if isinstance(value, num) {
+        return 'This is a number'
+    }
+    if isinstance(value, str) {
+        return 'This is a string'
+    }
+    if isinstance(value, bool) {
+        return 'This is a boolean value'
+    }
+    if isinstance(value, array) {
+        return 'This is an array'
+    }
+    if isinstance(value, null) {
+        return 'This is null'
+    }
+    if isinstance(value, path){ 
+        return 'This is a path'
+    }
+    return 'Unknown type'
+}
+
+print('check_type(42):', check_type(42))
+print('check_type("hello"):', check_type('hello'))
+print('check_type(true):', check_type(true))
+print('check_type([1,2,3]):', check_type([1, 2, 3]))
+print('check_type(null):', check_type(null))
+print()
+
+# 3. Working with numbers
+print('3️⃣ Working with numbers:')
+print('====================')
+
+let int_num = 42
+let float_num = 3.14
+
+print('Integer:', int_num)
+print('Float:', float_num)
+print('Both are numbers:')
+print('  isinstance(int_num, num):', isinstance(int_num, num))
+print('  isinstance(float_num, num):', isinstance(float_num, num))
+print('  isinstance(int_num, float):', isinstance(int_num, float))
+print('  isinstance(float_num, float):', isinstance(float_num, float))
+print('  isinstance(int_num, int):', isinstance(int_num, int))
+print('  isinstance(float_num, int):', isinstance(float_num, int))
+print()
+
+# 4. Working with strings
+print('4️⃣ Working with strings:')
+print('======================')
+
+let text1 = 'Regular string'
+let text2 = '$100.50'  # May be identified as currency
+let text22 = '100.50'  
+let text3 = '12/9/2019' 
+let date1 = date('12/10/2020')
+
+print('Regular string:', text1)
+print('  isinstance(text1, str):', isinstance(text1, str))
+print('  isinstance(text1, money):', isinstance(text1, money))
+
+print('Currency string:', text2)
+print('  isinstance(text2, str):', isinstance(text2, str))
+print('  isinstance(text2, money):', isinstance(text2, money))
+
+print('Currency string:', text22)
+print('  isinstance(text22, str):', isinstance(text22, str))
+print('  isinstance(text22, money):', isinstance(text22, money))
+
+print('Date string:', text3)
+print('  isinstance(text3, str):', isinstance(text3, str))
+print('  isinstance(text3, date):', isinstance(text3, date))
+print('  isinstance(text3, money):', isinstance(text3, money))
+
+print('Date:', date1)
+print('  isinstance(date1, str):', isinstance(date1, str))
+print('  isinstance(date1, date):', isinstance(date1, date))
+print('  isinstance(date1, money):', isinstance(date1, money))
+
+
+# 5. Working with arrays
+print('5️⃣ Working with arrays:')
+print('======================')
+
+let numbers = [1, 2, 3, 4, 5]
+let strings = ['a', 'b', 'c']
+let mixed = [1, 'hello', true, null]
+let empty = []
+
+print('Number array:', numbers)
+print('String array:', strings)
+print('Mixed array:', mixed)
+print('Empty array:', empty)
+
+print('All are arrays:')
+print('  isinstance(numbers, array):', isinstance(numbers, array))
+print('  isinstance(strings, array):', isinstance(strings, array))
+print('  isinstance(mixed, array):', isinstance(mixed, array))
+print('  isinstance(empty, array):', isinstance(empty, array))
+print()
+
+# 6. Checking array elements
+print('6️⃣ Checking array elements:')
+print('==============================')
+
+let data = [42, 'text', true, null, [1, 2]]
+
+print('Data array:', data)
+print('Element types:')
+print('  data[0] (42):', isinstance(data[0], num))
+print('  data[1] ("text"):', isinstance(data[1], str))
+print('  data[2] (true):', isinstance(data[2], bool))
+print('  data[3] (null):', isinstance(data[3], null))
+print('  data[4] ([1,2]):', isinstance(data[4], array))
+print()
+
+# 7. Conditional logic based on types
+print('7️⃣ Conditional logic based on types:')
+print('===================================')
+
+fn process_value(val) {
+    if isinstance(val, num) {
+        print('Processing number:', val)
+        return val * 2
+    }
+    
+    if isinstance(val, str) {
+        print('Processing string:', val)
+        return val + ' (processed)'
+    }
+    
+    if isinstance(val, bool) {
+        print('Processing boolean value:', val)
+        if val {
+            return 'True'
+        } else {
+            return 'False'
+        }
+    }
+    
+    if isinstance(val, array) {
+        print('Processing array:', val)
+        return len(val)
+    }
+    
+    if isinstance(val, null) {
+        print('Processing null value')
+        return 'Empty value'
+    }
+    
+    return 'Unknown type'
+}
+
+print('Processing examples:')
+let result1 = process_value(10)
+print('Result:', result1)
+
+let result2 = process_value('hello')
+print('Result:', result2)
+
+let result3 = process_value(true)
+print('Result:', result3)
+
+let result4 = process_value([1, 2, 3, 4])
+print('Result:', result4)
+
+let result5 = process_value(null)
+print('Result:', result5)
+print()
+
+# 8. Alternative type names
+print('8️⃣ Alternative type names:')
+print('==============================')
+
+let test_val = 42
+
+print('Number 42 can be checked in different ways:')
+print('  isinstance(test_val, num):', isinstance(test_val, num))
+print('  isinstance(test_val, int):', isinstance(test_val, int))
+
+let test_str = 'hello'
+print('String can be checked as:')
+print('  isinstance(test_str, str):', isinstance(test_str, str))
+
+let test_arr = [1, 2, 3]
+print('Array can be checked as:')
+print('  isinstance(test_arr, array):', isinstance(test_arr, array))
+print()
+
+print('✅ Guide completed!')
+print('The isinstance() function is a powerful tool for type checking in DataCode')
+print('Use it to create reliable and type-safe code!')
+

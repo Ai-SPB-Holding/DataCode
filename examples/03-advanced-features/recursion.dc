@@ -1,8 +1,0 @@
-global function factorial(n) do
-    if n <= 1 do
-        return 1
-    endif
-    return n * factorial(n - 1)  
-endfunction
-
-print(factorial(100) * factorial(100) * factorial(100))

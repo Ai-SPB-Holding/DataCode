@@ -1,0 +1,52 @@
+# Область видимости переменных
+# Демонстрация глобальных и локальных переменных
+
+# Глобальные переменные
+let global_var = 10
+
+print("Глобальная переменная:", global_var)
+
+# Функция с локальными переменными
+fn test_scope() {
+    let local_var = 20
+    print("Локальная переменная в функции:", local_var)
+    print("Глобальная переменная доступна в функции:", global_var)
+    return local_var
+}
+
+let result = test_scope()
+print("Результат функции:", result)
+
+# Переменные в циклах
+for i in range(1, 4) {
+    let loop_var = i * 2
+    print("Переменная в цикле:", loop_var)
+}
+
+# Вложенные области видимости
+let outer = 100
+if outer > 50 {
+    let inner = 200
+    print("Внешняя переменная:", outer)
+    print("Внутренняя переменная:", inner)
+}
+
+# Функция с параметрами (локальные переменные)
+fn add_with_local(a, b) {
+    let sum = a + b
+    return sum
+}
+
+print("add_with_local(5, 3) =", add_with_local(5, 3))
+
+# Рекурсия с локальными переменными
+fn factorial_with_local(n) {
+    if n <= 1 {
+        return 1
+    }
+    let prev = factorial_with_local(n - 1)
+    return n * prev
+}
+
+print("factorial_with_local(5) =", factorial_with_local(5))
+

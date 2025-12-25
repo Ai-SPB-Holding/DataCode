@@ -1,0 +1,26 @@
+# Работа со строками
+# Демонстрация строковых операций
+
+let greeting = "Привет"
+let name = "ДатаКод"
+let message = greeting + ", " + name + "!"
+
+print(message)
+
+# Длина строки
+let text = "Hello, World!"
+let length = len(text)
+
+print("Текст: " + text)
+print("Длина: " + length)
+
+# Пустая строка
+let empty = ""
+let empty_len = len(empty)
+print("Пустая строка, длина: " + empty_len)
+
+# Конкатенация с числами (через строки)
+let num = 42
+let num_str = "Число: " + "42"
+print(num_str)
+

@@ -1,0 +1,218 @@
+# Working with Objects in DataCode
+# Demonstrates object creation, property access, and usage
+
+print("============================================================")
+print("Objects (Dictionaries) in DataCode")
+print("============================================================")
+print()
+
+# Example 1: Creating simple objects
+print("🔍 Example 1: Creating simple objects...")
+global person = {
+    name: 'Alice',
+    age: 30,
+    active: true
+}
+
+print("  ✓ Created person object:")
+print("    person.name =", person.name)
+print("    person.age =", person.age)
+print("    person.active =", person.active)
+print()
+
+# Example 2: Accessing properties with dot notation
+print("🔍 Example 2: Accessing properties with dot notation...")
+global product = {
+    id: 101,
+    name: 'Laptop',
+    price: 999.99,
+    in_stock: true
+}
+
+print("  ✓ Product properties:")
+print("    product.id =", product.id)
+print("    product.name =", product.name)
+print("    product.price =", product.price)
+print("    product.in_stock =", product.in_stock)
+print()
+
+# Example 3: Accessing properties with bracket notation
+print("🔍 Example 3: Accessing properties with bracket notation...")
+global config = {
+    'server_url': 'https://api.example.com',
+    'timeout': 30,
+    'retry_count': 3
+}
+
+print("  ✓ Config properties (using brackets):")
+print("    config['server_url'] =", config['server_url'])
+print("    config['timeout'] =", config['timeout'])
+print("    config['retry_count'] =", config['retry_count'])
+print()
+
+# Example 4: Objects with string keys
+print("🔍 Example 4: Objects with string keys...")
+global employee = {
+    'first name': 'John',
+    'last name': 'Doe',
+    'employee id': 12345,
+    'department': 'Engineering'
+}
+
+print("  ✓ Employee with string keys:")
+print("    employee['first name'] =", employee['first name'])
+print("    employee['last name'] =", employee['last name'])
+print("    employee['employee id'] =", employee['employee id'])
+print()
+
+# Example 5: Nested objects
+print("🔍 Example 5: Nested objects...")
+global company = {
+    name: 'TechCorp',
+    address: {
+        street: '123 Main St',
+        city: 'San Francisco',
+        zip: '94102'
+    },
+    employees: 150
+}
+
+print("  ✓ Company with nested address:")
+print("    company.name =", company.name)
+print("    company.address.street =", company.address.street)
+print("    company.address.city =", company.address.city)
+print("    company.address.zip =", company.address.zip)
+print("    company.employees =", company.employees)
+print()
+
+# Example 6: Objects with different value types
+print("🔍 Example 6: Objects with different value types...")
+global mixed = {
+    number: 42,
+    text: 'Hello',
+    boolean: true,
+    array: [1, 2, 3],
+    nested_object: {
+        key: 'value'
+    },
+    null_value: null
+}
+
+print("  ✓ Mixed object with various types:")
+print("    mixed.number =", mixed.number, "- type:", typeof(mixed.number))
+print("    mixed.text =", mixed.text, "- type:", typeof(mixed.text))
+print("    mixed.boolean =", mixed.boolean, "- type:", typeof(mixed.boolean))
+print("    mixed.array =", mixed.array, "- type:", typeof(mixed.array))
+print("    mixed.nested_object =", mixed.nested_object, "- type:", typeof(mixed.nested_object))
+print("    mixed.null_value =", mixed.null_value, "- type:", typeof(mixed.null_value))
+print()
+
+# Example 7: Empty objects
+print("🔍 Example 7: Empty objects...")
+global empty_obj = {}
+print("  ✓ Created empty object:", empty_obj)
+print("  ✓ Type:", typeof(empty_obj))
+print("  ✓ Length:", len(empty_obj))
+print()
+
+# Example 8: Objects in arrays
+print("🔍 Example 8: Objects in arrays...")
+global users = [
+    {id: 1, name: 'Alice', role: 'admin'},
+    {id: 2, name: 'Bob', role: 'user'},
+    {id: 3, name: 'Charlie', role: 'user'}
+]
+
+print("  ✓ Array of user objects:")
+for user in users {
+    print("    User", user.id, ":", user.name, "-", user.role)
+}
+print()
+
+# Example 9: Using objects as dictionaries
+print("🔍 Example 9: Using objects as dictionaries...")
+global translations = {
+    'hello': 'Hola',
+    'goodbye': 'Adiós',
+    'thank you': 'Gracias',
+    'please': 'Por favor'
+}
+
+fn translate(word) {
+    if translations[word] != null {
+        return translations[word]
+    } else {
+        return word
+    }
+}
+
+print("  ✓ Translation dictionary:")
+print("    translate('hello') =", translate('hello'))
+print("    translate('goodbye') =", translate('goodbye'))
+print("    translate('unknown') =", translate('unknown'))
+print()
+
+# Example 10: Objects with expressions
+print("🔍 Example 10: Objects with expressions...")
+global x = 10
+global y = 20
+
+global calculated = {
+    sum: x + y,
+    product: x * y,
+    difference: x - y,
+    quotient: x / y
+}
+
+print("  ✓ Object with calculated values:")
+print("    calculated.sum =", calculated.sum)
+print("    calculated.product =", calculated.product)
+print("    calculated.difference =", calculated.difference)
+print("    calculated.quotient =", calculated.quotient)
+print()
+
+# Example 11: Checking object properties
+print("🔍 Example 11: Checking object properties...")
+global settings = {
+    theme: 'dark',
+    language: 'en',
+    notifications: true
+}
+
+print("  ✓ Settings object:")
+print("    settings.theme =", settings.theme)
+print("    settings.language =", settings.language)
+print("    settings.notifications =", settings.notifications)
+print("    typeof(settings) =", typeof(settings))
+print()
+
+# Example 12: Practical use case - configuration
+print("🔍 Example 12: Practical use case - configuration...")
+global app_config = {
+    'app_name': 'DataCode App',
+    'version': '1.0.0',
+    'database': {
+        'host': 'localhost',
+        'port': 5432,
+        'name': 'datacode_db'
+    },
+    'features': {
+        'logging': true,
+        'caching': true,
+        'analytics': false
+    }
+}
+
+print("  ✓ Application configuration:")
+print("    App:", app_config['app_name'], "v" + app_config['version'])
+print("    Database:", app_config['database']['host'] + ":" + str(app_config['database']['port']))
+print("    Features:")
+print("      - Logging:", app_config['features']['logging'])
+print("      - Caching:", app_config['features']['caching'])
+print("      - Analytics:", app_config['features']['analytics'])
+print()
+
+print("============================================================")
+print("✅ Objects Examples Completed")
+print("============================================================")
+

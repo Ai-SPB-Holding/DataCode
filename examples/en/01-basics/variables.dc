@@ -1,0 +1,20 @@
+# Working with variables
+# Demonstration of variable declaration and usage
+
+let name = "DataCode"
+let version = 1.0
+let year = 2024
+
+print("Programming language: " + name)
+print("Version: " + version)
+print("Year: " + year)
+
+# Changing variables
+let x = 10
+let y = 20
+let sum = x + y
+
+print("x = " + x)
+print("y = " + y)
+print("x + y = " + sum)
+

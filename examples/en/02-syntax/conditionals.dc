@@ -1,0 +1,51 @@
+# Conditional constructs
+# Demonstration of if/else
+
+let x = 10
+let y = 5
+
+# Simple if condition
+if x > 5 {
+    print("x is greater than 5")
+}
+
+# if/else condition
+if x > y {
+    print("x is greater than y")
+} else {
+    print("x is not greater than y")
+}
+
+# Nested conditions
+let age = 25
+if age >= 18 {
+    if age < 65 {
+        print("Adult")
+    } else {
+        print("Senior")
+    }
+} else {
+    print("Minor")
+}
+
+# String comparison
+let name1 = "Alice"
+let name2 = "Bob"
+
+if name1 == name2 {
+    print("Names are the same")
+} else {
+    print("Names are different")
+}
+
+# Multiple conditions
+let a = 10
+let b = 20
+let c = 15
+
+if a < b {
+    if b > c {
+        print("Both conditions are met")
+    }
+}
+

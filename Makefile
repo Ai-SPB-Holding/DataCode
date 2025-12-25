@@ -1,142 +1,176 @@
-# DataCode Makefile
-# Convenient commands for building, testing, and installing DataCode
+# Makefile для DataCode
+# Удобные команды для сборки, тестирования и установки DataCode
 
 .PHONY: help build test run install uninstall clean dev release examples
 
-# Default target
+# Цель по умолчанию
 help:
-	@echo "🧠 DataCode - Available Commands"
+	@echo "🧠 DataCode - Доступные команды"
 	@echo "================================"
 	@echo ""
-	@echo "Development:"
-	@echo "  make build      - Build DataCode in debug mode"
-	@echo "  make test       - Run all tests"
-	@echo "  make run        - Start DataCode REPL"
-	@echo "  make dev        - Build and run in development mode"
+	@echo "Разработка:"
+	@echo "  make build      - Собрать DataCode в режиме отладки"
+	@echo "  make test       - Запустить все тесты"
+	@echo "  make run        - Запустить DataCode REPL"
+	@echo "  make dev        - Собрать и запустить в режиме разработки"
 	@echo ""
-	@echo "Release:"
-	@echo "  make release    - Build DataCode in release mode"
-	@echo "  make install    - Install DataCode as global command"
-	@echo "  make uninstall  - Remove DataCode global command"
+	@echo "Релиз:"
+	@echo "  make release    - Собрать DataCode в релизном режиме"
+	@echo "  make install    - Установить DataCode как глобальную команду"
+	@echo "  make uninstall  - Удалить глобальную команду DataCode"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make examples   - Run all example files"
+	@echo "Примеры:"
+	@echo "  make examples      - Запустить все файлы примеров"
+	@echo "  make run-example   - Запустить конкретный пример (FILE=path/to/file.dc)"
 	@echo ""
-	@echo "Maintenance:"
-	@echo "  make clean      - Clean build artifacts"
+	@echo "Тестирование:"
+	@echo "  make test-cli   - Протестировать командную строку"
 	@echo ""
-	@echo "Usage after installation:"
-	@echo "  datacode                 # Start REPL"
-	@echo "  datacode filename.dc     # Execute file"
-	@echo "  datacode --help          # Show help"
+	@echo "Обслуживание:"
+	@echo "  make clean      - Очистить артефакты сборки"
+	@echo ""
+	@echo "Использование после установки:"
+	@echo "  datacode                 # Запустить интерактивный REPL"
+	@echo "  datacode filename.dc     # Выполнить файл filename.dc"
+	@echo "  datacode --help          # Показать справку"
+	@echo "  datacode --version       # Показать версию"
+	@echo ""
+	@echo "Примеры использования:"
+	@echo "  datacode hello.dc                                    # Выполнить файл"
+	@echo "  datacode examples/01-основы/hello.dc                # Выполнить пример"
+	@echo "  datacode examples/01-основы/variables.dc            # Работа с переменными"
+	@echo "  datacode examples/02-синтаксис/conditionals.dc     # Условные операторы"
+	@echo "  datacode examples/04-функции/simple_functions.dc    # Функции"
+	@echo "  datacode examples/05-циклы/for_loops.dc             # Циклы"
 
-# Build in debug mode
+# Сборка в режиме отладки
 build:
-	@echo "🔨 Building DataCode (debug mode)..."
+	@echo "🔨 Сборка DataCode (режим отладки)..."
 	cargo build
 
-# Build in release mode
+# Сборка в релизном режиме
 release:
-	@echo "🔨 Building DataCode (release mode)..."
+	@echo "🔨 Сборка DataCode (релизный режим)..."
 	cargo build --release
 
-# Run tests
+# Запуск тестов
 test:
-	@echo "🧪 Running tests..."
+	@echo "🧪 Запуск тестов..."
 	cargo test
 
-# Run tests with quiet output
+# Запуск тестов с тихим выводом
 test-quiet:
-	@echo "🧪 Running tests (quiet mode)..."
+	@echo "🧪 Запуск тестов (тихий режим)..."
 	cargo test --quiet
 
-# Run tests by category
+# Запуск тестов по категориям
 test-language:
-	@echo "🧪 Running language feature tests..."
+	@echo "🧪 Запуск тестов языковых возможностей..."
 	cargo test language_features
 
 test-data:
-	@echo "🧪 Running data type tests..."
+	@echo "🧪 Запуск тестов типов данных..."
 	cargo test data_types
 
 test-builtins:
-	@echo "🧪 Running builtin function tests..."
+	@echo "🧪 Запуск тестов встроенных функций..."
 	cargo test builtins
 
 test-errors:
-	@echo "🧪 Running error handling tests..."
+	@echo "🧪 Запуск тестов обработки ошибок..."
 	cargo test error_handling
 
 test-performance:
-	@echo "🧪 Running performance tests..."
+	@echo "🧪 Запуск тестов производительности..."
 	cargo test performance
 
 test-integration:
-	@echo "🧪 Running integration tests..."
+	@echo "🧪 Запуск интеграционных тестов..."
 	cargo test integration
 
-# Start REPL
+# Запуск REPL
 run:
-	@echo "🚀 Starting DataCode REPL..."
+	@echo "🚀 Запуск DataCode REPL..."
 	cargo run
 
-# Development mode (build + run)
+# Режим разработки (сборка + запуск)
 dev: build run
 
-# Install as global command
+# Установка как глобальная команда
 install:
-	@echo "📦 Installing DataCode globally..."
+	@echo "📦 Глобальная установка DataCode..."
 	@chmod +x install.sh
 	@./install.sh
 
-# Uninstall global command
+# Удаление глобальной команды
 uninstall:
-	@echo "🗑️  Uninstalling DataCode..."
+	@echo "🗑️  Удаление DataCode..."
 	@chmod +x uninstall.sh
 	@./uninstall.sh
 
-# Run example files
+# Запуск файлов примеров
 examples:
-	@echo "📚 Running DataCode examples..."
+	@echo "📚 Запуск примеров DataCode..."
 	@echo ""
-	@echo "🔹 Running hello.dc:"
-	@cargo run examples/hello.dc
+	@echo "🔹 Запуск hello.dc:"
+	@cargo run --bin datacode -- examples/01-основы/hello.dc || cargo run -- examples/01-основы/hello.dc
 	@echo ""
-	@echo "🔹 Running functions.dc:"
-	@cargo run examples/functions.dc
+	@echo "🔹 Запуск variables.dc:"
+	@cargo run --bin datacode -- examples/01-основы/variables.dc || cargo run -- examples/01-основы/variables.dc
 	@echo ""
-	@echo "🔹 Running showcase.dc:"
-	@cargo run examples/showcase.dc
+	@echo "🔹 Запуск showcase.dc:"
+	@cargo run --bin datacode -- examples/06-демонстрации/showcase.dc || cargo run -- examples/06-демонстрации/showcase.dc
 
-# Clean build artifacts
+# Запуск конкретного примера
+run-example:
+	@if [ -z "$(FILE)" ]; then \
+		echo "❌ Укажите файл: make run-example FILE=examples/01-основы/hello.dc"; \
+	else \
+		echo "🚀 Запуск $(FILE)..."; \
+		cargo run --bin datacode -- $(FILE) || cargo run -- $(FILE); \
+	fi
+
+# Тестирование командной строки
+test-cli: build
+	@echo "🧪 Тестирование командной строки..."
+	@echo ""
+	@echo "🔹 Проверка --help:"
+	@./target/debug/datacode --help | head -5
+	@echo ""
+	@echo "🔹 Проверка --version:"
+	@./target/debug/datacode --version
+	@echo ""
+	@echo "✅ Командная строка работает корректно!"
+
+# Очистка артефактов сборки
 clean:
-	@echo "🧹 Cleaning build artifacts..."
+	@echo "🧹 Очистка артефактов сборки..."
 	cargo clean
 
-# Check code formatting and linting
+# Проверка форматирования и линтинга кода
 check:
-	@echo "🔍 Checking code..."
+	@echo "🔍 Проверка кода..."
 	cargo check
 	cargo clippy
 	cargo fmt --check
 
-# Format code
+# Форматирование кода
 format:
-	@echo "✨ Formatting code..."
+	@echo "✨ Форматирование кода..."
 	cargo fmt
 
-# Show project info
+# Показать информацию о проекте
 info:
-	@echo "🧠 DataCode Project Information"
+	@echo "🧠 Информация о проекте DataCode"
 	@echo "==============================="
-	@echo "Name: DataCode"
-	@echo "Version: $(shell grep '^version' Cargo.toml | cut -d'"' -f2)"
-	@echo "Language: Rust"
-	@echo "License: MIT"
+	@echo "Название: ДатаКод"
+	@echo "Версия: $(shell grep '^version' Cargo.toml | cut -d'"' -f2)"
+	@echo "Язык: Rust"
+	@echo "Лицензия: MIT"
 	@echo ""
-	@echo "📁 Project Structure:"
-	@echo "  src/           - Source code"
-	@echo "  examples/      - Example .dc files"
-	@echo "  tests/         - Test files"
+	@echo "📁 Структура проекта:"
+	@echo "  src/           - Исходный код"
+	@echo "  examples/      - Примеры .dc файлов"
+	@echo "  tests/         - Тестовые файлы"
 	@echo ""
-	@echo "🔧 Available targets: build, test, run, install, examples"
+	@echo "🔧 Доступные цели: build, test, run, install, examples"

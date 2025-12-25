@@ -19,7 +19,7 @@ fi
 echo "✅ Rust/Cargo found"
 
 # Check if we're in the DataCode directory
-if [ ! -f "Cargo.toml" ] || ! grep -q "data_code" Cargo.toml; then
+if [ ! -f "Cargo.toml" ] || ! grep -q "name = \"data-code\"" Cargo.toml; then
     echo "❌ Error: Please run this script from the DataCode project directory"
     exit 1
 fi
@@ -76,8 +76,12 @@ if command -v datacode &> /dev/null; then
     echo "🎉 Installation completed successfully!"
     echo ""
     echo "📚 Usage:"
-    echo "  datacode                 # Start interactive REPL"
+    echo "  datacode                 # Start interactive REPL (default)"
     echo "  datacode filename.dc     # Execute DataCode file"
+    echo "  datacode filename.dc --build_model  # Export tables to SQLite"
+    echo "  datacode --websocket     # Start WebSocket server"
+    echo "  datacode --websocket --host 0.0.0.0 --port 8899  # Custom host/port"
+    echo "  datacode --websocket --use-ve  # Virtual environment mode"
     echo "  datacode --help          # Show help"
     echo ""
     echo "🚀 Try running: datacode --help"

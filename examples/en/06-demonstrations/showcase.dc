@@ -1,0 +1,169 @@
+# Complete DataCode capabilities demonstration
+# Comprehensive example demonstrating all main language features
+
+print("==================================================")
+print("DataCode Capabilities Demonstration")
+print("==================================================")
+print()
+
+# ========== 1. Variables and arithmetic ==========
+print("1. Variables and arithmetic:")
+let a = 15
+let b = 25
+let sum = a + b
+let product = a * b
+
+print("  a =", a)
+print("  b =", b)
+print("  a + b =", sum)
+print("  a * b =", product)
+print()
+
+# ========== 2. Strings ==========
+print("2. Working with strings:")
+let greeting = "Hello"
+let name = "DataCode"
+let message = greeting + ", " + name + "!"
+
+print("  Message:", message)
+print("  Message length:", len(message))
+print()
+
+# ========== 3. Conditional constructs ==========
+print("3. Conditional constructs:")
+let x = 10
+if x > 5 {
+    print("  x is greater than 5")
+} else {
+    print("  x is not greater than 5")
+}
+
+if x % 2 == 0 {
+    print("  x is an even number")
+} else {
+    print("  x is an odd number")
+}
+print()
+
+# ========== 4. Functions ==========
+print("4. Functions:")
+
+fn multiply(x, y) {
+    return x * y
+}
+
+fn greet_person(name) {
+    return "Hello, " + name + "!"
+}
+
+print("  multiply(6, 7) =", multiply(6, 7))
+print("  greet_person('World') =", greet_person("World"))
+print()
+
+# ========== 5. Recursion ==========
+print("5. Recursion:")
+
+fn factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+fn fibonacci(n) {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+print("  factorial(5) =", factorial(5))
+print("  fibonacci(7) =", fibonacci(7))
+print()
+
+# ========== 6. While loops ==========
+print("6. While loops:")
+let counter = 0
+let sum_while = 0
+while counter < 5 {
+    sum_while = sum_while + counter
+    counter = counter + 1
+}
+print("  Sum of numbers from 0 to 4 =", sum_while)
+print()
+
+# ========== 7. For loops ==========
+print("7. For loops:")
+let sum_for = 0
+for (let i = 1; i <= 5; i = i + 1) {
+    sum_for = sum_for + i
+}
+print("  Sum of numbers from 1 to 5 =", sum_for)
+print()
+
+# ========== 8. Nested loops ==========
+print("8. Nested loops:")
+print("  Multiplication table 3x3:")
+for (let i = 1; i <= 3; i = i + 1) {
+    for (let j = 1; j <= 3; j = j + 1) {
+        print("    ", i, "*", j, "=", i * j)
+    }
+}
+print()
+
+# ========== 9. Complex calculations ==========
+print("9. Complex calculations:")
+
+fn calculate_sum_of_squares(n) {
+    let sum = 0
+    for (let i = 1; i <= n; i = i + 1) {
+        sum = sum + i * i
+    }
+    return sum
+}
+
+print("  Sum of squares from 1 to 5 =", calculate_sum_of_squares(5))
+print()
+
+# ========== 10. Combining all features ==========
+print("10. Combining all features:")
+
+fn is_prime(n) {
+    if n < 2 {
+        return false
+    }
+    if n == 2 {
+        return true
+    }
+    for (let i = 2; i < n; i = i + 1) {
+        let quotient = n / i
+        if quotient * i == n {
+            return false
+        }
+    }
+    return true
+}
+
+fn count_primes_up_to(n) {
+    let count = 0
+    for (let i = 2; i <= n; i = i + 1) {
+        if is_prime(i) {
+            count = count + 1
+        }
+    }
+    return count
+}
+
+print("  Prime numbers up to 20:")
+for (let i = 2; i <= 20; i = i + 1) {
+    if is_prime(i) {
+        print("    ", i)
+    }
+}
+print("  Count of prime numbers up to 20 =", count_primes_up_to(20))
+print()
+
+print("==================================================")
+print("Demonstration completed!")
+print("==================================================")
+

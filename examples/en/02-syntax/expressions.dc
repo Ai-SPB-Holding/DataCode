@@ -1,0 +1,44 @@
+# Complex expressions
+# Demonstration of various types of expressions
+
+# Arithmetic expressions
+let result1 = (10 + 5) * 2
+let result2 = 10 + 5 * 2
+
+print("(10 + 5) * 2 =", result1)
+print("10 + 5 * 2 =", result2)
+
+# Logical expressions
+let is_true = true
+let is_false = false
+
+print("true =", is_true)
+print("false =", is_false)
+print("!true =", !is_true)
+print("!false =", !is_false)
+
+# Comparisons
+let x = 10
+let y = 20
+
+print("x > y:", x > y)
+print("x < y:", x < y)
+print("x == y:", x == y)
+print("x != y:", x != y)
+print("x >= y:", x >= y)
+print("x <= y:", x <= y)
+
+# Combined expressions
+let a = 5
+let b = 10
+let c = 15
+
+let complex = (a + b) * c - a
+print("(a + b) * c - a =", complex)
+
+# String expressions
+let str1 = "Hello"
+let str2 = "World"
+let combined = str1 + ", " + str2 + "!"
+print(combined)
+

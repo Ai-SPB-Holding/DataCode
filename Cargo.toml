@@ -1,13 +1,17 @@
 [package]
-name = "data_code"
-version = "1.7.2"
+name = "data-code"
+version = "2.0.0"
 edition = "2021"
-description = "DataCode - Interactive Programming Language for fast data processing"
+description = "ДатаКод - Interactive Programming Language for fast data processing"
 license = "MIT"
 authors = ["Igor <igornet0@users.noreply.github.com>"]
 repository = "https://github.com/igornet0/DataCode"
 keywords = ["programming-language", "interpreter", "repl", "data-processing"]
 categories = ["command-line-utilities", "development-tools"]
+
+[lib]
+name = "data_code"
+path = "src/lib.rs"
 
 [[bin]]
 name = "datacode"

@@ -46,5 +46,12 @@ impl OutputCapture {
             }
         });
     }
+
+    /// Проверить, активен ли перехват вывода
+    pub fn is_capturing() -> bool {
+        OUTPUT_BUFFER.with(|buf| {
+            buf.borrow().is_some()
+        })
+    }
 }
 

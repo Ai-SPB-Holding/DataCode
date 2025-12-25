@@ -1,0 +1,44 @@
+# Булевы значения и логические операции
+# Демонстрация работы с булевыми значениями
+
+let true_val = true
+let false_val = false
+
+print("true =", true_val)
+print("false =", false_val)
+
+# Логическое отрицание
+print("!true =", !true_val)
+print("!false =", !false_val)
+
+# Сравнения возвращают булевы значения
+let x = 10
+let y = 5
+
+print("x > y:", x > y)
+print("x < y:", x < y)
+print("x == y:", x == y)
+print("x != y:", x != y)
+
+# Использование в условиях
+if x > y {
+    print("x больше y - это правда")
+}
+
+if x == y {
+    print("Это не выполнится")
+} else {
+    print("x не равно y - это правда")
+}
+
+# Проверка на null
+let value = null
+if value == null {
+    print("Значение равно null")
+}
+
+let not_null = 42
+if not_null != null {
+    print("Значение не равно null")
+}
+

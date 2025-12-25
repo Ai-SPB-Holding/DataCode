@@ -1,0 +1,122 @@
+# Recursive Function Performance Test
+# Tests recursive function call performance and stack management
+
+print("=== RECURSIVE FUNCTION PERFORMANCE TEST ===")
+
+# Test 1: Factorial function (linear recursion)
+print("Test 1: Factorial function performance...")
+
+@cache
+fn factorial(n) {
+    if n <= 1 {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+let fact_results = []
+for i in range(1, 20) {
+    let result = factorial(i)
+    push(fact_results, result)
+    print("factorial(" + i + ") =", result)
+}
+
+# Test 2: Fibonacci function (exponential recursion)
+print("Test 2: Fibonacci function performance...")
+
+@cache
+fn fibonacci(n) {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+let fib_results = []
+for i in range(1, 30) {
+    let result = fibonacci(i)
+    push(fib_results, result)
+    print("fibonacci(" + i + ") =", result)
+}
+
+# Test 3: Ackermann function (highly recursive)
+print("Test 3: Ackermann function performance (limited values)...")
+
+@cache
+fn ackermann(m, n) {
+    if m == 0 {
+        return n + 1
+    }
+    if n == 0 {
+        return ackermann(m - 1, 1)
+    }
+    return ackermann(m - 1, ackermann(m, n - 1))
+}
+
+let ack_results = []
+for m in range(0, 5) {
+    for n in range(0, 4) {
+        if m >= 4 and n > 1 {
+            break
+        }
+        let result = ackermann(m, n)
+        push(ack_results, result)
+        print("ackermann(" + m + ", " + n + ") =", result)
+    }
+}
+
+# Test 4: Mutual recursion
+print("Test 4: Mutual recursion performance...")
+
+fn is_even(n) {
+    if n == 0 {
+        return true
+    }
+    return is_odd(n - 1)
+}
+
+fn is_odd(n) {
+    if n == 0 {
+        return false
+    }
+    return is_even(n - 1)
+}
+
+let mutual_results = []
+for i in range(1, 2003) {
+    let even_result = is_even(i)
+    let odd_result = is_odd(i)
+    push(mutual_results, [i, even_result, odd_result])
+    if i % 1000 == 0 or i % 1001 == 0 {
+        print(i, "is even:", even_result, "is odd:", odd_result)
+    }
+}
+
+# Test 5: Tree traversal simulation
+print("Test 5: Tree traversal recursion...")
+
+@cache
+fn tree_sum(depth, value) {
+    if depth <= 0 {
+        return value
+    }
+    let left = tree_sum(depth - 1, value * 2)
+    let right = tree_sum(depth - 1, value * 2 + 1)
+    return left + right
+}
+
+let tree_results = []
+for depth in range(1, 16) {
+    let result = tree_sum(depth, 1)
+    push(tree_results, result)
+    print("tree_sum(depth=" + depth + ") =", result)
+}
+
+# Results summary
+print("=== RECURSIVE PERFORMANCE RESULTS ===")
+print("Factorial tests completed:", len(fact_results))
+print("Fibonacci tests completed:", len(fib_results))
+print("Ackermann tests completed:", len(ack_results))
+print("Mutual recursion tests completed:", len(mutual_results))
+print("Tree traversal tests completed:", len(tree_results))
+print("All recursive performance tests completed successfully!")
